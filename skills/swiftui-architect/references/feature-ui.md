@@ -110,7 +110,7 @@ public final class DiscoverViewModel {
 Rules:
 - `@MainActor @Observable final class`, `public init` taking IDs and service protocols, cheap (assignments only).
 - State is `private(set)`; actions are internal methods the views call.
-- `load()` calls one ready-made service method and assigns the result. Aggregation, concurrency and de-duplication belong in the service.
+- A view model does no data processing of its own. It calls ready-made service methods, assigns what they return and manages the state its views read; mapping, aggregation and de-duplication belong in the service.
 - `load()` is safe to call again (refresh, retry); no `loadIfNeeded()` variants or "already loaded" latches.
 - No navigation, no views, no display strings, no other feature. State holds XCore values; display mappings are XUI extensions.
 
@@ -152,7 +152,7 @@ Pass sections the narrowest values they read (`title: String`, `movie: MovieSumm
 
 ## Loading and pagination: a proposed shape
 
-This is a suggestion for keeping loading, errors and paging simple, not a rule. Adapt it when a screen needs more, such as a refresh indicator or a banner for a failed refresh.
+This is a suggestion for keeping loading, errors and paging simple, not a rule. Adapt it when a screen needs more, such as a refresh indicator or a banner for a failed refresh. A screen with one resource can use the shape below; a screen with several resources or pagination uses the one in [Several resources and pagination](#several-resources-and-pagination).
 
 **Keep the data, the failure and the activity apart.** A screen can have data while it refreshes, data and a failed refresh, or an error while it retries. A single `idle / loading / loaded / failed` enum holds only one of these at a time, so each view model ends up rebuilding the others. Plain properties hold them all, with no shared state type:
 
@@ -170,32 +170,239 @@ Rules for `load()`:
 
 **Views render data first**: the content whenever there is data, the error view only when there is nothing to show, progress otherwise. A failed refresh keeps the content on screen without extra code.
 
-### Pagination
+### Several resources and pagination
 
-Pagination types belong to the feature that pages. Nothing generic goes into Core until a second feature pages the same way.
+When a screen loads more than one resource, or pages one, each resource gets its own state and its own load method, and the screen gets computed `isLoading` and `error` for its content view. Home below loads its banners and a paged list of sections.
 
-- The service returns one page and where the next one starts: `SearchResultsPage(movies:nextPage:)`, where `nextPage: Int?` is `nil` on the last page. XLive derives it from the API's page numbers, so the UI never sees page counts.
-- A small value type collects the pages for one query: `SearchResults` with `query`, `movies`, `nextPage` and `append(_:)`. `append` skips repeated items so `ForEach` identifiers stay unique.
-- The view model keeps `results: SearchResults?` and adds `nextPageFailure: SearchError?` beside `failure`. A failed later page keeps the results; a failed search replaces them.
-- The pagination footer is the only caller of `loadNextPage()`. Its progress view runs `.task(id: nextPage)`, so a page loads when the footer scrolls into view, again after each page while it's still visible (even a page of repeats), and one at a time. Its retry button only clears `nextPageFailure`; the progress view that replaces it loads the page.
-- The results list gets `.id(results.query)`, so a new query starts a new list at the top, with its own footer task.
+**Services stay this readable.** One method per resource, each returning values the views show as they are. XLive does all the mapping, aggregation and de-duplication; a paged method returns `Page<Item>`, a small generic struct in Core.
 
 ```swift
-struct SearchPaginationFooter: View {
-    let nextPage: Int
-    let viewModel: SearchViewModel
+/// One page of a paginated list, as a service returns it.
+public struct Page<Item: Sendable>: Sendable {
+    public let items: [Item]
+    /// The page to request next, or `nil` when this is the last one. Pages start at 1.
+    public let nextPage: Int?
+
+    public init(items: [Item], nextPage: Int?) {
+        self.items = items
+        self.nextPage = nextPage
+    }
+}
+
+public protocol HomeServiceProtocol: Sendable {
+    /// - Throws: `HomeError`. Cancellation propagates as `CancellationError`.
+    func loadBanners() async throws -> [MovieSummary]
+
+    /// - Throws: `HomeError`. Cancellation propagates as `CancellationError`.
+    func loadSections(page: Int) async throws -> Page<HomeSection>
+}
+
+public struct HomeService: HomeServiceProtocol {
+    private let client: TMDBClient
+
+    public init(client: TMDBClient) {
+        self.client = client
+    }
+
+    @concurrent
+    public func loadBanners() async throws -> [MovieSummary] {
+        do {
+            let response = try await client.homeBanners()
+            return (response.results ?? []).compactMap(MovieSummary.init)
+        } catch let error as TMDBError {
+            throw HomeError(error)
+        }
+    }
+
+    @concurrent
+    public func loadSections(page: Int) async throws -> Page<HomeSection> {
+        do {
+            let response = try await client.home(page: page)
+            return Page(response)
+        } catch let error as TMDBError {
+            throw HomeError(error)
+        }
+    }
+}
+
+// XLive/Mapping/Page+TMDB.swift
+extension Page where Item == HomeSection {
+    /// The API numbers its pages; the feature only needs to know which one comes next.
+    init(_ response: Components.Schemas.HomePage) {
+        let number = response.page ?? 1
+        let totalPages = response.totalPages ?? number
+        self.init(
+            items: (response.sections ?? []).compactMap(HomeSection.init),
+            nextPage: number < totalPages ? number + 1 : nil
+        )
+    }
+}
+```
+
+Live service methods are `@concurrent`, so their requests and mapping run off the main actor of the view model that awaits them.
+
+**View models do no data processing of their own.** They only manage the state their views read: every value they store comes from the service as it is.
+
+```swift
+/// Home's banners and sections, with the sections paged in as the last one comes into view.
+@MainActor
+@Observable
+public final class HomeViewModel {
+    private let service: any HomeServiceProtocol
+
+    /// Banners
+    private(set) var banners: [MovieSummary] = []
+    private(set) var isLoadingBanners: Bool = false
+    private(set) var bannersError: HomeError?
+
+    /// Sections
+    private(set) var sections: [HomeSection] = []
+    private(set) var isLoadingSections: Bool = true
+    private(set) var sectionsError: HomeError?
+    private(set) var nextSectionsPage: Int?
+    private(set) var isLoadingNextSectionsPage = false
+    private(set) var nextSectionsPageError: HomeError?
+
+    /// Whether Home is still loading with nothing to show yet.
+    var isLoading: Bool {
+        isLoadingSections && sections.isEmpty
+    }
+
+    /// Why Home has nothing to show. Banners failing on their own don't count.
+    var error: HomeError? {
+        sections.isEmpty ? sectionsError : nil
+    }
+
+    public init(service: any HomeServiceProtocol) {
+        self.service = service
+    }
+
+    func load() async {
+        await withTaskGroup { group in
+            group.addTask {
+                await self.loadBanners()
+            }
+
+            group.addTask {
+                await self.loadSections()
+            }
+        }
+    }
+
+    func loadBanners() async {
+        guard !isLoadingBanners else {
+            return
+        }
+
+        isLoadingBanners = true
+        defer { isLoadingBanners = false }
+
+        do {
+            let banners = try await service.loadBanners()
+            self.banners = banners
+            self.bannersError = nil
+        } catch is CancellationError {
+
+        } catch let error as HomeError {
+            self.bannersError = error
+        } catch {
+            self.bannersError = .unavailable
+        }
+    }
+
+    func loadSections() async {
+        isLoadingSections = true
+        defer { isLoadingSections = false }
+
+        do {
+            let page = try await service.loadSections(page: 1)
+            self.sections = page.items
+            self.nextSectionsPage = page.nextPage
+            self.sectionsError = nil
+            self.nextSectionsPageError = nil
+        } catch is CancellationError {
+
+        } catch let error as HomeError {
+            self.sectionsError = error
+        } catch {
+            self.sectionsError = .unavailable
+        }
+    }
+
+    func loadNextSectionsPage() async {
+        guard let requestedPage = nextSectionsPage else {
+            return
+        }
+
+        isLoadingNextSectionsPage = true
+        defer { isLoadingNextSectionsPage = false }
+
+        do {
+            let page = try await service.loadSections(page: requestedPage)
+            // A refresh may have started the sections over while this page loaded.
+            guard nextSectionsPage == requestedPage else {
+                return
+            }
+            self.sections.append(contentsOf: page.items)
+            self.nextSectionsPage = page.nextPage
+            self.nextSectionsPageError = nil
+        } catch is CancellationError {
+
+        } catch let error as HomeError {
+            self.nextSectionsPageError = error
+        } catch {
+            self.nextSectionsPageError = .unavailable
+        }
+    }
+}
+```
+
+Rules for this shape:
+- Each resource has its data (empty until it loads), `isLoading…` and `…Error`. A paged resource adds `next…Page`, `isLoadingNext…Page` and `next…PageError`.
+- A resource the screen loads as soon as it appears starts with `isLoading… = true`, so the first frame shows progress rather than the empty state.
+- The screen-wide `isLoading` and `error` are computed from the resources and hold the screen's own rules, such as banners not failing Home. Never store them: two loads would end up writing one flag.
+- `load()` runs the screen's independent loads side by side. Each load assigns what the service returns, clears its error on success and keeps its data on failure. Loading the first page again also clears the next page's error. Cancellation changes nothing, and unknown errors become the feature's fallback case.
+- `loadNext…Page()` remembers the page it asked for and, after the `await`, drops the result if a refresh started the list over meanwhile. It has no in-flight guard: the footer's task restarts as the footer scrolls out and back in, and the restarted call must be able to load.
+
+The content view branches on the screen-wide properties, and a footer after the sections loads the next page while it's on screen:
+
+```swift
+struct HomeContentView: View {
+    let viewModel: HomeViewModel
 
     var body: some View {
-        if let failure = viewModel.nextPageFailure {
-            SearchPageErrorView(error: failure) {
-                viewModel.retryNextPage()
+        if let error = viewModel.error {
+            // In a scroll view, so pulling to refresh works here too.
+            ScrollView {
+                HomeErrorView(error: error) {
+                    Task { await viewModel.load() }
+                }
+            }
+        } else if viewModel.isLoading {
+            ProgressView()
+                .progressViewStyle(.loadingDots)
+        } else if viewModel.sections.isEmpty, viewModel.banners.isEmpty {
+            ScrollView {
+                StateContent(.homeEmptyTitle)
             }
         } else {
-            ProgressView()
-                .task(id: nextPage) {
-                    await viewModel.loadNextPage()
-                }
+            HomeSections(viewModel: viewModel)
         }
+    }
+}
+
+private struct HomeNextPageLoader: View {
+    let nextPage: Int
+    let viewModel: HomeViewModel
+    @State private var isVisible = false
+
+    var body: some View {
+        ProgressView()
+            .onScrollVisibilityChange { isVisible = $0 }
+            // Asks again after each page in case the footer is still on screen once the page arrives.
+            .task(id: isVisible ? nextPage : nil) {
+                if isVisible { await viewModel.loadNextSectionsPage() }
+            }
     }
 }
 ```

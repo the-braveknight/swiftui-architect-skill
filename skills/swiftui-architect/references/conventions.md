@@ -22,10 +22,11 @@
 | Mock (XCore) | `MockXService`, exposed as `.mock` | `MockDiscoverService` |
 | Consumer-owned port | named for the consumer's need | `WatchlistMembershipServiceProtocol` |
 | App adapter for a port | port name + `Adapter` | `WatchlistMembershipAdapter` |
-| Service method | the value it returns | `movie(id:)`, `cast(movieID:)`, `loadShelves()` |
+| Service method | the value it returns | `movie(id:)`, `cast(movieID:)`, `loadShelves()`, `loadSections(page:)` |
 | View model | `XViewModel`, one per screen | `MovieCastViewModel` |
-| View model data and failure | the data named for what it is; the error as `failure` | `movie`, `shelves`, `failure`, `nextPageFailure` |
-| A page from a service, and pages collected | `XResultsPage` with `nextPage`; `XResults` | `SearchResultsPage`, `SearchResults` |
+| View model data and failure, one resource | the data named for what it is; the error as `failure` | `movie`, `shelves`, `failure` |
+| View model state, several resources | per resource: the data, `isLoading…`, `…Error`; paged: `next…Page`, `isLoadingNext…Page`, `next…PageError`; computed `isLoading` and `error` for the screen | `sections`, `isLoadingSections`, `sectionsError`, `nextSectionsPage` |
+| A page from a service | `Page<Item>` (Core) with `items` and `nextPage` | `Page<HomeSection>` |
 | Focused model | a noun for what it is, no `ViewModel` suffix, no SwiftUI term of art | `WatchlistMembership` |
 | Public screen view | `XView` | `MovieDetailView`, `MovieCastView` |
 | Content view | `XContentView` | `DiscoverContentView` |

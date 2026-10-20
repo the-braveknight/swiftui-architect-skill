@@ -127,7 +127,7 @@ App file shape, environment keys, tab-root and pushed screens: [references/compo
 - `XView` (public) owns its view model as `@State`, applies screen modifiers (`.navigationTitle`, `.task { await viewModel.load() }`) and renders `XContentView`.
 - `XContentView` shows the data whenever there is some, the feature's error only when there's nothing to show, and progress otherwise.
 - Sections, rows and cards are separate `View` structs with narrow inputs. Toolbars are `ToolbarContent` structs.
-- View models are `@MainActor @Observable final class XViewModel` with `private(set)` data and `failure: XError?` properties, and a trivial `load()`. Loading and pagination follow a proposed shape, not a rule.
+- View models are `@MainActor @Observable final class XViewModel` with `private(set)` state for each resource the screen loads, and they do no data processing of their own: services return what the views show. Loading and pagination, including screens with several resources, follow a proposed shape, not a rule.
 - A focused model for one concern of a screen is a noun without the `ViewModel` suffix (`WatchlistMembership`).
 
 View and view-model shapes, ownership, presentations: [references/feature-ui.md](references/feature-ui.md).

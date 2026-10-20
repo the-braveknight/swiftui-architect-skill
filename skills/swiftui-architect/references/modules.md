@@ -124,7 +124,7 @@ Never add `.defaultIsolation(MainActor.self)` to a package; mark UI types `@Main
 
 ## Services, errors and DTO mapping
 
-XCore defines the contract in domain terms. One ready-made method per screen need; aggregation and concurrency live in the service, not the view model.
+XCore defines the contract in domain terms. One ready-made method per resource a screen shows, kept as readable as the [Home example](feature-ui.md#several-resources-and-pagination); mapping, aggregation and de-duplication live in the service, so view models only assign what it returns.
 
 ```swift
 public protocol MovieDetailServiceProtocol: Sendable {
@@ -208,7 +208,7 @@ The shared package mirrors a feature's layers.
 
 | Target | Contains | Imports |
 |---|---|---|
-| `Core` | `Domain/`: the vocabulary several features and services share (`MovieSummary`) | Foundation only |
+| `Core` | `Domain/`: the vocabulary several features and services share (`MovieSummary`, `Page<Item>`) | Foundation only |
 | `CoreUI` | `Components/`: views that render Core types and that several features show (`MovieSummaryCard`, `MovieSummaryRow`) | `Core`, `DesignSystem` |
 
 Promotion rule: move a type into Core or CoreUI only when a second feature needs the same concept and both copies must change together. If two types merely look alike today, duplicate them; they will diverge (a Discover poster card with a rating overlay stays in Discover even though a plain card lives in CoreUI).
