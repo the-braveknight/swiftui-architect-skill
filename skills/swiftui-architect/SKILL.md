@@ -127,8 +127,8 @@ App file shape, environment keys, tab-root and pushed screens: [references/compo
 - `XView` (public) owns its view model as `@State`, applies screen modifiers (`.navigationTitle`, `.task { await viewModel.load() }`) and renders `XStateView`.
 - `XStateView` shows the content whenever there is some, the feature's error only when there's nothing to show, and progress otherwise.
 - `XContentView` lays out the content in its scroll container, one view per resource or section. Views that only display take values; a view takes the view model only to read state of its own or call it, like a paging footer.
-- Each of these is its own file. Sections, rows and cards are separate `View` structs with narrow inputs. Toolbars are `ToolbarContent` structs.
-- View models are `@MainActor @Observable final class XViewModel` with `private(set)` state for each resource the screen loads, and they do no data processing of their own: services return what the views show. Loading and pagination, including screens with several resources, follow a proposed shape, not a rule.
+- Each of these is its own file. Sections, rows and cards are separate `View` structs with narrow inputs; no wrapper structs around a single system view. Toolbars are `ToolbarContent` structs, in XUI while their items stay inside the feature and in the app once they switch tabs or open app screens.
+- View models are `@MainActor @Observable final class XViewModel` with `private(set)` data, `isLoading…` and `…Error` for each resource the screen loads, and they do no data processing of their own: services return what the views show. Loading and pagination follow a proposed shape, not a rule.
 - A focused model for one concern of a screen is a noun without the `ViewModel` suffix (`WatchlistMembership`).
 
 View and view-model shapes, ownership, presentations: [references/feature-ui.md](references/feature-ui.md).

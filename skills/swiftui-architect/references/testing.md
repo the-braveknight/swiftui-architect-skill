@@ -60,7 +60,7 @@ private actor StubMovieDetailService: MovieDetailServiceProtocol {
 
 ## View model tests
 
-Swift Testing, `@MainActor` suites, one behavior per test. Import the UI target with `@testable import XUI` to reach internal state and methods. Cover the loading rules the screen follows ([the proposed shape](feature-ui.md#loading-and-pagination-a-proposed-shape)): the data loads, a failure is recorded, a failed refresh keeps the data, a successful retry clears the failure, and cancellation isn't a failure. A paged screen also covers: a failed page keeps what's loaded, a retried page loads, loading the first page again clears the next page's error, a page that arrives after a refresh is dropped, and a restarted footer still loads its page.
+Swift Testing, `@MainActor` suites, one behavior per test. Import the UI target with `@testable import XUI` to reach internal state and methods. Cover the loading rules the screen follows ([the proposed shape](feature-ui.md#loading-and-pagination-a-proposed-shape)): a resource loaded on appear starts out loading, the data loads, the error is recorded, a failed refresh keeps the data, a successful retry clears the error, and cancellation isn't an error. A paged screen also covers: a failed page keeps what's loaded, a retried page loads, loading the first page again clears the next page's error, a page that arrives after a refresh is dropped, and a restarted footer still loads its page.
 
 ```swift
 @MainActor
@@ -85,7 +85,7 @@ struct MovieDetailViewModelTests {
         await viewModel.load()
 
         #expect(viewModel.movie == movie)
-        #expect(viewModel.failure == .offline)
+        #expect(viewModel.movieError == .offline)
     }
 }
 ```

@@ -22,7 +22,7 @@ What lives in an `XUI` target and the shape of each piece. Keep feature views pl
 | `XHeader`, `XRail`, `XRow`, `XCard`, `XBannersView`, `XSectionsView` | One section, resource or element each, taking only the values it reads |
 | `X…NextPageFooter` | Loads the next page of a paged resource while it's on screen; takes the view model |
 | `XErrorView` | Switches over `XError` and renders DesignSystem's `StateContent` with a retry; shared by all the feature's screens |
-| `XToolbar` | A `ToolbarContent` struct |
+| `XToolbar` | A `ToolbarContent` struct whose items act inside the feature. One that switches tabs or opens app screens belongs to the app: see [App toolbars](composition.md#app-toolbars) |
 | `XViewModel` | Loads and exposes state for one screen |
 | Focused models | One concern of a screen, such as `WatchlistMembership` |
 | `XDestination` | Where the feature's views can take the user |
@@ -59,20 +59,23 @@ public struct DiscoverView: View {
 }
 
 // DiscoverStateView.swift
-/// Renders the shelves whenever there are some, and the error only when there's nothing to show.
+/// Renders the shelves whenever there are some, the error only when there's nothing to show, and progress while the
+/// first load runs. A retry loads again while the error stays on screen.
 struct DiscoverStateView: View {
     let viewModel: DiscoverViewModel
 
     var body: some View {
-        if let shelves = viewModel.shelves {
-            DiscoverContentView(shelves: shelves)
-        } else if let failure = viewModel.failure {
-            DiscoverErrorView(error: failure) {
+        if !viewModel.shelves.isEmpty {
+            DiscoverContentView(shelves: viewModel.shelves)
+        } else if let error = viewModel.shelvesError {
+            DiscoverErrorView(error: error) {
                 Task { await viewModel.load() }
             }
-        } else {
+        } else if viewModel.isLoadingShelves {
             ProgressView()
                 .progressViewStyle(.loadingDots)
+        } else {
+            StateContent(.discoverEmptyTitle)
         }
     }
 }
@@ -107,23 +110,29 @@ Anything that needs loaded data, such as a title from the model or a toolbar tha
 public final class DiscoverViewModel {
     private let service: any DiscoverServiceProtocol
 
-    /// The shelves last loaded. A failed refresh keeps them.
-    private(set) var shelves: [DiscoverShelf]?
-    /// Why the last load failed.
-    private(set) var failure: DiscoverError?
+    /// Shelves
+    private(set) var shelves: [DiscoverShelf] = []
+    private(set) var isLoadingShelves: Bool = true
+    private(set) var shelvesError: DiscoverError?
 
     public init(service: any DiscoverServiceProtocol) {
         self.service = service
     }
 
     func load() async {
-        failure = nil
+        isLoadingShelves = true
+        defer { isLoadingShelves = false }
+
         do {
-            shelves = try await service.loadShelves()
+            let shelves = try await service.loadShelves()
+            self.shelves = shelves
+            self.shelvesError = nil
         } catch is CancellationError {
-            // The view went away; not a failure.
+
+        } catch let error as DiscoverError {
+            self.shelvesError = error
         } catch {
-            failure = error as? DiscoverError ?? .unavailable
+            self.shelvesError = .unavailable
         }
     }
 }
@@ -174,27 +183,27 @@ Pass views that only display the narrowest values they read (`title: String`, `m
 
 ## Loading and pagination: a proposed shape
 
-This is a suggestion for keeping loading, errors and paging simple, not a rule. Adapt it when a screen needs more, such as a refresh indicator or a banner for a failed refresh. A screen with one resource can use the shape below; a screen with several resources or pagination uses the one in [Several resources and pagination](#several-resources-and-pagination).
+This is a suggestion for keeping loading, errors and paging simple, not a rule. Adapt it when a screen needs more, such as a refresh indicator or a banner for a failed refresh. Every view model uses the same shape, whether its screen loads one resource or several, paged or not.
 
-**Keep the data, the failure and the activity apart.** A screen can have data while it refreshes, data and a failed refresh, or an error while it retries. A single `idle / loading / loaded / failed` enum holds only one of these at a time, so each view model ends up rebuilding the others. Plain properties hold them all, with no shared state type:
+**Keep the data, the error and the activity apart, for each resource.** A screen can have data while it refreshes, data and a failed refresh, or an error while it retries. A single `idle / loading / loaded / failed` enum holds only one of these at a time, so each view model ends up rebuilding the others. Three plain properties per resource hold them all, with no shared state type:
 
 | Property | Holds |
 |---|---|
-| The data, named for what it is (`movie`, `shelves`, `items`) | `nil` until the first successful load; a failed refresh keeps it |
-| `failure` | The feature's own error (`MovieDetailError?`), so the error view switches over known cases |
-| An activity flag (`isSearching`) | Only where "loading" must be told apart from "not started" |
+| The data, named for what it is (`shelves`, `movie`) | An empty collection, or `nil` for a single value, until the first successful load; a failed refresh keeps it |
+| `isLoading…` (`isLoadingShelves`) | Whether its load is running. A resource the screen loads as soon as it appears starts `true`, so the first frame shows progress rather than the empty state |
+| `…Error` (`shelvesError`) | The feature's own error (`DiscoverError?`), so the error view switches over known cases |
 
-Rules for `load()`:
-- Clear `failure` when a load starts, so a retry shows progress again.
-- Assign the data on success and leave it alone on failure.
+Rules for each load method:
+- Set `isLoading…` for the duration of the load (`defer`).
+- On success, assign what the service returns and clear the error. On failure, keep the data and record the error, so a retry keeps the error view on screen until a load succeeds.
 - Cancellation is never a failure: catch `CancellationError` and change nothing.
-- Map unknown errors into the feature's error before storing them.
+- Unknown errors become the feature's fallback case.
 
-**Views render data first**: the content whenever there is data, the error view only when there is nothing to show, progress otherwise. A failed refresh keeps the content on screen without extra code.
+**Views render data first**: the content whenever there is data, the error view only when there is nothing to show, progress while the first load runs, and the empty state after it. A failed refresh keeps the content on screen without extra code.
 
 ### Several resources and pagination
 
-When a screen loads more than one resource, or pages one, each resource gets its own state and its own load method, and the screen gets computed `isLoading` and `error` for its content view. Home below loads its banners and a paged list of sections.
+When a screen loads more than one resource, or pages one, each resource gets its own properties and load method, and the screen gets computed `isLoading` and `error` for its state view. Home below loads its banners and a paged list of sections.
 
 **Services stay this readable.** One method per resource, each returning values the views show as they are. XLive does all the mapping, aggregation and de-duplication; a paged method returns `Page<Item>`, a small generic struct in Core.
 
@@ -380,10 +389,9 @@ public final class HomeViewModel {
 ```
 
 Rules for this shape:
-- Each resource has its data (empty until it loads), `isLoading…` and `…Error`. A paged resource adds `next…Page`, `isLoadingNext…Page` and `next…PageError`.
-- A resource the screen loads as soon as it appears starts with `isLoading… = true`, so the first frame shows progress rather than the empty state.
+- A paged resource adds `next…Page`, `isLoadingNext…Page` and `next…PageError` to its data, `isLoading…` and `…Error`.
 - The screen-wide `isLoading` and `error` are computed from the resources and hold the screen's own rules, such as banners not failing Home. Never store them: two loads would end up writing one flag.
-- `load()` runs the screen's independent loads side by side. Each load assigns what the service returns, clears its error on success and keeps its data on failure. Loading the first page again also clears the next page's error. Cancellation changes nothing, and unknown errors become the feature's fallback case.
+- `load()` runs the screen's independent loads side by side, each following the rules above. Loading the first page again also clears the next page's error.
 - `loadNext…Page()` remembers the page it asked for and, after the `await`, drops the result if a refresh started the list over meanwhile. It has no in-flight guard: the footer's task restarts as the footer scrolls out and back in, and the restarted call must be able to load.
 - When a resource depends on another, such as episodes picked from the loaded title, `load()` loads that one first and then the rest side by side. Start `load()` from `.task` on `XView`, not on the progress view: the progress view goes away when the first resource arrives, and cancelling its task would cancel the loads that follow.
 
@@ -468,10 +476,11 @@ Other ecosystems settled on the same ideas: TanStack Query keeps data status and
 ## View structure rules
 
 - Separate `View` structs for every section. No computed `some View` properties and no `@ViewBuilder` helper functions.
+- No wrapper struct around a single system view, such as a `TabLabel` around `Label` or an icon view around one `Image`. Use the native initializers (`Label(_:image:)`, `Button(_:image:action:)`), and extract a struct only when it holds real layout or logic.
 - No `Group { if … }` or `Group { switch … }` in a body: move the branching into an `XStateView` and apply modifiers outside it.
-- Toolbars are `ToolbarContent` structs (`WatchlistToolbar`).
+- Toolbars are `ToolbarContent` structs (`WatchlistToolbar`). A toolbar whose items stay inside the feature lives in XUI; one that switches tabs or opens app screens lives in the app ([App toolbars](composition.md#app-toolbars)).
 - Never create views from non-view types. View models expose XCore values; display mappings are XUI extensions returning `LocalizedStringResource` (`DiscoverCategory.title`), never `Text` or `Image`.
-- Use native controls with DesignSystem styles: `Button` with `.buttonStyle(.filledProminent)`, `NavigationLink` with `.buttonStyle(.content)`.
+- Use native controls with DesignSystem styles: `Button` with `.buttonStyle(.filledProminent)`, `NavigationLink` with `.buttonStyle(.content)`. Inside a component that styles its own actions, such as `StateContent`, leave the style off.
 - Feature-local presentations are `@State` in the presenting view.
 - Strings come from the feature's String Catalog through generated symbols.
 

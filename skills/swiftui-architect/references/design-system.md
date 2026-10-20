@@ -115,6 +115,7 @@ Generic views that features compose, taking plain values and view builders:
 | `FlowLayout` | a `Layout` for wrapping content |
 
 - Titles are `LocalizedStringResource`, so a feature passes its own generated symbol and the string resolves from the feature's bundle: `Rail(.discoverRailTrendingTitle) { … }`.
+- A component with an actions slot styles its own actions, so callers pass plain controls: `StateContent` applies `.filledProminent`, and `SurfaceButtonStyle` lays out a `Label`'s icon and title. An error view writes `Button(.discoverActionRetry, systemImage: "arrow.clockwise", action: retry)` with no style.
 - Components never fetch, cache or decide policy. An image session or cache is injected by the app through the environment.
 - A view that renders a domain type and is used by several features belongs in CoreUI (`MovieSummaryCard`), built from DesignSystem parts. A view used by one feature stays in that feature.
 
@@ -122,5 +123,6 @@ Generic views that features compose, taking plain values and view builders:
 
 - Domain-free: no feature models, services, destinations or `XCore` imports. Prefer generic names (`PersonPortrait`, `MediaArtwork`) over a feature's wording.
 - No user-facing strings of its own. Previews use `Text(verbatim:)` and `LocalizedStringResource(stringLiteral:)`.
+- Export icons at the size the design draws them, such as a 24-point icon frame as a 24-point asset. Then `Image(resource)` needs no `.resizable().frame(…)`, and the icon works as is in `Label(_:image:)` and `Button(_:image:action:)`.
 - Public API is tokens, styles, components and modifiers only.
 - Every style and component has a preview on `DesignSystem.Colors.Background.canvas`.

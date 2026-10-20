@@ -8,6 +8,7 @@ The app target is the composition root. It is the only module that imports every
 - Environment keys
 - ContentView
 - XScreen: tab-root screens and pushed screens
+- App toolbars
 
 ## App target layout
 
@@ -18,7 +19,7 @@ MoviesApp/
 ├── Adapters/                       consumer-owned ports implemented over other features
 ├── Extensions/Environment/         one @Entry key per injected service
 ├── Navigation/                     Router, TabDestination, Destination, DestinationView
-└── Screens/                        one XScreen per screen
+└── Screens/                        one XScreen per screen, and XScreenToolbar for app toolbars
 ```
 
 ## XApp.swift
@@ -175,3 +176,30 @@ Rules:
 - One `XScreen` per screen, named after the feature view it shows.
 - Building the view model inline is fine: the feature view stores it in `@State`, so only the first instance is kept. Keep view model initializers cheap (assignments only).
 - Every screen has a preview that injects `.mock` services; tab-root screens also inject `Router()`.
+
+## App toolbars
+
+A toolbar belongs to the feature (`XToolbar` in XUI) while its items act inside it: the view model's actions, the feature's own sheets, or a `NavigationLink` to one of its `XDestination` values. It belongs to the app as soon as an item reaches outside the feature, because features never see the Router: switching tabs, pushing an app-only screen such as Settings, or combining features. Such a toolbar is named after the screen that applies it, lives in `Screens/`, and is applied by the `XScreen`:
+
+```swift
+/// Discover's header: a button that switches to the Search tab.
+struct DiscoverScreenToolbar: ToolbarContent {
+    let router: Router
+
+    var body: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            Button(.appTabSearch, systemImage: "magnifyingglass") {
+                router.selectedTab = .search
+            }
+        }
+    }
+}
+
+// In DiscoverScreen
+DiscoverView(viewModel: DiscoverViewModel(service: discoverService))
+    .toolbar {
+        DiscoverScreenToolbar(router: router)
+    }
+```
+
+A screen can have both: SwiftUI merges a feature's `.toolbar` with the app's.

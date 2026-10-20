@@ -24,8 +24,7 @@
 | App adapter for a port | port name + `Adapter` | `WatchlistMembershipAdapter` |
 | Service method | the value it returns | `movie(id:)`, `cast(movieID:)`, `loadShelves()`, `loadSections(page:)` |
 | View model | `XViewModel`, one per screen | `MovieCastViewModel` |
-| View model data and failure, one resource | the data named for what it is; the error as `failure` | `movie`, `shelves`, `failure` |
-| View model state, several resources | per resource: the data, `isLoading…`, `…Error`; paged: `next…Page`, `isLoadingNext…Page`, `next…PageError`; computed `isLoading` and `error` for the screen | `sections`, `isLoadingSections`, `sectionsError`, `nextSectionsPage` |
+| View model state | per resource: the data named for what it is, `isLoading…`, `…Error`; paged: `next…Page`, `isLoadingNext…Page`, `next…PageError`; computed `isLoading` and `error` only on screens with several resources | `shelves`, `isLoadingShelves`, `shelvesError`, `nextSectionsPage` |
 | A page from a service | `Page<Item>` (Core) with `items` and `nextPage` | `Page<HomeSection>` |
 | Focused model | a noun for what it is, no `ViewModel` suffix, no SwiftUI term of art | `WatchlistMembership` |
 | Public screen view | `XView` | `MovieDetailView`, `MovieCastView` |
@@ -34,7 +33,7 @@
 | Sections | `XHeader`, `XRail`, `XRow`, `XCard`; one view per resource: `X` + resource + `View` | `MovieCastRail`, `HomeBannersView`, `HomeSectionsView` |
 | Paging footer | `X` + resource + `NextPageFooter` | `HomeSectionsNextPageFooter` |
 | Error view | `XErrorView` | `SearchErrorView` |
-| Toolbar | `XToolbar` (`ToolbarContent`) | `WatchlistToolbar` |
+| Toolbar | `XToolbar` (`ToolbarContent`) in XUI; one that leaves the feature is `XScreenToolbar` in the app | `WatchlistToolbar`, `DiscoverScreenToolbar` |
 | Feature destinations | `XDestination` | `MovieDetailDestination` |
 | App navigation | `Router`, `TabDestination`, `Destination`, `DestinationView` | |
 | App screen | `XScreen` | `MovieDetailScreen` |
