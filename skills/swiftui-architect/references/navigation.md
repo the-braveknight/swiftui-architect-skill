@@ -6,7 +6,7 @@ Native SwiftUI navigation only: `NavigationStack(path:)`, `NavigationLink(value:
 - The model
 - XDestination (feature)
 - Pushing from feature views
-- Router and Tab (app)
+- Router and TabDestination (app)
 - Destination and DestinationView (app)
 - Registering destinations
 - Programmatic navigation
@@ -63,10 +63,10 @@ NavigationLink(.movieDetailSectionCastSeeAll, value: MovieDetailDestination.cast
 - Feature views never receive navigation closures, a router, or a path.
 - View models never navigate.
 
-## Router and Tab (app)
+## Router and TabDestination (app)
 
 ```swift
-enum Tab: Hashable {
+enum TabDestination: Hashable {
     case discover
     case watchlist
     case search
@@ -76,10 +76,10 @@ enum Tab: Hashable {
 @MainActor
 @Observable
 final class Router {
-    var selectedTab: Tab = .discover
-    private var paths: [Tab: NavigationPath] = [:]
+    var selectedTab: TabDestination = .discover
+    private var paths: [TabDestination: NavigationPath] = [:]
 
-    subscript(tab: Tab) -> NavigationPath {
+    subscript(tab: TabDestination) -> NavigationPath {
         get { paths[tab] ?? NavigationPath() }
         set { paths[tab] = newValue }
     }
@@ -87,6 +87,8 @@ final class Router {
 ```
 
 Inject it once from `XApp` with `.environment(router)`. The selected tab belongs in the Router, next to the stacks.
+
+`TabDestination` is the tabs' selection value, named like every other place the app can go (`XDestination`, `Destination`), which leaves SwiftUI's `Tab` free for `ContentView`. It stays a plain list of cases: each tab's title and icon are written in `ContentView`, with no extension mapping cases to them.
 
 ## Destination and DestinationView (app)
 

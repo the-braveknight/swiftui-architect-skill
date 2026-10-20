@@ -17,7 +17,7 @@ MoviesApp/
 ├── App/ContentView.swift           TabView over Router.selectedTab
 ├── Adapters/                       consumer-owned ports implemented over other features
 ├── Extensions/Environment/         one @Entry key per injected service
-├── Navigation/                     Router, Tab, Destination, DestinationView
+├── Navigation/                     Router, TabDestination, Destination, DestinationView
 └── Screens/                        one XScreen per screen
 ```
 
@@ -96,10 +96,10 @@ struct ContentView: View {
     var body: some View {
         @Bindable var router = router
         TabView(selection: $router.selectedTab) {
-            SwiftUI.Tab(.appTabDiscover, systemImage: "sparkles", value: .discover) {
+            Tab(.appTabDiscover, systemImage: "sparkles", value: .discover) {
                 DiscoverScreen()
             }
-            SwiftUI.Tab(.appTabSearch, systemImage: "magnifyingglass", value: .search, role: .search) {
+            Tab(.appTabSearch, systemImage: "magnifyingglass", value: .search, role: .search) {
                 SearchScreen()
             }
         }
@@ -107,7 +107,7 @@ struct ContentView: View {
 }
 ```
 
-`SwiftUI.Tab` is module-qualified because the app declares its own `Tab` enum.
+Each tab's title and icon are written here, in its `Tab`. `Tab`'s `image:` takes an asset name from the app's own bundle; for an icon from a package's asset catalog, pass `Label(_:image:)` with its `ImageResource` in the `label:` closure.
 
 ## XScreen
 

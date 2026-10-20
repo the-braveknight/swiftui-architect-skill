@@ -36,7 +36,7 @@
 | Error view | `XErrorView` | `SearchErrorView` |
 | Toolbar | `XToolbar` (`ToolbarContent`) | `WatchlistToolbar` |
 | Feature destinations | `XDestination` | `MovieDetailDestination` |
-| App navigation | `Router`, `Tab`, `Destination`, `DestinationView` | |
+| App navigation | `Router`, `TabDestination`, `Destination`, `DestinationView` | |
 | App screen | `XScreen` | `MovieDetailScreen` |
 | App `Destination` case | the app screen's name without `Screen` | `.movieDetail(id:)`, `.movieCast(movieID:)` |
 | App entry point | `<AppName>App` | `MoviesApp` |

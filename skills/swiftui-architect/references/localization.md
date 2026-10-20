@@ -50,7 +50,7 @@ Button(.discoverActionRetry, action: retry)
 Label(.watchlistActionAdd, systemImage: "bookmark")
 Section(.appSettingsLanguage) { … }
 Picker(.appSettingsLanguage, selection: $language) { … }
-SwiftUI.Tab(.appTabDiscover, systemImage: "sparkles", value: .discover) { … }
+Tab(.appTabDiscover, systemImage: "sparkles", value: .discover) { … }
 Rail(.discoverRailTrendingTitle) { … }
 ```
 
