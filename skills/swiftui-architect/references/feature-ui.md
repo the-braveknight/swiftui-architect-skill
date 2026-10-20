@@ -191,13 +191,13 @@ This is a suggestion for keeping loading, errors and paging simple, not a rule. 
 |---|---|
 | The data, named for what it is (`shelves`, `movie`) | An empty collection, or `nil` for a single value, until the first successful load; a failed refresh keeps it |
 | `isLoading…` (`isLoadingShelves`) | Whether its load is running. A resource the screen loads as soon as it appears starts `true`, so the first frame shows progress rather than the empty state |
-| `…Error` (`shelvesError`) | The feature's own error (`DiscoverError?`), so the error view switches over known cases |
+| `…Error` (`shelvesError`) | An error the views switch over (`DiscoverError?`). Each error property has its own type: often the feature's `XError`, but a next page or one section can use another when its view shows different cases |
 
 Rules for each load method:
 - Set `isLoading…` for the duration of the load (`defer`).
 - On success, assign what the service returns and clear the error. On failure, keep the data and record the error, so a retry keeps the error view on screen until a load succeeds.
 - Cancellation is never a failure: catch `CancellationError` and change nothing.
-- Unknown errors become the feature's fallback case.
+- Unknown errors become the fallback case of that property's error type.
 
 **Views render data first**: the content whenever there is data, the error view only when there is nothing to show, progress while the first load runs, and the empty state after it. A failed refresh keeps the content on screen without extra code.
 
@@ -389,8 +389,8 @@ public final class HomeViewModel {
 ```
 
 Rules for this shape:
-- A paged resource adds `next…Page`, `isLoadingNext…Page` and `next…PageError` to its data, `isLoading…` and `…Error`.
-- The screen-wide `isLoading` and `error` are computed from the resources and hold the screen's own rules, such as banners not failing Home. Never store them: two loads would end up writing one flag.
+- A paged resource adds `next…Page`, `isLoadingNext…Page` and `next…PageError` to its data, `isLoading…` and `…Error`. `next…PageError` has its own type, which needn't match `…Error`: a footer often shows fewer cases than the error view. Home uses `HomeError` for both, but nothing in the shape depends on that.
+- The screen-wide `isLoading` and `error` are computed from the resources and hold the screen's own rules, such as banners not failing Home. Never store them: two loads would end up writing one flag. `error` has the type the screen's error view switches over, which needn't be every resource's error type.
 - `load()` runs the screen's independent loads side by side, each following the rules above. Loading the first page again also clears the next page's error.
 - `loadNext…Page()` remembers the page it asked for and, after the `await`, drops the result if a refresh started the list over meanwhile. It has no in-flight guard: the footer's task restarts as the footer scrolls out and back in, and the restarted call must be able to load.
 - When a resource depends on another, such as episodes picked from the loaded title, `load()` loads that one first and then the rest side by side. Start `load()` from `.task` on `XView`, not on the progress view: the progress view goes away when the first resource arrives, and cancelling its task would cancel the loads that follow.

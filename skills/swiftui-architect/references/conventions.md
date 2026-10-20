@@ -24,7 +24,7 @@
 | App adapter for a port | port name + `Adapter` | `WatchlistMembershipAdapter` |
 | Service method | the value it returns | `movie(id:)`, `cast(movieID:)`, `loadShelves()`, `loadSections(page:)` |
 | View model | `XViewModel`, one per screen | `MovieCastViewModel` |
-| View model state | per resource: the data named for what it is, `isLoading…`, `…Error`; paged: `next…Page`, `isLoadingNext…Page`, `next…PageError`; computed `isLoading` and `error` only on screens with several resources | `shelves`, `isLoadingShelves`, `shelvesError`, `nextSectionsPage` |
+| View model state | per resource: the data named for what it is, `isLoading…`, `…Error`; paged: `next…Page`, `isLoadingNext…Page`, `next…PageError`; computed `isLoading` and `error` only on screens with several resources. Each error property has its own type | `shelves`, `isLoadingShelves`, `shelvesError`, `nextSectionsPage` |
 | A page from a service | `Page<Item>` (Core) with `items` and `nextPage` | `Page<HomeSection>` |
 | Focused model | a noun for what it is, no `ViewModel` suffix, no SwiftUI term of art | `WatchlistMembership` |
 | Public screen view | `XView` | `MovieDetailView`, `MovieCastView` |
