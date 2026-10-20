@@ -22,7 +22,7 @@ What lives in an `XUI` target and the shape of each piece. Keep feature views pl
 | `XHeader`, `XRail`, `XRow`, `XCard`, `XBannersView`, `XSectionsView` | One section, resource or element each, taking only the values it reads |
 | `X…NextPageFooter` | Loads the next page of a paged resource while it's on screen; takes the view model |
 | `XErrorView` | Switches over `XError` and renders DesignSystem's `StateContent` with a retry; shared by all the feature's screens |
-| `XToolbar` | A `ToolbarContent` struct whose items act inside the feature. One that switches tabs or opens app screens belongs to the app: see [App toolbars](composition.md#app-toolbars) |
+| `XToolbar` | A `ToolbarContent` struct; an item that opens a screen pushes an `XDestination` value |
 | `XViewModel` | Loads and exposes state for one screen |
 | Focused models | One concern of a screen, such as `WatchlistMembership` |
 | `XDestination` | Where the feature's views can take the user |
@@ -478,7 +478,7 @@ Other ecosystems settled on the same ideas: TanStack Query keeps data status and
 - Separate `View` structs for every section. No computed `some View` properties and no `@ViewBuilder` helper functions.
 - No wrapper struct around a single system view, such as a `TabLabel` around `Label` or an icon view around one `Image`. Use the native initializers (`Label(_:image:)`, `Button(_:image:action:)`), and extract a struct only when it holds real layout or logic.
 - No `Group { if … }` or `Group { switch … }` in a body: move the branching into an `XStateView` and apply modifiers outside it.
-- Toolbars are `ToolbarContent` structs (`WatchlistToolbar`). A toolbar whose items stay inside the feature lives in XUI; one that switches tabs or opens app screens lives in the app ([App toolbars](composition.md#app-toolbars)).
+- Toolbars are `ToolbarContent` structs in XUI (`WatchlistToolbar`). An item that opens another screen pushes one of the feature's `XDestination` values, like any other link.
 - Never create views from non-view types. View models expose XCore values; display mappings are XUI extensions returning `LocalizedStringResource` (`DiscoverCategory.title`), never `Text` or `Image`.
 - Use native controls with DesignSystem styles: `Button` with `.buttonStyle(.filledProminent)`, `NavigationLink` with `.buttonStyle(.content)`. Inside a component that styles its own actions, such as `StateContent`, leave the style off.
 - Feature-local presentations are `@State` in the presenting view.

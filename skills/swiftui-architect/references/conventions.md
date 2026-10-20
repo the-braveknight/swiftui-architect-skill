@@ -33,7 +33,7 @@
 | Sections | `XHeader`, `XRail`, `XRow`, `XCard`; one view per resource: `X` + resource + `View` | `MovieCastRail`, `HomeBannersView`, `HomeSectionsView` |
 | Paging footer | `X` + resource + `NextPageFooter` | `HomeSectionsNextPageFooter` |
 | Error view | `XErrorView` | `SearchErrorView` |
-| Toolbar | `XToolbar` (`ToolbarContent`) in XUI; one that leaves the feature is `XScreenToolbar` in the app | `WatchlistToolbar`, `DiscoverScreenToolbar` |
+| Toolbar | `XToolbar` (`ToolbarContent`) in XUI | `WatchlistToolbar` |
 | Feature destinations | `XDestination` | `MovieDetailDestination` |
 | App navigation | `Router`, `TabDestination`, `Destination`, `DestinationView` | |
 | App screen | `XScreen` | `MovieDetailScreen` |
