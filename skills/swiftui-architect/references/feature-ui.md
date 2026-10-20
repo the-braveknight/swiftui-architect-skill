@@ -8,7 +8,7 @@ What lives in an `XUI` target and the shape of each piece. Keep feature views pl
 - View models
 - Focused models
 - Ownership
-- LoadState and PagedCollection
+- Loading and pagination: a proposed shape
 - View structure rules
 - Previews
 
@@ -17,7 +17,7 @@ What lives in an `XUI` target and the shape of each piece. Keep feature views pl
 | File | Role |
 |---|---|
 | `XView` | Public entry point. Owns the view model as `@State`; applies screen modifiers; renders `XContentView` |
-| `XContentView` | Switches once over `viewModel.state` |
+| `XContentView` | Shows the data, the error or progress, in that order |
 | `XSections` | Lays out the loaded content from narrow sections |
 | `XHeader`, `XRail`, `XRow`, `XCard` | One section or element each, taking only the values it reads |
 | `XErrorView` | Switches over `XError` and renders DesignSystem's `StateContent` with a retry; shared by all the feature's screens |
@@ -54,29 +54,28 @@ public struct DiscoverView: View {
     }
 }
 
-/// Renders Discover's current state. Reads only `state`, so it re-renders only when the state changes.
+/// Renders the shelves whenever there are some, and the error only when there's nothing to show.
 struct DiscoverContentView: View {
     let viewModel: DiscoverViewModel
 
     var body: some View {
-        switch viewModel.state {
-        case .idle, .loading:
-            ProgressView()
-                .progressViewStyle(.loadingDots)
-        case .loaded(let shelves):
+        if let shelves = viewModel.shelves {
             ScrollView {
                 DiscoverRailList(shelves: shelves)
             }
-        case .failed(let error):
-            DiscoverErrorView(error: error) {
+        } else if let failure = viewModel.failure {
+            DiscoverErrorView(error: failure) {
                 Task { await viewModel.load() }
             }
+        } else {
+            ProgressView()
+                .progressViewStyle(.loadingDots)
         }
     }
 }
 ```
 
-Anything that needs loaded data, such as a title from the model or a toolbar that only makes sense with content, is applied inside the `.loaded` branch (`.navigationTitle(movie.title)`), so `XView` never reads `state`.
+Anything that needs loaded data, such as a title from the model or a toolbar that only makes sense with content, is applied inside the data branch (`.navigationTitle(movie.title)`), so `XView` never reads the data.
 
 ## View models
 
@@ -86,21 +85,23 @@ Anything that needs loaded data, such as a title from the model or a toolbar tha
 public final class DiscoverViewModel {
     private let service: any DiscoverServiceProtocol
 
-    private(set) var state: LoadState<[DiscoverShelf], DiscoverError> = .loading
+    /// The shelves last loaded. A failed refresh keeps them.
+    private(set) var shelves: [DiscoverShelf]?
+    /// Why the last load failed.
+    private(set) var failure: DiscoverError?
 
     public init(service: any DiscoverServiceProtocol) {
         self.service = service
     }
 
     func load() async {
-        if state.value == nil { state = .loading }
+        failure = nil
         do {
-            state = .loaded(try await service.loadShelves())
+            shelves = try await service.loadShelves()
         } catch is CancellationError {
             // The view went away; not a failure.
         } catch {
-            // A failed refresh keeps the content already on screen.
-            if state.value == nil { state = .failed(error as? DiscoverError ?? .unavailable) }
+            failure = error as? DiscoverError ?? .unavailable
         }
     }
 }
@@ -149,18 +150,62 @@ public final class WatchlistMembership {
 
 Pass sections the narrowest values they read (`title: String`, `movie: MovieSummary`), not the whole view model or a large model with arrays.
 
-## LoadState and PagedCollection
+## Loading and pagination: a proposed shape
 
-Both live in CoreUI.
+This is a suggestion for keeping loading, errors and paging simple, not a rule. Adapt it when a screen needs more, such as a refresh indicator or a banner for a failed refresh.
 
-- `LoadState<Value, Failure>`: `.idle`, `.loading`, `.loaded(Value)`, `.failed(Failure)`. `Failure` is the feature's own error, so views switch over it exhaustively.
-- Three rules every view model follows: cancellation is never a failure; a failed refresh keeps loaded content; errors are mapped into the feature's error before reaching state.
-- `PagedCollection<Element, Failure>`: elements loaded page by page, with a `nextPage` state (`.available`, `.loading`, `.failed`, `.exhausted`). A failed first page is `LoadState.failed`; a failed later page is `nextPage == .failed` and keeps the loaded elements.
+**Keep the data, the failure and the activity apart.** A screen can have data while it refreshes, data and a failed refresh, or an error while it retries. A single `idle / loading / loaded / failed` enum holds only one of these at a time, so each view model ends up rebuilding the others. Plain properties hold them all, with no shared state type:
+
+| Property | Holds |
+|---|---|
+| The data, named for what it is (`movie`, `shelves`, `items`) | `nil` until the first successful load; a failed refresh keeps it |
+| `failure` | The feature's own error (`MovieDetailError?`), so the error view switches over known cases |
+| An activity flag (`isSearching`) | Only where "loading" must be told apart from "not started" |
+
+Rules for `load()`:
+- Clear `failure` when a load starts, so a retry shows progress again.
+- Assign the data on success and leave it alone on failure.
+- Cancellation is never a failure: catch `CancellationError` and change nothing.
+- Map unknown errors into the feature's error before storing them.
+
+**Views render data first**: the content whenever there is data, the error view only when there is nothing to show, progress otherwise. A failed refresh keeps the content on screen without extra code.
+
+### Pagination
+
+Pagination types belong to the feature that pages. Nothing generic goes into Core until a second feature pages the same way.
+
+- The service returns one page and where the next one starts: `SearchResultsPage(movies:nextPage:)`, where `nextPage: Int?` is `nil` on the last page. XLive derives it from the API's page numbers, so the UI never sees page counts.
+- A small value type collects the pages for one query: `SearchResults` with `query`, `movies`, `nextPage` and `append(_:)`. `append` skips repeated items so `ForEach` identifiers stay unique.
+- The view model keeps `results: SearchResults?` and adds `nextPageFailure: SearchError?` beside `failure`. A failed later page keeps the results; a failed search replaces them.
+- The pagination footer is the only caller of `loadNextPage()`. Its progress view runs `.task(id: nextPage)`, so a page loads when the footer scrolls into view, again after each page while it's still visible (even a page of repeats), and one at a time. Its retry button only clears `nextPageFailure`; the progress view that replaces it loads the page.
+- The results list gets `.id(results.query)`, so a new query starts a new list at the top, with its own footer task.
+
+```swift
+struct SearchPaginationFooter: View {
+    let nextPage: Int
+    let viewModel: SearchViewModel
+
+    var body: some View {
+        if let failure = viewModel.nextPageFailure {
+            SearchPageErrorView(error: failure) {
+                viewModel.retryNextPage()
+            }
+        } else {
+            ProgressView()
+                .task(id: nextPage) {
+                    await viewModel.loadNextPage()
+                }
+        }
+    }
+}
+```
+
+Other ecosystems settled on the same ideas: TanStack Query keeps data status and fetch status apart and checks data first, Android Paging keeps a load state per direction, and Riverpod's `AsyncValue` keeps the previous value through loading and errors.
 
 ## View structure rules
 
 - Separate `View` structs for every section. No computed `some View` properties and no `@ViewBuilder` helper functions.
-- No `Group { switch … }` in a body: move the switch into an `XContentView` and apply modifiers outside it.
+- No `Group { if … }` or `Group { switch … }` in a body: move the branching into an `XContentView` and apply modifiers outside it.
 - Toolbars are `ToolbarContent` structs (`WatchlistToolbar`).
 - Never create views from non-view types. View models expose XCore values; display mappings are XUI extensions returning `LocalizedStringResource` (`DiscoverCategory.title`), never `Text` or `Image`.
 - Use native controls with DesignSystem styles: `Button` with `.buttonStyle(.filledProminent)`, `NavigationLink` with `.buttonStyle(.content)`.

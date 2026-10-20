@@ -24,6 +24,8 @@
 | App adapter for a port | port name + `Adapter` | `WatchlistMembershipAdapter` |
 | Service method | the value it returns | `movie(id:)`, `cast(movieID:)`, `loadShelves()` |
 | View model | `XViewModel`, one per screen | `MovieCastViewModel` |
+| View model data and failure | the data named for what it is; the error as `failure` | `movie`, `shelves`, `failure`, `nextPageFailure` |
+| A page from a service, and pages collected | `XResultsPage` with `nextPage`; `XResults` | `SearchResultsPage`, `SearchResults` |
 | Focused model | a noun for what it is, no `ViewModel` suffix, no SwiftUI term of art | `WatchlistMembership` |
 | Public screen view | `XView` | `MovieDetailView`, `MovieCastView` |
 | Content view | `XContentView` | `DiscoverContentView` |
@@ -53,7 +55,7 @@ Methods and properties follow the Swift API Design Guidelines: read as English a
 | XLive | `Mapping/`, `Services/` (and `Persistence/` when it stores data) |
 | XTests | `ViewModels/`, `Live/`, `Fixtures.swift` |
 | Core | `Domain/` |
-| CoreUI | `State/`, `Components/` |
+| CoreUI | `Components/` |
 | App | `App/`, `Adapters/`, `Extensions/Environment/`, `Navigation/`, `Screens/` |
 
 One type per file, named after the type. Small private helper views may share their parent's file.

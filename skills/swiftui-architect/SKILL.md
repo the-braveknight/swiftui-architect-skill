@@ -20,7 +20,7 @@ App target              composition root: services, screens, navigation state, c
 └── Horizontal layer    shared by every feature
       DesignSystem      domain-free tokens, styles, components
       Core              shared domain vocabulary (Foundation only)
-      CoreUI            shared UI state and domain-aware shared views
+      CoreUI            domain-aware shared views
       Networking, …     infrastructure, imported only by XLive, XTests and the app
 ```
 
@@ -125,9 +125,9 @@ App file shape, environment keys, tab-root and pushed screens: [references/compo
 ## Feature UI in one page
 
 - `XView` (public) owns its view model as `@State`, applies screen modifiers (`.navigationTitle`, `.task { await viewModel.load() }`) and renders `XContentView`.
-- `XContentView` switches once over `viewModel.state` (`LoadState`): loading, loaded, failed.
+- `XContentView` shows the data whenever there is some, the feature's error only when there's nothing to show, and progress otherwise.
 - Sections, rows and cards are separate `View` structs with narrow inputs. Toolbars are `ToolbarContent` structs.
-- View models are `@MainActor @Observable final class XViewModel` with `private(set) var state` and a trivial `load()`.
+- View models are `@MainActor @Observable final class XViewModel` with `private(set)` data and `failure: XError?` properties, and a trivial `load()`. Loading and pagination follow a proposed shape, not a rule.
 - A focused model for one concern of a screen is a noun without the `ViewModel` suffix (`WatchlistMembership`).
 
 View and view-model shapes, ownership, presentations: [references/feature-ui.md](references/feature-ui.md).
@@ -185,7 +185,7 @@ Out of scope here; use a concurrency skill. The architecture assumes:
 **Decide where a type belongs**
 
 1. Used by one feature? It stays in that feature: XCore for models and contracts, XUI for anything visual or localized, XLive for transport.
-2. A second feature needs the same concept and both must change together? Pure model → Core. View state or a view that renders Core types → CoreUI.
+2. A second feature needs the same concept and both must change together? Pure model → Core. A view that renders Core types → CoreUI.
 3. Only looks alike? Duplicate it.
 4. Purely visual and domain-free? DesignSystem.
 5. Wiring two features together? The app.

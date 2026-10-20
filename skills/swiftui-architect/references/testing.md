@@ -16,7 +16,6 @@ Each feature package builds, previews and tests without the app. The package bou
 |---|---|---|
 | Feature tests | `XTests` against XCore, XUI, XLive | the feature package and its dependencies only |
 | Feature previews | Every public view, on `.mock` services | the feature package only |
-| Shared tests | `CoreUITests` for `LoadState`, `PagedCollection` | the Core package only |
 | App | Composition: Destination mappings, adapters, screens | everything |
 
 A feature that needs the app to be tested or previewed has a dependency pointing the wrong way.
@@ -61,7 +60,7 @@ private actor StubMovieDetailService: MovieDetailServiceProtocol {
 
 ## View model tests
 
-Swift Testing, `@MainActor` suites, one behavior per test. Import the UI target with `@testable import XUI` to reach internal state and methods. Cover the LoadState rules: loaded, failed, a failed refresh keeps content, cancellation isn't a failure.
+Swift Testing, `@MainActor` suites, one behavior per test. Import the UI target with `@testable import XUI` to reach internal state and methods. Cover the loading rules the screen follows ([the proposed shape](feature-ui.md#loading-and-pagination-a-proposed-shape)): the data loads, a failure is recorded, a failed refresh keeps the data, a successful retry clears the failure, and cancellation isn't a failure. A paged screen also covers: a failed page keeps the results, a retried page loads, and repeated items are skipped.
 
 ```swift
 @MainActor
@@ -72,7 +71,7 @@ struct MovieDetailViewModelTests {
 
         await viewModel.load()
 
-        #expect(viewModel.state == .loaded(movie))
+        #expect(viewModel.movie == movie)
     }
 
     @Test func failedRefreshKeepsTheMovie() async {
@@ -85,7 +84,8 @@ struct MovieDetailViewModelTests {
         await viewModel.load()
         await viewModel.load()
 
-        #expect(viewModel.state == .loaded(movie))
+        #expect(viewModel.movie == movie)
+        #expect(viewModel.failure == .offline)
     }
 }
 ```
@@ -121,7 +121,7 @@ Infrastructure packages test themselves with a stub transport (requests built, r
 | View model state transitions | `XTests/ViewModels` |
 | Focused models (`WatchlistMembership`) | `XTests/ViewModels` |
 | DTO and error mapping, service assembly | `XTests/Live` |
-| `LoadState`, `PagedCollection` | `CoreUITests` |
+| Paged results (`SearchResults.append`) | `XTests/ViewModels` |
 | Requests, decoding, transport errors | the infrastructure package's tests |
 | `Destination.init` mappings, adapters | app tests, when the app has a test target |
 | Visual states (loading, empty, error, Arabic) | previews |

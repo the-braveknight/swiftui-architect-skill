@@ -208,8 +208,8 @@ The shared package mirrors a feature's layers.
 
 | Target | Contains | Imports |
 |---|---|---|
-| `Core` | `Domain/`: the vocabulary several features and services share (`MovieSummary`, `Page<Element>`) | Foundation only |
-| `CoreUI` | `State/`: what view models expose (`LoadState`, `PagedCollection`). `Components/`: views that render Core types and that several features show (`MovieSummaryCard`, `MovieSummaryRow`) | `Core`, `DesignSystem` |
+| `Core` | `Domain/`: the vocabulary several features and services share (`MovieSummary`) | Foundation only |
+| `CoreUI` | `Components/`: views that render Core types and that several features show (`MovieSummaryCard`, `MovieSummaryRow`) | `Core`, `DesignSystem` |
 
 Promotion rule: move a type into Core or CoreUI only when a second feature needs the same concept and both copies must change together. If two types merely look alike today, duplicate them; they will diverge (a Discover poster card with a rating overlay stays in Discover even though a plain card lives in CoreUI).
 
