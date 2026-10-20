@@ -68,15 +68,17 @@ struct DiscoverStateView: View {
         if !viewModel.shelves.isEmpty {
             DiscoverContentView(shelves: viewModel.shelves)
         } else if let error = viewModel.shelvesError {
-            DiscoverErrorView(error: error) {
-                Task { await viewModel.load() }
-            }
+            DiscoverErrorView(error: error, retry: retry)
         } else if viewModel.isLoadingShelves {
             ProgressView()
                 .progressViewStyle(.loadingDots)
         } else {
             StateContent(.discoverEmptyTitle)
         }
+    }
+
+    private func retry() {
+        Task { await viewModel.load() }
     }
 }
 
@@ -98,7 +100,7 @@ struct DiscoverContentView: View {
 }
 ```
 
-`XStateView` only picks what to show. `XContentView` owns the scroll container and lays out the content, one view per resource or section. With one resource it takes the data as a value (`DiscoverContentView(shelves:)`); with several it takes the view model, because a view such as a paging footer needs it (see [Several resources and pagination](#several-resources-and-pagination)).
+`XStateView` only picks what to show. It hands the error view its own `retry` method rather than an inline closure, so each branch stays one line and the action has a name. `XContentView` owns the scroll container and lays out the content, one view per resource or section. With one resource it takes the data as a value (`DiscoverContentView(shelves:)`); with several it takes the view model, because a view such as a paging footer needs it (see [Several resources and pagination](#several-resources-and-pagination)).
 
 Anything that needs loaded data, such as a title from the model or a toolbar that only makes sense with content, is applied in `XContentView` (`.navigationTitle(movie.title)`), so `XView` never reads the data.
 
@@ -179,7 +181,7 @@ public final class WatchlistMembership {
 | A view that needs a binding | Derives one | `@Bindable var viewModel = viewModel` in `body`, or `$viewModel.query` from the owner |
 | Presentation flags, form input, focus | The view that presents or edits | `@State private var` |
 
-Pass views that only display the narrowest values they read (`title: String`, `movie: MovieSummary`, `sections: [HomeSection]`), not the whole view model or a large model with arrays. A view takes the view model only when it reads state of its own, such as a resource's loading flag or error, or calls the view model, like a paging footer. Don't pass closures down for the view model's actions instead: a closure can't be compared, so a view that takes one is re-evaluated whenever its parent is, while a view holding the view model re-renders only for the properties it reads.
+Pass views that only display the narrowest values they read (`title: String`, `movie: MovieSummary`, `sections: [HomeSection]`), not the whole view model or a large model with arrays. A view takes the view model only when it reads state of its own, such as a resource's loading flag or error, or calls the view model, like a paging footer. Don't pass closures down through views for the view model's actions instead: a closure can't be compared, so a view that takes one is re-evaluated whenever its parent is, while a view holding the view model re-renders only for the properties it reads. The exception is a leaf whose button fires one action, such as `XErrorView`'s retry: pass it a private method of the view that makes the call (`retry: retry`), not an inline closure.
 
 ## Loading and pagination: a proposed shape
 
@@ -405,9 +407,7 @@ struct HomeStateView: View {
 
     var body: some View {
         if let error = viewModel.error {
-            HomeErrorView(error: error) {
-                Task { await viewModel.load() }
-            }
+            HomeErrorView(error: error, retry: retry)
         } else if viewModel.isLoading {
             ProgressView()
                 .progressViewStyle(.loadingDots)
@@ -416,6 +416,10 @@ struct HomeStateView: View {
         } else {
             HomeContentView(viewModel: viewModel)
         }
+    }
+
+    private func retry() {
+        Task { await viewModel.load() }
     }
 }
 
