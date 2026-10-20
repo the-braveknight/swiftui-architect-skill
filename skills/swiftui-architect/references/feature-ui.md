@@ -363,6 +363,7 @@ Rules for this shape:
 - The screen-wide `isLoading` and `error` are computed from the resources and hold the screen's own rules, such as banners not failing Home. Never store them: two loads would end up writing one flag.
 - `load()` runs the screen's independent loads side by side. Each load assigns what the service returns, clears its error on success and keeps its data on failure. Loading the first page again also clears the next page's error. Cancellation changes nothing, and unknown errors become the feature's fallback case.
 - `loadNext…Page()` remembers the page it asked for and, after the `await`, drops the result if a refresh started the list over meanwhile. It has no in-flight guard: the footer's task restarts as the footer scrolls out and back in, and the restarted call must be able to load.
+- When a resource depends on another, such as episodes picked from the loaded title, `load()` loads that one first and then the rest side by side. Start `load()` from `.task` on `XView`, not on the progress view: the progress view goes away when the first resource arrives, and cancelling its task would cancel the loads that follow.
 
 The content view branches on the screen-wide properties, and a footer after the sections loads the next page while it's on screen:
 
