@@ -17,11 +17,10 @@ What lives in an `XUI` target and the shape of each piece. Keep feature views pl
 | File | Role |
 |---|---|
 | `XView` | Public entry point. Owns the view model as `@State`; applies screen modifiers; renders `XStateView` |
-| `XStateView` | Shows the content, the error or progress, in that order |
+| `XStateView` | Shows the content, the error or progress, in that order; switches over the error and shows CoreUI's presets |
 | `XContentView` | Lays out the content in its scroll container, one view per resource or section |
 | `XHeader`, `XRail`, `XRow`, `XCard`, `XBannersView`, `XSectionsView` | One section, resource or element each, taking only the values it reads |
 | `X…NextPageFooter` | Loads the next page of a paged resource while it's on screen; takes the view model |
-| `XErrorView` | Switches over `XError` and renders DesignSystem's `StateContent` with a retry; shared by all the feature's screens |
 | `XToolbar` | A `ToolbarContent` struct; an item that opens a screen pushes an `XDestination` value |
 | `XViewModel` | Loads and exposes state for one screen |
 | Focused models | One concern of a screen, such as `WatchlistMembership` |
@@ -68,12 +67,15 @@ struct DiscoverStateView: View {
         if !viewModel.shelves.isEmpty {
             DiscoverContentView(shelves: viewModel.shelves)
         } else if let error = viewModel.shelvesError {
-            DiscoverErrorView(error: error, retry: retry)
+            switch error {
+            case .offline:
+                ContentUnavailableView.offline(retry: retry)
+            case .unavailable:
+                ContentUnavailableView.unavailable(retry: retry)
+            }
         } else if viewModel.isLoadingShelves {
             ProgressView()
                 .progressViewStyle(.loadingDots)
-        } else {
-            StateContent(.discoverEmptyTitle)
         }
     }
 
@@ -100,7 +102,7 @@ struct DiscoverContentView: View {
 }
 ```
 
-`XStateView` only picks what to show. It hands the error view its own `retry` method rather than an inline closure, so each branch stays one line and the action has a name. `XContentView` owns the scroll container and lays out the content, one view per resource or section. With one resource it takes the data as a value (`DiscoverContentView(shelves:)`); with several it takes the view model, because a view such as a paging footer needs it (see [Several resources and pagination](#several-resources-and-pagination)).
+`XStateView` only picks what to show. It switches over the error itself and shows CoreUI's presets, so a feature has no error view of its own, and it hands each preset its own `retry` method rather than an inline closure. Discover has no empty state in its design, so once loaded with no shelves it shows nothing (see [What a screen shows without content](#what-a-screen-shows-without-content)). `XContentView` owns the scroll container and lays out the content, one view per resource or section. With one resource it takes the data as a value (`DiscoverContentView(shelves:)`); with several it takes the view model, because a view such as a paging footer needs it (see [Several resources and pagination](#several-resources-and-pagination)).
 
 Anything that needs loaded data, such as a title from the model or a toolbar that only makes sense with content, is applied in `XContentView` (`.navigationTitle(movie.title)`), so `XView` never reads the data.
 
@@ -181,7 +183,7 @@ public final class WatchlistMembership {
 | A view that needs a binding | Derives one | `@Bindable var viewModel = viewModel` in `body`, or `$viewModel.query` from the owner |
 | Presentation flags, form input, focus | The view that presents or edits | `@State private var` |
 
-Pass views that only display the narrowest values they read (`title: String`, `movie: MovieSummary`, `sections: [HomeSection]`), not the whole view model or a large model with arrays. A view takes the view model only when it reads state of its own, such as a resource's loading flag or error, or calls the view model, like a paging footer. Don't pass closures down through views for the view model's actions instead: a closure can't be compared, so a view that takes one is re-evaluated whenever its parent is, while a view holding the view model re-renders only for the properties it reads. The exception is a leaf whose button fires one action, such as `XErrorView`'s retry: pass it a private method of the view that makes the call (`retry: retry`), not an inline closure.
+Pass views that only display the narrowest values they read (`title: String`, `movie: MovieSummary`, `sections: [HomeSection]`), not the whole view model or a large model with arrays. A view takes the view model only when it reads state of its own, such as a resource's loading flag or error, or calls the view model, like a paging footer. Don't pass closures down through views for the view model's actions instead: a closure can't be compared, so a view that takes one is re-evaluated whenever its parent is, while a view holding the view model re-renders only for the properties it reads. The exception is a leaf whose button fires one action, such as a preset's retry: pass it a private method of the view that makes the call (`.offline(retry: retry)`), not an inline closure.
 
 ## Loading and pagination: a proposed shape
 
@@ -201,7 +203,44 @@ Rules for each load method:
 - Cancellation is never a failure: catch `CancellationError` and change nothing.
 - Unknown errors become the fallback case of that property's error type.
 
-**Views render data first**: the content whenever there is data, the error view only when there is nothing to show, progress while the first load runs, and the empty state after it. A failed refresh keeps the content on screen without extra code.
+**Views render data first**: the content whenever there is data, the error only when there is nothing to show, and progress while the first load runs. A failed refresh keeps the content on screen without extra code.
+
+### What a screen shows without content
+
+| Situation | Shown with | Retry |
+|---|---|---|
+| The device is offline | `ContentUnavailableView.offline(retry:)` | yes |
+| What was opened doesn't exist, such as a 404 for one item | `ContentUnavailableView.notFound` | no |
+| Any other failure | `ContentUnavailableView.unavailable(retry:)` | yes |
+| An empty answer where the design has an empty state, such as an empty watchlist or no search results | `ContentUnavailableView(_:illustration:description:)` with the feature's copy | no |
+
+- The presets live in CoreUI with their copy, because every screen must say the same thing about the same failure. An empty state belongs to one feature, so it uses the initializer with the feature's own strings.
+- An empty answer is never an error. Where the design has no empty state, the screen shows nothing: don't invent a state for it, and don't have the service throw to avoid one.
+- A secondary resource never takes over the screen. A failed next page or section shows a short inline message with a retry; one the screen can do without, such as suggestions, is simply left out.
+
+```swift
+// CoreUI/Components/ContentUnavailableView+Presets.swift
+@MainActor
+extension ContentUnavailableView
+where
+    Label == EmptyStateContent.Label,
+    Description == EmptyStateContent.Description,
+    Actions == EmptyStateContent.Actions<Button<SwiftUI.Label<Text, Image>>>
+{
+    /// The device is offline.
+    public static func offline(retry: @escaping () -> Void) -> Self {
+        ContentUnavailableView(
+            .contentUnavailableOfflineTitle,
+            illustration: DesignSystem.Illustrations.offline,
+            description: .contentUnavailableOfflineMessage
+        ) {
+            Button(.contentUnavailableActionRetry, systemImage: "arrow.clockwise", action: retry)
+        }
+    }
+
+    // `unavailable(retry:)` has the same shape; `notFound`, with no action, extends the `Actions == EmptyView` form.
+}
+```
 
 ### Several resources and pagination
 
@@ -407,12 +446,15 @@ struct HomeStateView: View {
 
     var body: some View {
         if let error = viewModel.error {
-            HomeErrorView(error: error, retry: retry)
+            switch error {
+            case .offline:
+                ContentUnavailableView.offline(retry: retry)
+            case .unavailable:
+                ContentUnavailableView.unavailable(retry: retry)
+            }
         } else if viewModel.isLoading {
             ProgressView()
                 .progressViewStyle(.loadingDots)
-        } else if viewModel.sections.isEmpty, viewModel.banners.isEmpty {
-            StateContent(.homeEmptyTitle)
         } else {
             HomeContentView(viewModel: viewModel)
         }
@@ -484,7 +526,7 @@ Other ecosystems settled on the same ideas: TanStack Query keeps data status and
 - No `Group { if … }` or `Group { switch … }` in a body: move the branching into an `XStateView` and apply modifiers outside it.
 - Toolbars are `ToolbarContent` structs in XUI (`WatchlistToolbar`). An item that opens another screen pushes one of the feature's `XDestination` values, like any other link.
 - Never create views from non-view types. View models expose XCore values; display mappings are XUI extensions returning `LocalizedStringResource` (`DiscoverCategory.title`), never `Text` or `Image`.
-- Use native controls with DesignSystem styles: `Button` with `.buttonStyle(.filledProminent)`, `NavigationLink` with `.buttonStyle(.content)`. Inside a component that styles its own actions, such as `StateContent`, leave the style off.
+- Use native controls with DesignSystem styles: `Button` with `.buttonStyle(.filledProminent)`, `NavigationLink` with `.buttonStyle(.content)`. Where the styled parts already style their actions, as in `ContentUnavailableView(_:illustration:description:actions:)`, leave the style off.
 - Feature-local presentations are `@State` in the presenting view.
 - Strings come from the feature's String Catalog through generated symbols.
 

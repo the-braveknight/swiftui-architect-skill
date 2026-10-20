@@ -14,7 +14,7 @@
 ```
 Packages/DesignSystem/Sources/DesignSystem/
 ├── Foundations/   DesignSystem.swift (namespace), SemanticColors, ColorPrimitives, Typography,
-│                  Spacing, BorderRadius, Shadows, Opacity, Animations, IconSize, CardCatalog
+│                  Spacing, BorderRadius, Shadows, Opacity, Animations, IconSize, CardCatalog, Illustrations
 ├── Styles/        Buttons/ChipButtonStyle, SurfaceButtonStyle, ContentButtonStyle, ControlFeedback
 │                  Progress/LoadingDotsStyle, ControlStyleMetrics
 ├── Components/    Artwork/, Feedback/, Labels/, Layout/
@@ -109,13 +109,48 @@ Generic views that features compose, taking plain values and view builders:
 | Component | Takes |
 |---|---|
 | `Rail(_ title:content:accessory:)` | `LocalizedStringResource` title, cards, optional accessory |
-| `StateContent(_ title:illustration:message:actions:)` | empty, error and offline states |
+| `ContentUnavailableView(_ title:illustration:description:actions:)` | an initializer on SwiftUI's view for empty, error and offline states; see below |
 | `RemoteImage`, `MediaArtwork`, `PersonPortrait` | `URL?` |
 | `PosterCaption`, `RatingBadge`, `TagLabel` | `String`, `Double`, optional `Text` subtitle |
 | `FlowLayout` | a `Layout` for wrapping content |
 
 - Titles are `LocalizedStringResource`, so a feature passes its own generated symbol and the string resolves from the feature's bundle: `Rail(.discoverRailTrendingTitle) { … }`.
-- A component with an actions slot styles its own actions, so callers pass plain controls: `StateContent` applies `.filledProminent`, and `SurfaceButtonStyle` lays out a `Label`'s icon and title. An error view writes `Button(.discoverActionRetry, systemImage: "arrow.clockwise", action: retry)` with no style.
+- A component with an actions slot styles its own actions, so callers pass plain controls: the empty-state initializer applies `.filledProminent`, and `SurfaceButtonStyle` lays out a `Label`'s icon and title. A retry is just `Button(.retryTitle, systemImage: "arrow.clockwise", action: retry)`.
+- Restyle a native view by extending it, not by wrapping it. `ContentUnavailableView` sets its own fonts on its title and description, so styles applied from outside never reach them. DesignSystem adds an initializer that fills its slots with styled parts, named under one namespace the way SwiftUI's `SearchUnavailableContent` backs `.search`:
+
+```swift
+@MainActor
+extension ContentUnavailableView {
+    public init<Content: View>(
+        _ title: LocalizedStringResource,
+        illustration: ImageResource,
+        description: LocalizedStringResource,
+        @ViewBuilder actions: () -> Content
+    )
+    where
+        Label == EmptyStateContent.Label,
+        Description == EmptyStateContent.Description,
+        Actions == EmptyStateContent.Actions<Content>
+    {
+        self.init {
+            EmptyStateContent.Label(title: title, illustration: illustration)
+        } description: {
+            EmptyStateContent.Description(text: description)
+        } actions: {
+            EmptyStateContent.Actions(content: actions())
+        }
+    }
+}
+
+/// The parts of an empty state, styled from inside.
+public enum EmptyStateContent {
+    public struct Label: View { … }          // the illustration over the title
+    public struct Description: View { … }    // the message
+    public struct Actions<Content: View>: View { … }   // the caller's buttons, `.filledProminent`
+}
+```
+
+  A second initializer without `actions` covers states with nothing to do. Call sites stay SwiftUI's own view: `ContentUnavailableView(.watchlistEmptyTitle, illustration: DesignSystem.Illustrations.emptyList, description: .watchlistEmptyMessage)`. Shared states are presets in CoreUI ([Feature UI](feature-ui.md#what-a-screen-shows-without-content)).
 - Components never fetch, cache or decide policy. An image session or cache is injected by the app through the environment.
 - A view that renders a domain type and is used by several features belongs in CoreUI (`MovieSummaryCard`), built from DesignSystem parts. A view used by one feature stays in that feature.
 

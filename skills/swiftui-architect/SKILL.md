@@ -125,7 +125,7 @@ App file shape, environment keys, tab-root and pushed screens: [references/compo
 ## Feature UI in one page
 
 - `XView` (public) owns its view model as `@State`, applies screen modifiers (`.navigationTitle`, `.task { await viewModel.load() }`) and renders `XStateView`.
-- `XStateView` shows the content whenever there is some, the screen's error only when there's nothing to show, and progress otherwise.
+- `XStateView` shows the content whenever there is some, the screen's error only when there's nothing to show, and progress otherwise. It switches over the error and shows CoreUI's `ContentUnavailableView` presets, with no error view of its own. An empty answer gets an empty state only where the design has one, and is never turned into an error.
 - `XContentView` lays out the content in its scroll container, one view per resource or section. Views that only display take values; a view takes the view model only to read state of its own or call it, like a paging footer.
 - Each of these is its own file. Sections, rows and cards are separate `View` structs with narrow inputs; no wrapper structs around a single system view. Toolbars are `ToolbarContent` structs in XUI.
 - View models are `@MainActor @Observable final class XViewModel` with `private(set)` data, `isLoading…` and `…Error` for each resource the screen loads, and they do no data processing of their own: services return what the views show. Loading and pagination follow a proposed shape, not a rule.

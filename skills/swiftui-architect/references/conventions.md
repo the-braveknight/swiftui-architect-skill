@@ -32,7 +32,7 @@
 | Content view | `XContentView`, lays out the content | `DiscoverContentView` |
 | Sections | `XHeader`, `XRail`, `XRow`, `XCard`; one view per resource: `X` + resource + `View` | `MovieCastRail`, `HomeBannersView`, `HomeSectionsView` |
 | Paging footer | `X` + resource + `NextPageFooter` | `HomeSectionsNextPageFooter` |
-| Error view | `XErrorView` | `SearchErrorView` |
+| Shared screen states | `ContentUnavailableView` presets in CoreUI, named for the situation | `.offline(retry:)`, `.unavailable(retry:)`, `.notFound` |
 | Toolbar | `XToolbar` (`ToolbarContent`) in XUI | `WatchlistToolbar` |
 | Feature destinations | `XDestination` | `MovieDetailDestination` |
 | App navigation | `Router`, `TabDestination`, `Destination`, `DestinationView` | |

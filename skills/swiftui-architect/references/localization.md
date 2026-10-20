@@ -17,9 +17,10 @@ Every user-facing string comes from a String Catalog in the module that shows it
 |---|---|---|
 | App | `MoviesApp/Localizable.xcstrings` | Tab titles, app-level screens (Settings), app chrome |
 | Each `XUI` | `Sources/XUI/Resources/Localizable.xcstrings` | Everything the feature's views show |
+| `CoreUI` | `Sources/CoreUI/Resources/Localizable.xcstrings` | Copy every feature must say the same way: shared captions and the shared screen states (offline, not found, something went wrong) |
 | `XCore`, `XLive`, `Core`, `DesignSystem` | none | They show no text of their own |
 
-Generated symbols are `internal` and carry their own bundle, so a feature's strings are private to that feature and resolve from the right bundle without `bundle:` arguments. A string two features show is duplicated in each catalog; it's the same text today but owned by two features.
+Generated symbols are `internal` and carry their own bundle, so a feature's strings are private to that feature and resolve from the right bundle without `bundle:` arguments. A string two features show is duplicated in each catalog; it's the same text today but owned by two features. The exception is copy that must stay identical everywhere, such as the shared screen states: it lives once in CoreUI, next to the presets that show it.
 
 ## Keys and entries
 
