@@ -1,0 +1,36 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anthropics/claude-code/refs/heads/main/marketplace/marketplace.schema.json",
+  "name": "swiftui-architect-skill",
+  "version": "1.0.0",
+  "owner": {
+    "name": "Zaid Rahhawi"
+  },
+  "metadata": {
+    "description": "Architecture for modular SwiftUI apps: feature-slice Swift packages, a shared Core/CoreUI/DesignSystem layer, and app-owned native navigation."
+  },
+  "plugins": [
+    {
+      "name": "swiftui-architect",
+      "description": "Architects modular SwiftUI apps as vertical feature-slice Swift packages on a shared horizontal layer, with an app target that owns composition, dependency injection and native SwiftUI navigation.",
+      "repository": "https://github.com/the-braveknight/swiftui-architect-skill",
+      "version": "1.0.0",
+      "author": {
+        "name": "Zaid Rahhawi"
+      },
+      "license": "MIT",
+      "category": "development",
+      "keywords": [
+        "swift",
+        "swiftui",
+        "ios",
+        "architecture",
+        "modularization",
+        "swift-packages",
+        "navigation",
+        "design-system",
+        "localization"
+      ],
+      "source": "./"
+    }
+  ]
+}

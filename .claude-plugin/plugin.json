@@ -1,0 +1,24 @@
+{
+  "name": "swiftui-architect",
+  "version": "1.0.0",
+  "description": "Architects modular SwiftUI apps as vertical feature-slice Swift packages on a shared horizontal layer, with an app target that owns composition, dependency injection and native SwiftUI navigation.",
+  "author": {
+    "name": "Zaid Rahhawi"
+  },
+  "repository": "https://github.com/the-braveknight/swiftui-architect-skill",
+  "license": "MIT",
+  "keywords": [
+    "swift",
+    "swiftui",
+    "ios",
+    "architecture",
+    "modularization",
+    "swift-packages",
+    "navigation",
+    "design-system",
+    "localization"
+  ],
+  "skills": [
+    "./skills/swiftui-architect"
+  ]
+}
