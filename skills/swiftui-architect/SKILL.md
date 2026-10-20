@@ -124,9 +124,10 @@ App file shape, environment keys, tab-root and pushed screens: [references/compo
 
 ## Feature UI in one page
 
-- `XView` (public) owns its view model as `@State`, applies screen modifiers (`.navigationTitle`, `.task { await viewModel.load() }`) and renders `XContentView`.
-- `XContentView` shows the data whenever there is some, the feature's error only when there's nothing to show, and progress otherwise.
-- Sections, rows and cards are separate `View` structs with narrow inputs. Toolbars are `ToolbarContent` structs.
+- `XView` (public) owns its view model as `@State`, applies screen modifiers (`.navigationTitle`, `.task { await viewModel.load() }`) and renders `XStateView`.
+- `XStateView` shows the content whenever there is some, the feature's error only when there's nothing to show, and progress otherwise.
+- `XContentView` lays out the content in its scroll container, one view per resource or section. Views that only display take values; a view takes the view model only to read state of its own or call it, like a paging footer.
+- Each of these is its own file. Sections, rows and cards are separate `View` structs with narrow inputs. Toolbars are `ToolbarContent` structs.
 - View models are `@MainActor @Observable final class XViewModel` with `private(set)` state for each resource the screen loads, and they do no data processing of their own: services return what the views show. Loading and pagination, including screens with several resources, follow a proposed shape, not a rule.
 - A focused model for one concern of a screen is a noun without the `ViewModel` suffix (`WatchlistMembership`).
 
@@ -154,7 +155,7 @@ Out of scope here; use a concurrency skill. The architecture assumes:
 - [ ] Create Packages/X with XCore, XUI, XLive, XTests (template in modules.md)
 - [ ] XCore: models, XError, XServiceProtocol, MockXService + `.mock`
 - [ ] XLive: XService mapping DTOs to XCore models and transport errors to XError
-- [ ] XUI: XViewModel, XView, XContentView, XDestination, Localizable.xcstrings
+- [ ] XUI: XViewModel, XView, XStateView, XContentView, XDestination, Localizable.xcstrings
 - [ ] XTests: view model tests with actor stubs, mapping tests
 - [ ] Infrastructure: add any endpoints the live service needs
 - [ ] App: add the local package to the Xcode project and link XCore, XUI and XLive to the app target

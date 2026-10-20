@@ -4,7 +4,7 @@ What lives in an `XUI` target and the shape of each piece. Keep feature views pl
 
 ## Contents
 - File roles
-- XView and XContentView
+- XView, XStateView and XContentView
 - View models
 - Focused models
 - Ownership
@@ -16,10 +16,11 @@ What lives in an `XUI` target and the shape of each piece. Keep feature views pl
 
 | File | Role |
 |---|---|
-| `XView` | Public entry point. Owns the view model as `@State`; applies screen modifiers; renders `XContentView` |
-| `XContentView` | Shows the data, the error or progress, in that order |
-| `XSections` | Lays out the loaded content from narrow sections |
-| `XHeader`, `XRail`, `XRow`, `XCard` | One section or element each, taking only the values it reads |
+| `XView` | Public entry point. Owns the view model as `@State`; applies screen modifiers; renders `XStateView` |
+| `XStateView` | Shows the content, the error or progress, in that order |
+| `XContentView` | Lays out the content in its scroll container, one view per resource or section |
+| `XHeader`, `XRail`, `XRow`, `XCard`, `XBannersView`, `XSectionsView` | One section, resource or element each, taking only the values it reads |
+| `X…NextPageFooter` | Loads the next page of a paged resource while it's on screen; takes the view model |
 | `XErrorView` | Switches over `XError` and renders DesignSystem's `StateContent` with a retry; shared by all the feature's screens |
 | `XToolbar` | A `ToolbarContent` struct |
 | `XViewModel` | Loads and exposes state for one screen |
@@ -29,9 +30,12 @@ What lives in an `XUI` target and the shape of each piece. Keep feature views pl
 
 A feature exports one public view per screen it owns (`MovieDetailView`, `MovieCastView`) and its view models. Everything else stays internal.
 
-## XView and XContentView
+## XView, XStateView and XContentView
+
+Each is its own file.
 
 ```swift
+// DiscoverView.swift
 public struct DiscoverView: View {
     @State private var viewModel: DiscoverViewModel
 
@@ -41,7 +45,7 @@ public struct DiscoverView: View {
     }
 
     public var body: some View {
-        DiscoverContentView(viewModel: viewModel)
+        DiscoverStateView(viewModel: viewModel)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(DesignSystem.Colors.Background.canvas)
             .navigationTitle(.discoverNavigationTitle)
@@ -54,15 +58,14 @@ public struct DiscoverView: View {
     }
 }
 
+// DiscoverStateView.swift
 /// Renders the shelves whenever there are some, and the error only when there's nothing to show.
-struct DiscoverContentView: View {
+struct DiscoverStateView: View {
     let viewModel: DiscoverViewModel
 
     var body: some View {
         if let shelves = viewModel.shelves {
-            ScrollView {
-                DiscoverRailList(shelves: shelves)
-            }
+            DiscoverContentView(shelves: shelves)
         } else if let failure = viewModel.failure {
             DiscoverErrorView(error: failure) {
                 Task { await viewModel.load() }
@@ -73,9 +76,28 @@ struct DiscoverContentView: View {
         }
     }
 }
+
+// DiscoverContentView.swift
+/// The shelves, one rail each.
+struct DiscoverContentView: View {
+    let shelves: [DiscoverShelf]
+
+    var body: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: DesignSystem.Spacing.space7) {
+                ForEach(shelves) { shelf in
+                    DiscoverRail(shelf: shelf)
+                }
+            }
+            .padding(.vertical, DesignSystem.Spacing.space5)
+        }
+    }
+}
 ```
 
-Anything that needs loaded data, such as a title from the model or a toolbar that only makes sense with content, is applied inside the data branch (`.navigationTitle(movie.title)`), so `XView` never reads the data.
+`XStateView` only picks what to show. `XContentView` owns the scroll container and lays out the content, one view per resource or section. With one resource it takes the data as a value (`DiscoverContentView(shelves:)`); with several it takes the view model, because a view such as a paging footer needs it (see [Several resources and pagination](#several-resources-and-pagination)).
+
+Anything that needs loaded data, such as a title from the model or a toolbar that only makes sense with content, is applied in `XContentView` (`.navigationTitle(movie.title)`), so `XView` never reads the data.
 
 ## View models
 
@@ -144,11 +166,11 @@ public final class WatchlistMembership {
 |---|---|---|
 | App `XScreen` | Creates view models and focused models | Inline in `body`, passed to `XView` |
 | `XView` | Owns them for the screen's lifetime | `@State private var viewModel` |
-| Content views, sections | Read what they need | Plain `let viewModel` or narrow values; Observation tracks each property read |
+| State and content views, sections | Read what they need | Plain `let viewModel` or narrow values; Observation tracks each property read |
 | A view that needs a binding | Derives one | `@Bindable var viewModel = viewModel` in `body`, or `$viewModel.query` from the owner |
 | Presentation flags, form input, focus | The view that presents or edits | `@State private var` |
 
-Pass sections the narrowest values they read (`title: String`, `movie: MovieSummary`), not the whole view model or a large model with arrays.
+Pass views that only display the narrowest values they read (`title: String`, `movie: MovieSummary`, `sections: [HomeSection]`), not the whole view model or a large model with arrays. A view takes the view model only when it reads state of its own, such as a resource's loading flag or error, or calls the view model, like a paging footer. Don't pass closures down for the view model's actions instead: a closure can't be compared, so a view that takes one is re-evaluated whenever its parent is, while a view holding the view model re-renders only for the properties it reads.
 
 ## Loading and pagination: a proposed shape
 
@@ -365,34 +387,67 @@ Rules for this shape:
 - `loadNext…Page()` remembers the page it asked for and, after the `await`, drops the result if a refresh started the list over meanwhile. It has no in-flight guard: the footer's task restarts as the footer scrolls out and back in, and the restarted call must be able to load.
 - When a resource depends on another, such as episodes picked from the loaded title, `load()` loads that one first and then the rest side by side. Start `load()` from `.task` on `XView`, not on the progress view: the progress view goes away when the first resource arrives, and cancelling its task would cancel the loads that follow.
 
-The content view branches on the screen-wide properties, and a footer after the sections loads the next page while it's on screen:
+The state view branches on the screen-wide properties. The content view lays out one view per resource: `HomeBannersView` and `HomeSectionsView` take their arrays, and only the footer, which reads its own paging state and loads the next page while it's on screen, takes the view model:
 
 ```swift
-struct HomeContentView: View {
+// HomeStateView.swift
+/// Renders the error or progress while Home has nothing to show, and its content otherwise.
+struct HomeStateView: View {
     let viewModel: HomeViewModel
 
     var body: some View {
         if let error = viewModel.error {
-            // In a scroll view, so pulling to refresh works here too.
-            ScrollView {
-                HomeErrorView(error: error) {
-                    Task { await viewModel.load() }
-                }
+            HomeErrorView(error: error) {
+                Task { await viewModel.load() }
             }
         } else if viewModel.isLoading {
             ProgressView()
                 .progressViewStyle(.loadingDots)
         } else if viewModel.sections.isEmpty, viewModel.banners.isEmpty {
-            ScrollView {
-                StateContent(.homeEmptyTitle)
-            }
+            StateContent(.homeEmptyTitle)
         } else {
-            HomeSections(viewModel: viewModel)
+            HomeContentView(viewModel: viewModel)
         }
     }
 }
 
-private struct HomeNextPageLoader: View {
+// HomeContentView.swift
+/// The banners above the sections, with the next page loading as the end comes into view.
+struct HomeContentView: View {
+    let viewModel: HomeViewModel
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: DesignSystem.Spacing.space5) {
+                if !viewModel.banners.isEmpty {
+                    HomeBannersView(banners: viewModel.banners)
+                }
+                HomeSectionsView(sections: viewModel.sections)
+                HomeSectionsNextPageFooter(viewModel: viewModel)
+            }
+        }
+    }
+}
+
+// HomeSectionsNextPageFooter.swift
+/// Loads the next page while the end of the sections is on screen, or offers a retry after a failure. Draws nothing
+/// once the last page has loaded.
+struct HomeSectionsNextPageFooter: View {
+    let viewModel: HomeViewModel
+
+    var body: some View {
+        if viewModel.nextSectionsPageError != nil, !viewModel.isLoadingNextSectionsPage {
+            Button(.homeActionRetry) {
+                Task { await viewModel.loadNextSectionsPage() }
+            }
+            .buttonStyle(.filled)
+        } else if let nextPage = viewModel.nextSectionsPage {
+            HomeSectionsNextPageLoader(nextPage: nextPage, viewModel: viewModel)
+        }
+    }
+}
+
+private struct HomeSectionsNextPageLoader: View {
     let nextPage: Int
     let viewModel: HomeViewModel
     @State private var isVisible = false
@@ -413,7 +468,7 @@ Other ecosystems settled on the same ideas: TanStack Query keeps data status and
 ## View structure rules
 
 - Separate `View` structs for every section. No computed `some View` properties and no `@ViewBuilder` helper functions.
-- No `Group { if … }` or `Group { switch … }` in a body: move the branching into an `XContentView` and apply modifiers outside it.
+- No `Group { if … }` or `Group { switch … }` in a body: move the branching into an `XStateView` and apply modifiers outside it.
 - Toolbars are `ToolbarContent` structs (`WatchlistToolbar`).
 - Never create views from non-view types. View models expose XCore values; display mappings are XUI extensions returning `LocalizedStringResource` (`DiscoverCategory.title`), never `Text` or `Image`.
 - Use native controls with DesignSystem styles: `Button` with `.buttonStyle(.filledProminent)`, `NavigationLink` with `.buttonStyle(.content)`.

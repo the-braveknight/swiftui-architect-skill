@@ -29,8 +29,10 @@
 | A page from a service | `Page<Item>` (Core) with `items` and `nextPage` | `Page<HomeSection>` |
 | Focused model | a noun for what it is, no `ViewModel` suffix, no SwiftUI term of art | `WatchlistMembership` |
 | Public screen view | `XView` | `MovieDetailView`, `MovieCastView` |
-| Content view | `XContentView` | `DiscoverContentView` |
-| Sections | `XSections`, `XHeader`, `XRail`, `XRow`, `XCard` | `MovieCastRail` |
+| State view | `XStateView`, picks the content, the error or progress | `DiscoverStateView` |
+| Content view | `XContentView`, lays out the content | `DiscoverContentView` |
+| Sections | `XHeader`, `XRail`, `XRow`, `XCard`; one view per resource: `X` + resource + `View` | `MovieCastRail`, `HomeBannersView`, `HomeSectionsView` |
+| Paging footer | `X` + resource + `NextPageFooter` | `HomeSectionsNextPageFooter` |
 | Error view | `XErrorView` | `SearchErrorView` |
 | Toolbar | `XToolbar` (`ToolbarContent`) | `WatchlistToolbar` |
 | Feature destinations | `XDestination` | `MovieDetailDestination` |

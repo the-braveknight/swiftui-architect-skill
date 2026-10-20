@@ -38,7 +38,7 @@ Packages/MovieDetail/
 │       ├── Navigation/        MovieDetailDestination.swift
 │       ├── Resources/         Localizable.xcstrings
 │       ├── View Models/       MovieDetailViewModel.swift, MovieCastViewModel.swift
-│       └── Views/             MovieDetailView.swift, MovieDetailContentView.swift, …
+│       └── Views/             MovieDetailView.swift, MovieDetailStateView.swift, MovieDetailContentView.swift, …
 └── Tests/MovieDetailTests/
     ├── Live/                  MovieDetailMappingTests.swift
     └── ViewModels/            MovieDetailViewModelTests.swift
