@@ -174,4 +174,5 @@ struct MovieDetailScreen: View {
 
 - One `XScreen` per screen, named after the feature view it shows.
 - Building the view model inline is fine: the feature view stores it in `@State`, so only the first instance is kept. Every `body` pass builds one that is thrown away, so view model initializers do assignments only.
+- A screen with a [mode](view-models.md#modes) builds the mode's view model here too, with the screen's service: `GenreDetailView(viewModel:searchViewModel:)`.
 - Every screen has a preview that injects `.mock` services; tab-root screens also inject `Router()`.

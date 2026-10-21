@@ -36,8 +36,8 @@ The trade-offs are real: more `Package.swift` files to maintain, some deliberate
 - Domain-driven models that describe what the app shows, not what the API sends, with live services mapping API responses and errors into them.
 - Networking with Apple's swift-openapi-generator: a generated client wrapped in the app's own, with failures and cancellation classified once.
 - Service design and naming, following the Swift API Design Guidelines: a protocol per screen, reads as noun phrases, mocks for previews and tests, consumer-owned ports between features.
-- View models: per-resource loading state, several resources with computed screen state, pagination, feature error types, cancellation.
-- The views a screen is made of: `XView`, `XStateView`, `XContentView`, sections and paging footers.
+- View models: per-resource loading state, several resources, pagination, resources keyed by what the user picks or types, modes such as a search within one screen, feature error types, cancellation.
+- The views a screen is made of: `XView`, `XStateView`, `XContentView`, sections and paging footers, and state views that read the data first, so a refresh doesn't redraw them.
 - App composition: the `XApp` initializer as the dependency-injection root, environment keys, `XScreen` composition views.
 - Routing: feature `XDestination` values, an app-owned `Router`, one mapping file, registration at stack roots.
 - Localization, assets and fonts per module: String Catalogs with generated symbols, asset catalogs with generated symbols, fonts that DesignSystem registers.

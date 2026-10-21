@@ -1,6 +1,6 @@
 ---
 name: swiftui-architect
-description: Architects modular SwiftUI apps as feature-module Swift packages (XCore, XUI, XLive, XTests) on shared Core, CoreUI, DesignSystem and Networking packages, with an app target that composes screens, injects services and routes navigation. Use when creating or restructuring an app's modules, adding a feature or screen, designing domain models, services, or view models that load several resources, page or fail, deciding where a type belongs, or wiring navigation between screens and features in a multi-package SwiftUI codebase.
+description: Architects modular SwiftUI apps as feature-module Swift packages (XCore, XUI, XLive, XTests) on shared Core, CoreUI, DesignSystem and Networking packages, with an app target that composes screens, injects services and routes navigation. Use when creating or restructuring an app's modules, adding a feature or screen, designing domain models, services, or view models that load several resources, page, fail or search, deciding where a type belongs, or wiring navigation between screens and features in a multi-package SwiftUI codebase.
 ---
 
 # SwiftUI Architect
@@ -72,12 +72,13 @@ Targets, folders, Package.swift, Core, CoreUI and DesignSystem: [references/modu
 5. **Duplicate before you share.** A type moves to Core or CoreUI only when a second feature needs the same concept and both copies must change together.
 6. **Every module builds, previews and tests on its own.** XCore ships a mock of each service, so XUI needs nothing else.
 7. **Native SwiftUI, nothing invented.** No navigation libraries, DI containers, wrapper views around stacks, or infrastructure the app doesn't need.
+8. **One screen per kind of content.** When the things a feature opens load, page or search differently, each gets its own screen, rather than one detail screen that switches on what it was given.
 
 ## Domain and services in one page
 
 - Domain models are `Equatable`, `Sendable` value types shaped for what screens show. The whole thing is a plain noun (`Movie`); what a list shows of it adds `Summary` (`MovieSummary`). Each is complete for its role and states each fact once, so an illogical value can't be written.
 - Each feature has its own error enum, cased by what its screens show (`offline`, `notFound`, `unavailable`), or one per screen when their failures differ. Errors are never shared, and an empty answer is never an error.
-- XCore declares a service protocol per screen, holding only what that screen loads. Names follow the Swift API Design Guidelines: the protocol is the role's noun, reads are noun phrases for what they return, and changes are verbs.
+- XCore declares a service protocol per screen, holding only what that screen loads, and every view model of that screen uses it. Names follow the Swift API Design Guidelines: the protocol is the role's noun, reads are noun phrases for what they return, and changes are verbs.
 
 ```swift
 public protocol MovieDetailService: Sendable {
@@ -94,22 +95,24 @@ Models, errors, services, naming, ports: [references/domain.md](references/domai
 
 ## View models in one page
 
-- `@MainActor @Observable public final class XViewModel`, built by the app with IDs and services. Its `init` does assignments only. State is `private(set)`; actions are internal verbs (`load()`, `loadNextSectionsPage()`).
-- Each resource has its data, `isLoading…` and `…Error`; a paged one adds `next…Page`, `isLoadingNext…Page` and `next…PageError`. Each error property has its own type.
-- A screen with several resources gets computed `isLoading` and `error`, never stored. `load()` runs independent loads side by side and dependent ones after what they need.
+- `@MainActor @Observable public final class XViewModel`, built by the app with IDs and services. Its `init` does assignments only. State is `private(set)`, except input a view binds, such as a search field's text; actions are internal verbs (`load()`, `loadNextSectionsPage()`).
+- Each resource has its data (`[]` for a collection, `nil` for a single value, until it loads), `isLoading…` (`true` from the start when it loads on appear) and `…Error`; a paged one adds `next…Page`, `isLoadingNext…Page` and `next…PageError`. Each error property has its own type.
+- A resource keyed by something the user changes (search words, a selected season) starts over when the key changes: its data empties, it loads from `.task(id:)` on the view, and a result for an old key is dropped.
+- `load()` runs independent loads side by side and dependent ones after what they need. A screen gets computed `isLoading` and `error`, never stored, only when a rule spans several resources.
 - Cancellation is never a failure: catch `CancellationError` and keep the data and the error. Then the feature's error, then a fallback case.
 - A thing and its paged list are two resources, not a value paged as a whole.
+- A part of a screen with its own input and lifecycle gets its own model. Name it `…ViewModel` when it only makes sense with the views it drives, and a plain noun when it's a concept of its own (`WatchlistMembership`). A *mode*, such as a server search scoped to one screen, is such a view model; search across the app is its own screen instead, and searching what a screen already shows is a filter in its content view.
 
-The proposed loading shape, pagination, focused models and tests: [references/view-models.md](references/view-models.md).
+The loading shape, pagination, keyed resources, focused models and modes, and tests: [references/view-models.md](references/view-models.md).
 
 ## Views in one page
 
-- `XView` (public) owns the view model as `@State`, applies screen modifiers, runs `load()` from `.task`, and renders `XStateView`.
-- `XStateView` shows the content whenever there is some, the error only when there's nothing to show, and progress otherwise. It switches over the error and shows CoreUI's `ContentUnavailableView` presets; an empty state appears only where the design has one.
-- `XContentView` lays out the content in its scroll container, one view per resource or section. Display views take values; a view takes the view model only to read state of its own or call it, like a paging footer.
+- `XView` (public) owns the view models as `@State`, starts every load (`.task`, and `.task(id:)` for keyed resources and typing pauses), applies what every state shares (a title that stays up while loading, a search field, toolbars), and renders `XStateView`.
+- `XStateView` checks in a fixed order: the content whenever there is data, the error only when there's nothing to show, progress while loading, then the empty state. While there's data it reads only the data, so a refresh doesn't redraw it. It passes values down, and shows CoreUI's `ContentUnavailableView` presets; an empty state appears only where the design has one. A mode is picked in its first branch and has a state view of its own.
+- `XContentView` lays out the values it's given in its scroll container, one view per resource or section. It also takes the view model only when a child acts on it, like a paging footer.
 - Each is its own file. No closures passed down for view-model actions; toolbars are `ToolbarContent` structs.
 
-Shapes, paging footer, passing data, structure rules: [references/views.md](references/views.md).
+Shapes, modes, paging footer, passing data, structure rules: [references/views.md](references/views.md).
 
 ## Composition and routing in one page
 
@@ -174,6 +177,14 @@ Writing concurrent code is out of scope here; use a Swift Concurrency skill ([Re
 - [ ] App: XScreen that reads the service and builds the view model
 - [ ] App: Destination case, Destination.init mapping, DestinationView case
 - [ ] If the screen is reachable from a stack that didn't show this feature before, register XDestination there
+```
+
+**Add search**
+
+```
+- [ ] Search across the app (a Search tab, a search screen) → its own screen, usually its own feature, with its own service, view model and views
+- [ ] Searching what a screen already shows → filter the loaded values in XContentView; no new resource or service
+- [ ] Searching the server within one screen's scope → a mode: XSearchViewModel made with the screen's service, its own state and content views, picked in XStateView's first branch
 ```
 
 **Link one feature to another** (MovieDetail opens Trailers)

@@ -217,7 +217,7 @@ Each feature package builds, previews and tests without the app.
 
 | Behavior | Tested in |
 |---|---|
-| View model state, paging and screen-wide `isLoading`/`error` ([what to cover](view-models.md#testing-view-models)) | `XTests/ViewModels`, with private actor stubs |
+| View model state, paging, keyed resources and modes ([what to cover](view-models.md#testing-view-models)) | `XTests/ViewModels`, with private actor stubs |
 | Mapping API responses to models, and transport errors to the feature's errors | `XTests/Live`, with hand-built generated types |
 | Requests, decoding, error classification and cancellation | `NetworkingTests`, with a stub transport |
 | `Destination` mappings and adapters | app tests, when the app has a test target |

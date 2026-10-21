@@ -87,6 +87,7 @@ public protocol MovieCastService: Sendable {
 - Methods return domain values ready to show. A paged list returns `Page<Item>` from Core (`items`, `nextPage`); a screen that pages one thing's list has two methods, [the thing and its list](view-models.md#a-thing-and-its-paged-list).
 - Methods use untyped `throws` and name the error in the doc comment. Cancellation must reach the view model as `CancellationError`, and `throws(MovieDetailError)` couldn't carry it without a cancellation case in every domain error.
 - Protocols refine `Sendable`, so `any MovieDetailService` can be injected through the environment and held by a main-actor view model.
+- Every view model of a screen uses that screen's service. A [mode](view-models.md#modes) or a focused model with no concept of its own adds its methods to the screen's service rather than getting a service of its own; only a concept another feature owns gets its own protocol, as a [port](#cross-feature-services-consumer-owned-ports).
 
 ## Naming services and their methods
 
