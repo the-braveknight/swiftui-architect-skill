@@ -6,12 +6,12 @@
     "name": "Zaid Rahhawi"
   },
   "metadata": {
-    "description": "Architecture for modular SwiftUI apps: feature-slice Swift packages, a shared Core/CoreUI/DesignSystem layer, and app-owned native navigation."
+    "description": "Architecture for modular SwiftUI apps: feature-module Swift packages, domain-driven services and view models, and app-owned composition and navigation."
   },
   "plugins": [
     {
       "name": "swiftui-architect",
-      "description": "Architects modular SwiftUI apps as vertical feature-slice Swift packages on a shared horizontal layer, with an app target that owns composition, dependency injection and native SwiftUI navigation.",
+      "description": "Architects modular SwiftUI apps as feature-module Swift packages on shared Core, CoreUI, DesignSystem and Networking packages, with domain-driven models and services, view models for loading and pagination, and an app target that composes screens, injects services and routes native SwiftUI navigation.",
       "repository": "https://github.com/the-braveknight/swiftui-architect-skill",
       "version": "1.0.0",
       "author": {
@@ -27,8 +27,8 @@
         "modularization",
         "swift-packages",
         "navigation",
-        "design-system",
-        "localization"
+        "dependency-injection",
+        "openapi"
       ],
       "source": "./"
     }

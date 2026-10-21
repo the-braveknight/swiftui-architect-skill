@@ -86,7 +86,7 @@ final class Router {
 }
 ```
 
-Inject it once from `XApp` with `.environment(router)`. The selected tab belongs in the Router, next to the stacks.
+Inject it once from `XApp` with `.environment(router)`. The selected tab belongs in the Router, next to the stacks. Each tab-root screen binds its stack to its own entry (`NavigationStack(path: $router[.discover])`), and a tab that has never pushed gets an empty path.
 
 `TabDestination` is the tabs' selection value, named like every other place the app can go (`XDestination`, `Destination`), which leaves SwiftUI's `Tab` free for `ContentView`. It stays a plain list of cases: each tab's title and icon are written in `ContentView`, with no extension mapping cases to them.
 
@@ -158,7 +158,7 @@ router.selectedTab = .discover
 router[.discover].append(MovieDetailDestination.movie(id: 550))
 ```
 
-Pop to root by assigning an empty `NavigationPath()`. Because every destination is `Codable`, `NavigationPath.CodableRepresentation` can persist and restore stacks.
+Pop to root by assigning an empty `NavigationPath()`. Because every destination is `Codable`, `NavigationPath.CodableRepresentation` can persist and restore stacks; make `TabDestination` `Codable` too to restore the selected tab.
 
 ## Push or present
 

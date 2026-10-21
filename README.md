@@ -32,15 +32,15 @@ The trade-offs are real: more `Package.swift` files to maintain, some deliberate
 
 ## What the skill covers
 
-- Module map and dependency direction: `XCore`, `XUI`, `XLive`, `XTests`; `Core`, `CoreUI`, `DesignSystem`; infrastructure.
-- What goes in Core and CoreUI, and when to duplicate instead.
+- The module map and dependency direction: feature packages (`XCore`, `XUI`, `XLive`, `XTests`) on shared `Core`, `CoreUI`, `DesignSystem` and `Networking` packages, and what goes in each.
+- Domain-driven models that describe what the app shows, not what the API sends, with live services mapping API responses and errors into them.
+- Networking with Apple's swift-openapi-generator: a generated client wrapped in the app's own, with failures and cancellation classified once.
+- Service design and naming, following the Swift API Design Guidelines: a protocol per screen, reads as noun phrases, mocks for previews and tests, consumer-owned ports between features.
+- View models: per-resource loading state, several resources with computed screen state, pagination, feature error types, cancellation.
+- The views a screen is made of: `XView`, `XStateView`, `XContentView`, sections and paging footers.
 - App composition: the `XApp` initializer as the dependency-injection root, environment keys, `XScreen` composition views.
-- Native SwiftUI navigation: feature `XDestination` values, an app-owned `Router`, one mapping file, registration at stack roots, local presentations.
-- Feature UI shapes: views, view models, focused models, ownership.
-- Design system: tokens, `XStyle` conformances with dot syntax, domain-free components.
-- Localization: per-module String Catalogs, generated symbols, generated asset symbols.
-- Testing each feature in isolation.
-- Naming and formatting conventions.
+- Routing: feature `XDestination` values, an app-owned `Router`, one mapping file, registration at stack roots.
+- Naming and folder conventions.
 
 Out of scope, and covered by other skills:
 - SwiftUI view code technique: [SwiftUI Expert](https://github.com/AvdLee/SwiftUI-Agent-Skill), [SwiftUI Pro](https://github.com/twostraws/swiftui-agent-skill)
@@ -54,14 +54,14 @@ swiftui-architect-skill/
 ├── skills/swiftui-architect/
 │   ├── SKILL.md                 entry point: shape, dependency rules, ownership, workflows
 │   └── references/
-│       ├── modules.md           targets, folders, Package.swift template, Core/CoreUI, ports
+│       ├── modules.md           targets, folders, Package.swift, Core, CoreUI, DesignSystem, strings, tests
+│       ├── domain.md            domain models, errors, service protocols and naming, live services, mocks, ports
+│       ├── networking.md        swift-openapi-generator, the API client, errors and cancellation
+│       ├── view-models.md       loading state, several resources, pagination, focused models, tests
+│       ├── views.md             XView, XStateView, XContentView, paging footer, passing data
 │       ├── composition.md       XApp.swift, dependency injection, environment keys, XScreen
-│       ├── navigation.md        XDestination, Router, Destination, registration, presentations
-│       ├── feature-ui.md        views, view models, focused models, ownership
-│       ├── design-system.md     tokens, styles, components
-│       ├── localization.md      String Catalogs, generated symbols, assets
-│       ├── testing.md           mocks, stubs, view model and mapping tests
-│       └── conventions.md       naming, folders, formatting
+│       ├── navigation.md        XDestination, Router, Destination, registration, push or present
+│       └── conventions.md       naming and folders
 ├── README.md
 └── LICENSE
 ```

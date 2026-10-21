@@ -13,39 +13,39 @@ The app target is the composition root. It is the only module that imports every
 
 ```
 MoviesApp/
-├── MoviesApp.swift                 @main: services, Router, Scene
+├── MoviesApp.swift                 @main: client, services, Router, Scene
 ├── App/ContentView.swift           TabView over Router.selectedTab
 ├── Adapters/                       consumer-owned ports implemented over other features
-├── Extensions/Environment/         one @Entry key per injected service
+├── Extensions/Environment/         one @Entry key per service protocol
 ├── Navigation/                     Router, TabDestination, Destination, DestinationView
 └── Screens/                        one XScreen per screen
 ```
 
 ## XApp.swift
 
-Build every client, service and adapter in `init()`. Store them as `let` properties typed as the feature protocols, and inject them on the `Scene` so every window and every screen sees the same instances. Use no DI container and no singletons.
+Build the client and every service and adapter in `init()`. Store them as `let` properties typed as the feature protocols, and inject them on the `Scene` so every window and every screen sees the same instances. Use no DI container and no singletons.
 
 ```swift
 @main
 struct MoviesApp: App {
     @State private var router = Router()
     private let imageSession: URLSession
-    private let discoverService: any DiscoverServiceProtocol
-    private let movieDetailService: any MovieDetailServiceProtocol
-    private let movieCastService: any MovieCastServiceProtocol
-    private let watchlistService: any WatchlistServiceProtocol
-    private let watchlistMembershipService: any WatchlistMembershipServiceProtocol
+    private let discoverService: any DiscoverService
+    private let movieDetailService: any MovieDetailService
+    private let movieCastService: any MovieCastService
+    private let watchlistService: any WatchlistService
+    private let watchlistMembershipService: any WatchlistMembershipService
 
     init() {
         imageSession = URLSession(configuration: .default)
 
         do {
             let client = try TMDBClient(session: .shared)
-            let watchlistService = try WatchlistService.persistent()
+            let watchlistService = try SwiftDataWatchlistService.persistent()
 
-            discoverService = DiscoverService(client: client)
-            movieDetailService = MovieDetailService(client: client)
-            movieCastService = MovieCastService(client: client)
+            discoverService = TMDBDiscoverService(client: client)
+            movieDetailService = TMDBMovieDetailService(client: client)
+            movieCastService = TMDBMovieCastService(client: client)
             self.watchlistService = watchlistService
             watchlistMembershipService = WatchlistMembershipAdapter(watchlist: watchlistService)
         } catch {
@@ -68,27 +68,25 @@ struct MoviesApp: App {
 }
 ```
 
-Rules:
 - Live or mock is the app's decision (configuration, launch arguments for UI tests). Features never decide.
 - One service instance per protocol for the app's lifetime; views never create services.
 - App-wide policies (URL sessions, caches, tint, color scheme) are applied here, not in features or DesignSystem.
 
 ## Environment keys
 
-One key per service protocol, each in its own file in `Extensions/Environment/`, named `EnvironmentValues+XServiceProtocol.swift`. The default is the protocol's mock, so previews and screens work without setup.
+One key per service protocol, each in its own file in `Extensions/Environment/`, named `EnvironmentValues+XService.swift`. The default is the protocol's mock, so previews and screens work without setup.
 
 ```swift
 import DiscoverCore
 import SwiftUI
 
 extension EnvironmentValues {
-    @Entry var discoverService: any DiscoverServiceProtocol = .mock
+    @Entry var discoverService: any DiscoverService = .mock
 }
 ```
 
-Only app screens read these keys. Feature views never read services from the environment; they receive view models.
-
-The app always injects real instances, so a default only matters in previews. `.mock` returns a fresh instance each time; a preview that needs a mock's state to persist injects one stored instance.
+- Only app screens read these keys. Feature views never read services from the environment; they receive view models.
+- The app always injects real instances, so a default only matters in previews. A stateless struct mock is a stable default; `.mock` on an actor mock returns a fresh instance on each read, so a preview that needs a mock's state to persist injects one stored instance.
 
 ## ContentView
 
@@ -110,7 +108,7 @@ struct ContentView: View {
 }
 ```
 
-Each tab's title and icon are written here, in its `Tab`. `Tab`'s `image:` takes an asset name from the app's own bundle; for an icon from a package's asset catalog, pass `Label(_:image:)` with its `ImageResource` in the `label:` closure.
+Each tab's title and icon are written here, in its `Tab`, with no extension mapping `TabDestination` to them.
 
 ## XScreen
 
@@ -174,7 +172,6 @@ struct MovieDetailScreen: View {
 }
 ```
 
-Rules:
 - One `XScreen` per screen, named after the feature view it shows.
-- Building the view model inline is fine: the feature view stores it in `@State`, so only the first instance is kept. Keep view model initializers cheap (assignments only).
+- Building the view model inline is fine: the feature view stores it in `@State`, so only the first instance is kept. Every `body` pass builds one that is thrown away, so view model initializers do assignments only.
 - Every screen has a preview that injects `.mock` services; tab-root screens also inject `Router()`.

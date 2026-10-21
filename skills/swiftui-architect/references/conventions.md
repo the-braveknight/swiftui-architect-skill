@@ -3,29 +3,33 @@
 ## Contents
 - Naming
 - Folders
-- Formatting
 
 ## Naming
 
-`X` is the feature name in UpperCamelCase (`MovieDetail`); `x` is lowerCamelCase (`movieDetail`). A feature's other screens use their own noun in the same slots (`MovieCastView`, `MovieCastViewModel`, `MovieCastScreen`).
+`X` is the feature name in UpperCamelCase (`MovieDetail`); `x` is lowerCamelCase (`movieDetail`). A feature's other screens use their own noun in the same slots (`MovieCastService`, `MovieCastViewModel`, `MovieCastView`, `MovieCastScreen`).
+
+Names follow the [Swift API Design Guidelines](https://www.swift.org/documentation/api-design-guidelines/): they read as English at the call site, name things by role rather than type, and avoid abbreviations. Things and side-effect-free reads are nouns, changes are imperative verbs, and Booleans read as assertions. The reasoning for services is in [domain](domain.md#naming-services-and-their-methods).
 
 | Kind | Name | Example |
 |---|---|---|
 | Feature package | the capability | `Discover`, `MovieDetail`, `Watchlist` |
 | Feature targets | `XCore`, `XUI`, `XLive`, `XTests` | `MovieDetailUI` |
-| Shared package and targets | `Core`, `CoreUI` | |
-| Domain model | a plain noun for the whole thing; never ends in `Detail` | `Movie`, `Person`, `HomeSection` |
+| Shared packages | `Core` (with `CoreUI`), `DesignSystem`, `Networking` | |
+| Domain model | a plain noun for the whole thing; never ends in `Detail` or a transport word | `Movie`, `Person`, `HomeSection` |
 | What a list shows of a model | the model's name + `Summary` | `MovieSummary`, `HomeSectionSummary` |
-| Feature error | `XError` | `MovieDetailError` |
-| Service protocol (XCore) | `XServiceProtocol`, one per screen, `X` being the screen's noun | `DiscoverServiceProtocol`, `MovieCastServiceProtocol` |
-| Live service (XLive) | `XService` | `DiscoverService` |
-| Mock (XCore) | `MockXService`, exposed as `.mock` | `MockDiscoverService` |
-| Consumer-owned port | named for the consumer's need | `WatchlistMembershipServiceProtocol` |
-| App adapter for a port | port name + `Adapter` | `WatchlistMembershipAdapter` |
-| Service method | the value it returns | `movie(id:)`, `cast(movieID:)`, `loadShelves()`, `loadSections(page:)` |
-| View model | `XViewModel`, one per screen | `MovieCastViewModel` |
-| View model state | per resource: the data named for what it is, `isLoading…`, `…Error`; paged: `next…Page`, `isLoadingNext…Page`, `next…PageError`; computed `isLoading` and `error` only on screens with several resources. Each error property has its own type | `shelves`, `isLoadingShelves`, `shelvesError`, `nextSectionsPage` |
+| Feature error | `XError`, cased by what screens show | `MovieDetailError.notFound` |
+| Service protocol (XCore) | `XService`, one per screen | `DiscoverService`, `MovieCastService` |
+| Service implementation (XLive) | its source + the protocol's name | `TMDBDiscoverService`, `SwiftDataWatchlistService` |
+| Mock (XCore) | `Mock` + the protocol's name, exposed as `.mock` | `MockDiscoverService` |
+| Consumer-owned port | named for the consumer's need | `WatchlistMembershipService` |
+| App adapter for a port | the port's role + `Adapter` | `WatchlistMembershipAdapter` |
+| Service read | a noun phrase for what it returns | `movie(id:)`, `cast(movieID:)`, `sections(page:)` |
+| Service change | an imperative verb phrase | `addToWatchlist(_:)`, `removeFromWatchlist(movieID:)` |
 | A page from a service | `Page<Item>` (Core) with `items` and `nextPage` | `Page<HomeSectionSummary>` |
+| API client and its errors | the API's name + `Client` / `Error`; client methods keep the spec's operation names | `TMDBClient.movieDetails(id:)`, `TMDBError` |
+| View model | `XViewModel`, one per screen | `MovieCastViewModel` |
+| View model actions | imperative verbs | `load()`, `loadNextSectionsPage()`, `toggle(_:)` |
+| View model state | per resource: the data named for what it is, `isLoading…`, `…Error`; paged: `next…Page`, `isLoadingNext…Page`, `next…PageError`; computed `isLoading` and `error` only on screens with several resources | `shelves`, `isLoadingShelves`, `shelvesError`, `nextSectionsPage` |
 | Focused model | a noun for what it is, no `ViewModel` suffix, no SwiftUI term of art | `WatchlistMembership` |
 | Public screen view | `XView` | `MovieDetailView`, `MovieCastView` |
 | State view | `XStateView`, picks the content, the error or progress | `DiscoverStateView` |
@@ -34,19 +38,15 @@
 | Paging footer | `X` + resource + `NextPageFooter` | `HomeSectionsNextPageFooter` |
 | Shared screen states | `ContentUnavailableView` presets in CoreUI, named for the situation | `.offline(retry:)`, `.unavailable(retry:)`, `.notFound` |
 | Toolbar | `XToolbar` (`ToolbarContent`) in XUI | `WatchlistToolbar` |
-| Feature destinations | `XDestination` | `MovieDetailDestination` |
+| Feature destinations | `XDestination`; cases name the place and carry IDs | `MovieDetailDestination.cast(movieID:)` |
 | App navigation | `Router`, `TabDestination`, `Destination`, `DestinationView` | |
 | App screen | `XScreen` | `MovieDetailScreen` |
 | App `Destination` case | the app screen's name without `Screen` | `.movieDetail(id:)`, `.movieCast(movieID:)` |
 | App entry point | `<AppName>App` | `MoviesApp` |
-| Environment key | `xService` in `EnvironmentValues+XServiceProtocol.swift` | `\.discoverService` |
-| DTO mapping file | `Model+Source.swift` | `Movie+TMDB.swift` |
+| Environment key | `xService` in `EnvironmentValues+XService.swift` | `\.discoverService` |
+| Mapping file | `Model+Source.swift` | `Movie+TMDB.swift`, `MovieDetailError+TMDB.swift` |
 | Display mapping | a property returning `LocalizedStringResource` | `DiscoverCategory.title` |
-| Style | its look + `Style`, with a static member for its role | `ChipButtonStyle` → `.chip`, `LoadingDotsStyle` → `.loadingDots` |
-| String key | `feature.area.element` → symbol `.featureAreaElement` | `discover.action.retry` → `.discoverActionRetry` |
 | Test fixture | `make…` | `makeMovie(id:title:)` |
-
-Methods and properties follow the Swift API Design Guidelines: read as English at the call site, name by role not type, no abbreviations.
 
 ## Folders
 
@@ -57,45 +57,8 @@ Methods and properties follow the Swift API Design Guidelines: read as English a
 | XLive | `Mapping/`, `Services/` (and `Persistence/` when it stores data) |
 | XTests | `ViewModels/`, `Live/`, `Fixtures.swift` |
 | Core | `Domain/` |
-| CoreUI | `Components/` |
+| CoreUI | `Components/`, `Resources/` |
+| Networking | `openapi.yaml`, `openapi-generator-config.yaml`, the client, its error, `Middleware/` |
 | App | `App/`, `Adapters/`, `Extensions/Environment/`, `Navigation/`, `Screens/` |
 
 One type per file, named after the type. Small private helper views may share their parent's file.
-
-## Formatting
-
-Format with `swift-format` and a repository `.swift-format`: the defaults plus 4-space indentation, 120-column lines, `lineBreakBeforeEachArgument: true`, `respectsExistingLineBreaks: true`. After editing:
-
-```bash
-find App Packages -name '*.swift' -not -path '*/.build/*' -print0 \
-  | xargs -0 swift-format format --in-place --parallel --configuration .swift-format
-swift-format lint --strict -r App Packages
-```
-
-Beyond the formatter:
-- When a call constructs objects inline, a nested initializer with two or more arguments puts one argument per line, at every level, even if the call fits on one line:
-
-```swift
-MovieDetailView(
-    viewModel: MovieDetailViewModel(
-        movieID: movieID,
-        service: movieDetailService
-    ),
-    watchlistMembership: WatchlistMembership(
-        movieID: movieID,
-        service: watchlistMembershipService
-    )
-)
-```
-
-- A single-argument nesting stays on one line: `DiscoverView(viewModel: DiscoverViewModel(service: discoverService))`.
-- View-builder and registration closures name their parameter and put the body on its own line; `$0` is fine in one-line transforms (`map`, `filter`):
-
-```swift
-.navigationDestination(for: MovieDetailDestination.self) { destination in
-    DestinationView(destination: Destination(destination))
-}
-```
-
-- Don't pass one closure inside the parentheses and another as a trailing closure in the same call. Use trailing closures for all of them (`Rail(.title) { … } accessory: { … }`) or label every one.
-- Doc comments (`///`) explain why a type or decision exists, not what the code already says.
