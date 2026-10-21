@@ -21,7 +21,7 @@ A domain model describes what the app wants to show, not what the API sends. The
 
 // What MovieDetail shows, in MovieDetailCore:
 public struct Movie: Identifiable, Equatable, Sendable {
-    public let id: MovieSummary.ID
+    public let id: Int
     public let title: String
     public let year: Int?
     public let rating: Double?
@@ -31,6 +31,7 @@ public struct Movie: Identifiable, Equatable, Sendable {
 ```
 
 - **Value types, `Equatable` and `Sendable`.** They cross from live services to the main actor, and an `@Observable` view model skips invalidating its views when a refresh assigns an equal value, which it can only compare when the type is `Equatable`. `Identifiable` when a list shows them or a screen links to them.
+- **`Identifiable` provides the id's type.** Store `public let id: Int`, or whatever the id really is, and refer to it as `Movie.ID`; don't add `typealias ID`. Only a type that doesn't store its id, such as a section loaded by it, names the id's type with `typealias ID`.
 - **The whole thing is a plain noun; what a list shows of it adds `Summary`**: `Movie` and `MovieSummary`, `HomeSection` and `HomeSectionSummary`. A summary links to its whole thing by id. A model name never ends in `Detail` (only screens do) or in a transport word (`DTO`, `Response`).
 - **A model is complete for its role.** If reusing a model somewhere would leave fields empty or filled with placeholders, that role gets its own type. The whole thing also leaves out what loads separately, such as a [paged list](view-models.md#a-thing-and-its-paged-list).
 - **Illogical values can't be written, because each fact is stated once.** When two properties could disagree, such as an id saying where a section comes from and content saying what it holds, carry one inside the other and compute it, rather than checking in an initializer. A value loaded by its id doesn't store the id again unless something reads it.
@@ -84,10 +85,10 @@ public protocol MovieCastService: Sendable {
 }
 ```
 
-- Methods return domain values ready to show. A paged list returns `Page<Item>` from Core (`items`, `nextPage`); a screen that pages one thing's list has two methods, [the thing and its list](view-models.md#a-thing-and-its-paged-list).
+- Methods return domain values ready to show. A paged list returns `Page<Item>` from Core (`items`, `nextPage`); a screen that pages one thing's list has two methods, [the thing and its list](view-models.md#a-thing-and-its-paged-list). Don't wrap a page in a feature type to carry more, such as a total: a count the screen shows is a read of its own (`resultCount(for:)`).
 - Methods use untyped `throws` and name the error in the doc comment. Cancellation must reach the view model as `CancellationError`, and `throws(MovieDetailError)` couldn't carry it without a cancellation case in every domain error.
 - Protocols refine `Sendable`, so `any MovieDetailService` can be injected through the environment and held by a main-actor view model.
-- Every view model of a screen uses that screen's service. A [mode](view-models.md#modes) or a focused model with no concept of its own adds its methods to the screen's service rather than getting a service of its own; only a concept another feature owns gets its own protocol, as a [port](#cross-feature-services-consumer-owned-ports).
+- A screen's service holds what the screen loads from one source. A concern with a source of its own, such as searches kept on the device in user defaults, is a separate service (`RecentSearchesService`, implemented by `UserDefaultsRecentSearchesService`) that the view model takes beside it. A [nested model](view-models.md#nested-models-and-modes) uses its view model's services and never gets one for being nested; a capability another feature owns is a [port](#cross-feature-services-consumer-owned-ports).
 
 ## Naming services and their methods
 

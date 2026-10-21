@@ -36,7 +36,7 @@ The trade-offs are real: more `Package.swift` files to maintain, some deliberate
 - Domain-driven models that describe what the app shows, not what the API sends, with live services mapping API responses and errors into them.
 - Networking with Apple's swift-openapi-generator: a generated client wrapped in the app's own, with failures and cancellation classified once.
 - Service design and naming, following the Swift API Design Guidelines: a protocol per screen, reads as noun phrases, mocks for previews and tests, consumer-owned ports between features.
-- View models: per-resource loading state, several resources, pagination, resources keyed by what the user picks or types, modes such as a search within one screen, feature error types, cancellation.
+- View models: per-resource loading state, several resources, pagination, resources keyed by what the user picks or types, nested models for parts of a screen such as a search within it, feature error types, cancellation.
 - The views a screen is made of: `XView`, `XStateView`, `XContentView`, sections and paging footers, and state views that read the data first, so a refresh doesn't redraw them.
 - App composition: the `XApp` initializer as the dependency-injection root, environment keys, `XScreen` composition views.
 - Routing: feature `XDestination` values, an app-owned `Router`, one mapping file, registration at stack roots.
@@ -58,7 +58,7 @@ swiftui-architect-skill/
 │       ├── modules.md           targets, folders, Package.swift, Core, CoreUI, DesignSystem, strings, tests
 │       ├── domain.md            domain models, errors, service protocols and naming, live services, mocks, ports
 │       ├── networking.md        swift-openapi-generator, the API client, errors and cancellation
-│       ├── view-models.md       loading state, several resources, pagination, focused models, tests
+│       ├── view-models.md       loading state, several resources, pagination, keyed resources, nested models, tests
 │       ├── views.md             XView, XStateView, XContentView, paging footer, passing data
 │       ├── composition.md       XApp.swift, dependency injection, environment keys, XScreen
 │       ├── navigation.md        XDestination, Router, Destination, registration, push or present

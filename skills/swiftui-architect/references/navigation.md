@@ -174,18 +174,21 @@ Pop to root by assigning an empty `NavigationPath()`. Because every destination 
 ## Push or present
 
 - **Push** (`NavigationLink(value:)`) when the screen loads its own data, needs services, other features can reach it, or it belongs in the back stack.
-- **Present** (`sheet`, `fullScreenCover`, `alert`) when the content is self-contained and built from values the presenting view already has: a full biography, a poster viewer, a confirmation. A presented view takes plain values, never a service.
+- **Present** (`sheet`, `fullScreenCover`, `alert`) when the content is self-contained and built from values the presenting view already has: a full biography, a poster viewer, a confirmation. A presented view takes plain values, or the presenting screen's view model when it changes that screen's state, such as a filter it edits; never a service.
 
 ## Sheets, covers and alerts
 
-Presentations are local `@State` in the presenting feature view and never go through the app. A presented view that needs a title or a close button owns an unmanaged `NavigationStack`:
+What a screen presents is state on its view model, a plain `var` its views bind, and never goes through the app. Any view can open it, an action can close it (applying a filter closes the filter), and tests can check it. What only the presented view edits, such as a filter before it's applied, is that view's `@State`. `XView` presents what any state can open, such as a filter from its toolbar; a sheet only the content opens is presented there. A presented view that needs a title or a close button owns an unmanaged `NavigationStack`:
 
 ```swift
-// Presenting view
-@State private var isShowingFullBiography = false
+// PersonDetailViewModel
+/// Whether the full biography is showing.
+var isFullBiographyPresented = false
 
-Button(.personDetailBiographyShowMore) { isShowingFullBiography = true }
-    .sheet(isPresented: $isShowingFullBiography) {
+// PersonBiographySection
+@Bindable var viewModel = viewModel
+Button(.personDetailBiographyShowMore) { viewModel.isFullBiographyPresented = true }
+    .sheet(isPresented: $viewModel.isFullBiographyPresented) {
         PersonBiographySheet(name: name, biography: biography)
     }
 ```
@@ -213,7 +216,7 @@ private struct MovieDetailPreviewScreen: View {
     var body: some View {
         switch destination {
         case .movie(let id):
-            MovieDetailView(viewModel: …, watchlistMembership: …)   // built on .mock services
+            MovieDetailView(viewModel: …)   // built on .mock services
         case .cast(let movieID):
             MovieCastView(viewModel: …)
         case .person(let id):

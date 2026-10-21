@@ -10,7 +10,7 @@ A view model loads what one screen shows and exposes it as state. Services do th
 - Pagination
 - A thing and its paged list
 - Keyed resources
-- Focused models and modes
+- Nested models and modes
 - Testing view models
 
 ## The shape
@@ -49,10 +49,10 @@ public final class DiscoverViewModel {
 }
 ```
 
-- `@MainActor @Observable public final class`, one per screen and one per [mode](#modes), with a `public init` taking IDs and services. The app's `XScreen` builds one on every `body` pass and the view keeps only the first, so `init` does assignments only: no tasks, subscriptions or I/O.
-- State is `private(set)`; actions are internal methods the views call (`load()`, `loadNextSectionsPage()`, `toggle(_:)`), named as imperative verbs because they change state. The one exception is input a view binds, such as a search field's text, which is a plain `var` ([keyed resources](#keyed-resources)).
+- `@MainActor @Observable public final class`, one per screen (a view pushed onto a stack, or a tab's root) and never for a part of one ([nested models](#nested-models-and-modes)), with a `public init` taking IDs and services. The app's `XScreen` builds one on every `body` pass and the view keeps only the first, so `init` does assignments only: no tasks, subscriptions or I/O.
+- State is `private(set)`; actions are internal methods the views call (`load()`, `loadNextSectionsPage()`, `toggle(_:)`), named as imperative verbs because they change state. The exceptions are input a view binds, such as a search field's text, and what the screen presents, such as `isFilterPresented`: plain `var`s ([keyed resources](#keyed-resources), [presentations](navigation.md#sheets-covers-and-alerts)).
 - No data processing of its own: every value it stores comes from the service as it is.
-- No navigation, no views, no display strings, no other feature. State holds domain values; display mappings are XUI extensions.
+- No pushing or routing, no views, no display strings, no other feature. State holds domain values; display mappings are XUI extensions.
 - `load()` is safe to call again (refresh, retry), with no `loadIfNeeded()` variants or "already loaded" latches.
 
 ## One resource: data, activity and error
@@ -289,31 +289,53 @@ func loadEpisodes() async {
 - A response can arrive before its cancellation does, so a load whose key no longer matches drops its result or error and leaves `isLoading…` to the current key's load.
 - Typed text is input, not a key. The view model holds it as a plain `var` the field binds to, and `XView` applies it to the key after a pause in typing (`.task(id: viewModel.text)` with a short sleep), and at once on submit or when the field is cleared.
 
-## Focused models and modes
+## Nested models and modes
 
-When one part of a screen has its own lifecycle, give it its own `@Observable` model so only that part re-renders. The app's `XScreen` builds it with the screen's service, or the port it needs, and `XView` owns it beside the view model. Name it by one test, whether it would make sense without the views it drives:
-- No: it holds presentation state for one part of the screen, such as its input, loading, errors and paging. It's a view model, named after the views it drives: `GenreDetailSearchViewModel` drives `GenreDetailSearchStateView`.
-- Yes: it's a concept of its own that other screens could use. It's a plain noun, with no SwiftUI term of art: `WatchlistMembership`.
+A view model belongs to a screen: a view pushed onto a stack, or a tab's root. A part of a screen whose state changes on its own, such as a search within it or a watchlist button, gets a nested `@Observable` model instead: a type declared inside the screen's view model, made in its `init` with the services the view model was given, and owned by it. Name it for what it does, never `…ViewModel`: `GenreDetailViewModel.SearchSession`, `MovieDetailViewModel.WatchlistMembership`.
 
 ```swift
-/// Whether the movie on screen is in the watchlist. Loads when its button appears.
 @MainActor
 @Observable
-public final class WatchlistMembership {
-    private let movieID: MovieSummary.ID
-    private let service: any WatchlistMembershipService
+public final class MovieDetailViewModel {
+    // The movie and its cast, as in any view model.
 
-    private(set) var isInWatchlist = false
-    private(set) var isUpdating = false
+    /// Whether the movie is in the watchlist; only the watchlist button reads it.
+    let watchlistMembership: WatchlistMembership
 
-    public init(movieID: MovieSummary.ID, service: any WatchlistMembershipService) { … }
+    public init(
+        movieID: MovieSummary.ID,
+        service: any MovieDetailService,
+        watchlistMembershipService: any WatchlistMembershipService
+    ) {
+        self.movieID = movieID
+        self.service = service
+        self.watchlistMembership = WatchlistMembership(movieID: movieID, service: watchlistMembershipService)
+    }
+}
 
-    func load() async { … }
-    func toggle(_ movie: MovieSummary) async { … }
+extension MovieDetailViewModel {
+    /// Whether the movie on screen is in the watchlist. Loads when its button appears.
+    @MainActor
+    @Observable
+    final class WatchlistMembership {
+        private let movieID: MovieSummary.ID
+        private let service: any WatchlistMembershipService
+
+        private(set) var isInWatchlist = false
+        private(set) var isUpdating = false
+
+        init(movieID: MovieSummary.ID, service: any WatchlistMembershipService) { … }
+
+        func load() async { … }
+        func toggle(_ movie: MovieSummary) async { … }
+    }
 }
 ```
 
-`MovieDetailView(viewModel:watchlistMembership:)` owns both; only `WatchlistButton` reads `WatchlistMembership`.
+- Only the views that read a nested model redraw when it changes: `WatchlistButton(membership: viewModel.watchlistMembership)` redraws for the watchlist, and the rest of the screen doesn't.
+- The app builds one object per screen and `XView` owns one. A nested model is a `let` on its view model, so it lives exactly as long as the screen.
+- It uses services its view model takes: the screen's own, or a port such as `WatchlistMembershipService`. It never gets a service of its own for being nested.
+- A view binds its input by deriving a binding in `body`: `@Bindable var searchSession = viewModel.searchSession`, then `$searchSession.text`.
 
 ### Modes
 
@@ -321,40 +343,42 @@ A mode replaces a screen's content with its own while it's active, driven by its
 - Search across the app is its own screen, usually its own feature, with its own service, view model and views.
 - Searching what a screen already shows filters the loaded values in its content view, with no new resource.
 
-A mode is a view model of its own, made with the screen's service. Its text is input bound to the search field, its key is that text once applied, and its results are a [keyed](#keyed-resources), paged resource:
+A mode is a nested model, made with the screen's service. Its text is input bound to the search field, its key is that text once applied, and its results are a [keyed](#keyed-resources), paged resource:
 
 ```swift
-/// A search in a genre, by the words in its search field: what the genre's "See all" shows while there are words.
-@MainActor
-@Observable
-public final class GenreDetailSearchViewModel {
-    private let genreID: Genre.ID
-    private let service: any GenreDetailService
+extension GenreDetailViewModel {
+    /// A search in the genre, by the words in its search field: what the genre's "See all" shows while there are words.
+    @MainActor
+    @Observable
+    final class SearchSession {
+        private let genreID: Genre.ID
+        private let service: any GenreDetailService
 
-    /// The words in the search field.
-    var text = ""
-    /// The words the results are for: the field's, trimmed, once applied. Empty while not searching.
-    private(set) var query = ""
+        /// The words in the search field.
+        var text = ""
+        /// The words the results are for: the field's, trimmed, once applied. Empty while not searching.
+        private(set) var query = ""
 
-    /// Results
-    private(set) var results: [MovieSummary] = []
-    private(set) var isLoadingResults: Bool = false
-    private(set) var resultsError: GenreDetailError?
-    // nextResultsPage, isLoadingNextResultsPage, nextResultsPageError
+        /// Results
+        private(set) var results: [MovieSummary] = []
+        private(set) var isLoadingResults: Bool = false
+        private(set) var resultsError: GenreDetailError?
+        // nextResultsPage, isLoadingNextResultsPage, nextResultsPageError
 
-    var isActive: Bool {
-        !query.isEmpty
+        var isActive: Bool {
+            !query.isEmpty
+        }
+
+        /// Searches for the words in the field. New words start the results over, and load from `load()`.
+        func apply() { … }
+        func load() async { … }
+        func loadNextResultsPage() async { … }
     }
-
-    /// Searches for the words in the field. New words start the results over, and load from `load()`.
-    func apply() { … }
-    func load() async { … }
-    func loadNextResultsPage() async { … }
 }
 ```
 
-- `GenreDetailService` gains `movies(genreID:matching:page:)`; the mode doesn't get a service of its own.
-- `XView` owns both view models, and the screen's state view picks the mode in its first branch ([views](views.md#modes)).
+- `GenreDetailService` gains `movies(genreID:matching:page:)`, which the session uses.
+- `GenreDetailViewModel` owns it as `let searchSession: SearchSession`, and the screen's state view picks the mode in its first branch ([views](views.md#modes)).
 
 ## Testing view models
 
@@ -381,4 +405,4 @@ private actor StubMovieDetailService: MovieDetailService {
 
 Cover the rules the screen follows: a resource loaded on appear starts out loading, the data loads, the error is recorded, a failed refresh keeps the data, a successful retry clears the error, and cancellation isn't an error. A paged screen also covers a failed page keeping what's loaded, a retried page loading, the first page clearing the next page's error, a page that arrives after a refresh being dropped, and a restarted footer still loading its page. Tests that interleave two loads use a stub that holds each request until the test answers it.
 
-A keyed resource also covers a new key starting the data over and showing it as loading, and an old key's load being dropped and leaving the current key loading. A mode's view model is tested on its own, like any view model.
+A keyed resource also covers a new key starting the data over and showing it as loading, and an old key's load being dropped and leaving the current key loading. A nested model is tested on its own, made the way its view model makes it.

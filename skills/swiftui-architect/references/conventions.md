@@ -17,9 +17,10 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 | Shared packages | `Core` (with `CoreUI`), `DesignSystem`, `Networking` | |
 | Domain model | a plain noun for the whole thing; never ends in `Detail` or a transport word | `Movie`, `Person`, `HomeSection` |
 | What a list shows of a model | the model's name + `Summary` | `MovieSummary`, `HomeSectionSummary` |
+| A model's id | `let id` of its real type, which `Identifiable` names `X.ID`; `typealias ID` only for a type that doesn't store its id | `Movie.ID`, `HomeSection.ID` |
 | Feature error | `XError`, cased by what screens show; one per screen when their failures differ | `MovieDetailError.notFound`, `GenreDetailError` |
-| Service protocol (XCore) | `XService`, one per screen | `DiscoverService`, `MovieCastService` |
-| Service implementation (XLive) | its source + the protocol's name | `TMDBDiscoverService`, `SwiftDataWatchlistService` |
+| Service protocol (XCore) | `XService`, one per screen; another for each concern with a source of its own | `DiscoverService`, `MovieCastService`, `RecentSearchesService` |
+| Service implementation (XLive) | its source + the protocol's name | `TMDBDiscoverService`, `SwiftDataWatchlistService`, `UserDefaultsRecentSearchesService` |
 | Mock (XCore) | `Mock` + the protocol's name, exposed as `.mock`, and `.mock(_:)` for a scenario | `MockDiscoverService`, `.mock(.failure(.offline))` |
 | Consumer-owned port | named for the consumer's need | `WatchlistMembershipService` |
 | App adapter for a port | the port's role + `Adapter` | `WatchlistMembershipAdapter` |
@@ -27,10 +28,10 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 | Service change | an imperative verb phrase | `addToWatchlist(_:)`, `removeFromWatchlist(movieID:)` |
 | A page from a service | `Page<Item>` (Core) with `items` and `nextPage` | `Page<HomeSectionSummary>` |
 | API client and its errors | the API's name + `Client` / `Error`; client methods keep the spec's operation names | `TMDBClient.movieDetails(id:)`, `TMDBError` |
-| View model | `XViewModel`, one per screen, and one per mode named after the views it drives | `MovieCastViewModel`, `GenreDetailSearchViewModel` |
+| View model | `XViewModel`, one per screen: pushed onto a stack, or a tab's root | `MovieCastViewModel` |
 | View model actions | imperative verbs | `load()`, `loadNextSectionsPage()`, `toggle(_:)` |
-| View model state | per resource: the data named for what it is (`[]` for a collection, `nil` for a single value, until it loads), `isLoading…`, `…Error`; paged: `next…Page`, `isLoadingNext…Page`, `next…PageError`; keyed: the key (`selectedSeason`, `query`), and a plain `var` for input a view binds (`text`); computed `isLoading` and `error` only when a rule spans several resources | `shelves`, `isLoadingShelves`, `shelvesError`, `nextSectionsPage` |
-| Focused model | `…ViewModel` when it only makes sense with the views it drives; otherwise a noun for what it is, no SwiftUI term of art | `WatchlistMembership` |
+| View model state | per resource: the data named for what it is (`[]` for a collection, `nil` for a single value, until it loads), `isLoading…`, `…Error`; paged: `next…Page`, `isLoadingNext…Page`, `next…PageError`; keyed: the key (`selectedSeason`, `query`), and a plain `var` for input a view binds (`text`); presented: a plain `var` (`isFilterPresented`); computed `isLoading` and `error` only when a rule spans several resources | `shelves`, `isLoadingShelves`, `shelvesError`, `nextSectionsPage` |
+| Nested model | declared inside its view model, named for what it does, never `…ViewModel` | `GenreDetailViewModel.SearchSession`, `MovieDetailViewModel.WatchlistMembership` |
 | Public screen view | `XView` | `MovieDetailView`, `MovieCastView` |
 | State view | `XStateView`, picks the mode, then the content, the error, progress or the empty state | `DiscoverStateView` |
 | Content view | `XContentView`, lays out the loaded values | `DiscoverContentView` |

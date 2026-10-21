@@ -161,11 +161,8 @@ struct MovieDetailScreen: View {
         MovieDetailView(
             viewModel: MovieDetailViewModel(
                 movieID: movieID,
-                service: movieDetailService
-            ),
-            watchlistMembership: WatchlistMembership(
-                movieID: movieID,
-                service: watchlistMembershipService
+                service: movieDetailService,
+                watchlistMembershipService: watchlistMembershipService
             )
         )
     }
@@ -174,5 +171,5 @@ struct MovieDetailScreen: View {
 
 - One `XScreen` per screen, named after the feature view it shows.
 - Building the view model inline is fine: the feature view stores it in `@State`, so only the first instance is kept. Every `body` pass builds one that is thrown away, so view model initializers do assignments only.
-- A screen with a [mode](view-models.md#modes) builds the mode's view model here too, with the screen's service: `GenreDetailView(viewModel:searchViewModel:)`.
+- A screen's [nested models](view-models.md#nested-models-and-modes), such as a mode's `SearchSession` or `WatchlistMembership`, come with its view model: `XScreen` passes the view model every service they use.
 - Every screen has a preview that injects `.mock` services; tab-root screens also inject `Router()`.
