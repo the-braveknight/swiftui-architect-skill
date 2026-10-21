@@ -16,7 +16,7 @@ A screen is a small family of views in its feature's XUI target: `XView`, the pu
 
 | File | Role |
 |---|---|
-| `XView` | Public entry point. Owns the view models as `@State`; applies what every state shares (title, search field, toolbars); starts every load from `.task`; renders `XStateView` |
+| `XView` | Public entry point. Owns the view models as `@State`; applies what every state shares (title, search field, toolbars); starts every load from `.task`, and `.task(id:)` for keyed resources; renders `XStateView` |
 | `XStateView` | Picks the mode when it's active, then the content, the error, progress or the empty state; passes the data to the content view as values; switches over the error and shows CoreUI's presets |
 | `XContentView` | Takes the loaded values and lays them out in its scroll container, one view per resource or section |
 | `XSearchStateView`, `XSearchContentView`, `XSearchNextPageFooter` | A [mode](#modes)'s own family, shaped like the screen's |
@@ -111,7 +111,6 @@ struct DiscoverContentView: View {
 | An empty answer the design shows the same way on several screens, such as no search results | A CoreUI preset (`ContentUnavailableView.noResults`) | no |
 
 - The presets are static members on `ContentUnavailableView` in CoreUI, with their copy, because every screen must say the same thing about the same failure. An empty state that belongs to one feature uses the feature's strings; one that several features show alike is a preset too.
-- An empty state is the state view's last branch: no data, no error and no load running.
 - An empty answer is never an error. Where the design has no empty state, the screen shows nothing.
 - A secondary resource never takes over the screen. A failed next page or section shows a short inline message with a retry; one the screen can do without, such as suggestions, is simply left out.
 

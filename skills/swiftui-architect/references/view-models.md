@@ -284,7 +284,7 @@ func loadEpisodes() async {
 }
 ```
 
-- Changing the key is a synchronous action that empties the data, clears its error and paging, and sets `isLoading…`, since its load follows at once. The old key's data never shows under the new one, and the first frame shows progress rather than the empty state.
+- Changing the key is a synchronous action that empties the data, clears its error and paging, and sets `isLoading…` when a load follows, which a cleared search doesn't. The old key's data never shows under the new one, and the first frame shows progress rather than the empty state.
 - `XView` loads from `.task(id: viewModel.selectedSeason)`. SwiftUI cancels the previous key's load, and loads again when the view reappears.
 - A response can arrive before its cancellation does, so a load whose key no longer matches drops its result or error and leaves `isLoading…` to the current key's load.
 - Typed text is input, not a key. The view model holds it as a plain `var` the field binds to, and `XView` applies it to the key after a pause in typing (`.task(id: viewModel.text)` with a short sleep), and at once on submit or when the field is cleared.
