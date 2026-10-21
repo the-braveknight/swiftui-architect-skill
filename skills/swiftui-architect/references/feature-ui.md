@@ -75,7 +75,6 @@ struct DiscoverStateView: View {
             }
         } else if viewModel.isLoadingShelves {
             ProgressView()
-                .progressViewStyle(.loadingDots)
         }
     }
 
@@ -183,7 +182,7 @@ public final class WatchlistMembership {
 | A view that needs a binding | Derives one | `@Bindable var viewModel = viewModel` in `body`, or `$viewModel.query` from the owner |
 | Presentation flags, form input, focus | The view that presents or edits | `@State private var` |
 
-Pass views that only display the narrowest values they read (`title: String`, `movie: MovieSummary`, `sections: [HomeSection]`), not the whole view model or a large model with arrays. A view takes the view model only when it reads state of its own, such as a resource's loading flag or error, or calls the view model, like a paging footer. Don't pass closures down through views for the view model's actions instead: a closure can't be compared, so a view that takes one is re-evaluated whenever its parent is, while a view holding the view model re-renders only for the properties it reads. The exception is a leaf whose button fires one action, such as a preset's retry: pass it a private method of the view that makes the call (`.offline(retry: retry)`), not an inline closure.
+Pass views that only display the narrowest values they read (`title: String`, `movie: MovieSummary`, `sections: [HomeSectionSummary]`), not the whole view model or a large model with arrays. A view takes the view model only when it reads state of its own, such as a resource's loading flag or error, or calls the view model, like a paging footer. Don't pass closures down through views for the view model's actions instead: a closure can't be compared, so a view that takes one is re-evaluated whenever its parent is, while a view holding the view model re-renders only for the properties it reads. The exception is a leaf whose button fires one action, such as a preset's retry: pass it a private method of the view that makes the call (`.offline(retry: retry)`), not an inline closure.
 
 ## Loading and pagination: a proposed shape
 
@@ -217,30 +216,7 @@ Rules for each load method:
 - The presets live in CoreUI with their copy, because every screen must say the same thing about the same failure. An empty state belongs to one feature, so it uses the initializer with the feature's own strings.
 - An empty answer is never an error. Where the design has no empty state, the screen shows nothing: don't invent a state for it, and don't have the service throw to avoid one.
 - A secondary resource never takes over the screen. A failed next page or section shows a short inline message with a retry; one the screen can do without, such as suggestions, is simply left out.
-
-```swift
-// CoreUI/Components/ContentUnavailableView+Presets.swift
-@MainActor
-extension ContentUnavailableView
-where
-    Label == EmptyStateContent.Label,
-    Description == EmptyStateContent.Description,
-    Actions == EmptyStateContent.Actions<Button<SwiftUI.Label<Text, Image>>>
-{
-    /// The device is offline.
-    public static func offline(retry: @escaping () -> Void) -> Self {
-        ContentUnavailableView(
-            .contentUnavailableOfflineTitle,
-            illustration: DesignSystem.Illustrations.offline,
-            description: .contentUnavailableOfflineMessage
-        ) {
-            Button(.contentUnavailableActionRetry, systemImage: "arrow.clockwise", action: retry)
-        }
-    }
-
-    // `unavailable(retry:)` has the same shape; `notFound`, with no action, extends the `Actions == EmptyView` form.
-}
-```
+- Each preset is a static member on `ContentUnavailableView` in CoreUI (`.offline(retry:)`), built with DesignSystem's [empty-state initializer](design-system.md#components).
 
 ### Several resources and pagination
 
@@ -266,52 +242,11 @@ public protocol HomeServiceProtocol: Sendable {
     func loadBanners() async throws -> [MovieSummary]
 
     /// - Throws: `HomeError`. Cancellation propagates as `CancellationError`.
-    func loadSections(page: Int) async throws -> Page<HomeSection>
-}
-
-public struct HomeService: HomeServiceProtocol {
-    private let client: TMDBClient
-
-    public init(client: TMDBClient) {
-        self.client = client
-    }
-
-    @concurrent
-    public func loadBanners() async throws -> [MovieSummary] {
-        do {
-            let response = try await client.homeBanners()
-            return (response.results ?? []).compactMap(MovieSummary.init)
-        } catch let error as TMDBError {
-            throw HomeError(error)
-        }
-    }
-
-    @concurrent
-    public func loadSections(page: Int) async throws -> Page<HomeSection> {
-        do {
-            let response = try await client.home(page: page)
-            return Page(response)
-        } catch let error as TMDBError {
-            throw HomeError(error)
-        }
-    }
-}
-
-// XLive/Mapping/Page+TMDB.swift
-extension Page where Item == HomeSection {
-    /// The API numbers its pages; the feature only needs to know which one comes next.
-    init(_ response: Components.Schemas.HomePage) {
-        let number = response.page ?? 1
-        let totalPages = response.totalPages ?? number
-        self.init(
-            items: (response.sections ?? []).compactMap(HomeSection.init),
-            nextPage: number < totalPages ? number + 1 : nil
-        )
-    }
+    func loadSections(page: Int) async throws -> Page<HomeSectionSummary>
 }
 ```
 
-Live service methods are `@concurrent`, so their requests and mapping run off the main actor of the view model that awaits them.
+The live `HomeService` in XLive maps each response, page numbers included, to these types. Its methods are `@concurrent`, so their requests and mapping run off the main actor of the view model that awaits them.
 
 **View models do no data processing of their own.** They only manage the state their views read: every value they store comes from the service as it is.
 
@@ -328,7 +263,7 @@ public final class HomeViewModel {
     private(set) var bannersError: HomeError?
 
     /// Sections
-    private(set) var sections: [HomeSection] = []
+    private(set) var sections: [HomeSectionSummary] = []
     private(set) var isLoadingSections: Bool = true
     private(set) var sectionsError: HomeError?
     private(set) var nextSectionsPage: Int?
@@ -361,45 +296,7 @@ public final class HomeViewModel {
         }
     }
 
-    func loadBanners() async {
-        guard !isLoadingBanners else {
-            return
-        }
-
-        isLoadingBanners = true
-        defer { isLoadingBanners = false }
-
-        do {
-            let banners = try await service.loadBanners()
-            self.banners = banners
-            self.bannersError = nil
-        } catch is CancellationError {
-
-        } catch let error as HomeError {
-            self.bannersError = error
-        } catch {
-            self.bannersError = .unavailable
-        }
-    }
-
-    func loadSections() async {
-        isLoadingSections = true
-        defer { isLoadingSections = false }
-
-        do {
-            let page = try await service.loadSections(page: 1)
-            self.sections = page.items
-            self.nextSectionsPage = page.nextPage
-            self.sectionsError = nil
-            self.nextSectionsPageError = nil
-        } catch is CancellationError {
-
-        } catch let error as HomeError {
-            self.sectionsError = error
-        } catch {
-            self.sectionsError = .unavailable
-        }
-    }
+    // loadBanners() and loadSections() follow Discover's load; loadSections() asks for page 1.
 
     func loadNextSectionsPage() async {
         guard let requestedPage = nextSectionsPage else {
@@ -454,7 +351,6 @@ struct HomeStateView: View {
             }
         } else if viewModel.isLoading {
             ProgressView()
-                .progressViewStyle(.loadingDots)
         } else {
             HomeContentView(viewModel: viewModel)
         }
@@ -518,6 +414,66 @@ private struct HomeSectionsNextPageLoader: View {
 ```
 
 Other ecosystems settled on the same ideas: TanStack Query keeps data status and fetch status apart and checks data first, Android Paging keeps a load state per direction, and Riverpod's `AsyncValue` keeps the previous value through loading and errors.
+
+### A thing and its paged list
+
+A screen that shows one thing and a paged list belonging to it, such as a Home section's "See all", loads them as two resources: the thing, then its list a page at a time. The screen has its own protocol:
+
+```swift
+/// A section's "See all": the section, then its movies a page at a time.
+public protocol HomeSectionServiceProtocol: Sendable {
+    /// The section: its title and what it holds, without its movies.
+    func loadSection(id: HomeSection.ID) async throws -> HomeSection
+    func loadMovies(of id: HomeSection.ID, page: Int) async throws -> Page<MovieSummary>
+}
+```
+
+The view model holds the usual properties for each resource, and loads the list once the thing says it has one:
+
+```swift
+@MainActor
+@Observable
+public final class HomeSectionDetailViewModel {
+    private let sectionID: HomeSection.ID
+    private let service: any HomeSectionServiceProtocol
+
+    /// Section
+    private(set) var section: HomeSection?
+    private(set) var isLoadingSection: Bool = true
+    private(set) var sectionError: HomeError?
+
+    /// Movies
+    private(set) var movies: [MovieSummary] = []
+    private(set) var isLoadingMovies: Bool = false
+    private(set) var moviesError: HomeError?
+    private(set) var nextMoviesPage: Int?
+    private(set) var isLoadingNextMoviesPage = false
+    private(set) var nextMoviesPageError: HomeError?
+
+    /// Whether the detail has nothing to show yet: its section, or a section's first movies.
+    var isLoading: Bool {
+        (isLoadingSection && section == nil) || (isLoadingMovies && movies.isEmpty)
+    }
+
+    var error: HomeError? {
+        section == nil ? sectionError : (movies.isEmpty ? moviesError : nil)
+    }
+
+    func load() async {
+        await loadSection()
+        // Only a section of movies pages them; any other section comes whole.
+        if case .movies = section?.content {
+            await loadMovies()
+        }
+    }
+
+    // loadSection(), loadMovies() and loadNextMoviesPage() follow the rules above; later pages append.
+}
+```
+
+- The thing leaves the list out, so nothing holds two copies of it. Don't page a value that contains the list, merge pages into it, or pair it with its next page in a wrapper type or tuple.
+- When the API returns the thing with its first page, this costs an extra request. Accept it for two plain resources.
+- Load the list after the thing only when the thing decides whether there is one; otherwise load both side by side.
 
 ## View structure rules
 

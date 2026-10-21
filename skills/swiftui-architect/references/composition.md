@@ -32,6 +32,7 @@ struct MoviesApp: App {
     private let imageSession: URLSession
     private let discoverService: any DiscoverServiceProtocol
     private let movieDetailService: any MovieDetailServiceProtocol
+    private let movieCastService: any MovieCastServiceProtocol
     private let watchlistService: any WatchlistServiceProtocol
     private let watchlistMembershipService: any WatchlistMembershipServiceProtocol
 
@@ -44,6 +45,7 @@ struct MoviesApp: App {
 
             discoverService = DiscoverService(client: client)
             movieDetailService = MovieDetailService(client: client)
+            movieCastService = MovieCastService(client: client)
             self.watchlistService = watchlistService
             watchlistMembershipService = WatchlistMembershipAdapter(watchlist: watchlistService)
         } catch {
@@ -59,6 +61,7 @@ struct MoviesApp: App {
         }
         .environment(\.discoverService, discoverService)
         .environment(\.movieDetailService, movieDetailService)
+        .environment(\.movieCastService, movieCastService)
         .environment(\.watchlistService, watchlistService)
         .environment(\.watchlistMembershipService, watchlistMembershipService)
     }
@@ -72,7 +75,7 @@ Rules:
 
 ## Environment keys
 
-One file per key in `Extensions/Environment/`, named `EnvironmentValues+XServiceProtocol.swift`. The default is the feature's mock, so previews and screens work without setup.
+One key per service protocol, each in its own file in `Extensions/Environment/`, named `EnvironmentValues+XServiceProtocol.swift`. The default is the protocol's mock, so previews and screens work without setup.
 
 ```swift
 import DiscoverCore

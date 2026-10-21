@@ -59,18 +59,7 @@ public struct ChipButtonStyle: ButtonStyle {
 
     fileprivate let appearance: Appearance
 
-    public func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .designTypography(DesignSystem.Typography.labelSmall)
-            .padding(.horizontal, DesignSystem.Spacing.space4)
-            .frame(minHeight: DesignSystem.ControlStyle.chipHeight)
-            .background {
-                if appearance == .tonal {
-                    Capsule().fill(DesignSystem.Colors.Surface.base)
-                }
-            }
-            .modifier(ControlFeedback(isPressed: configuration.isPressed))
-    }
+    public func makeBody(configuration: Configuration) -> some View { … }
 }
 
 extension ButtonStyle where Self == ChipButtonStyle {
@@ -116,41 +105,7 @@ Generic views that features compose, taking plain values and view builders:
 
 - Titles are `LocalizedStringResource`, so a feature passes its own generated symbol and the string resolves from the feature's bundle: `Rail(.discoverRailTrendingTitle) { … }`.
 - A component with an actions slot styles its own actions, so callers pass plain controls: the empty-state initializer applies `.filledProminent`, and `SurfaceButtonStyle` lays out a `Label`'s icon and title. A retry is just `Button(.retryTitle, systemImage: "arrow.clockwise", action: retry)`.
-- Restyle a native view by extending it, not by wrapping it. `ContentUnavailableView` sets its own fonts on its title and description, so styles applied from outside never reach them. DesignSystem adds an initializer that fills its slots with styled parts, named under one namespace the way SwiftUI's `SearchUnavailableContent` backs `.search`:
-
-```swift
-@MainActor
-extension ContentUnavailableView {
-    public init<Content: View>(
-        _ title: LocalizedStringResource,
-        illustration: ImageResource,
-        description: LocalizedStringResource,
-        @ViewBuilder actions: () -> Content
-    )
-    where
-        Label == EmptyStateContent.Label,
-        Description == EmptyStateContent.Description,
-        Actions == EmptyStateContent.Actions<Content>
-    {
-        self.init {
-            EmptyStateContent.Label(title: title, illustration: illustration)
-        } description: {
-            EmptyStateContent.Description(text: description)
-        } actions: {
-            EmptyStateContent.Actions(content: actions())
-        }
-    }
-}
-
-/// The parts of an empty state, styled from inside.
-public enum EmptyStateContent {
-    public struct Label: View { … }          // the illustration over the title
-    public struct Description: View { … }    // the message
-    public struct Actions<Content: View>: View { … }   // the caller's buttons, `.filledProminent`
-}
-```
-
-  A second initializer without `actions` covers states with nothing to do. Call sites stay SwiftUI's own view: `ContentUnavailableView(.watchlistEmptyTitle, illustration: DesignSystem.Illustrations.emptyList, description: .watchlistEmptyMessage)`. Shared states are presets in CoreUI ([Feature UI](feature-ui.md#what-a-screen-shows-without-content)).
+- Restyle a native view by extending it, not by wrapping it. `ContentUnavailableView` sets its own fonts on its title and description, so styles applied from outside never reach them. DesignSystem adds an initializer, `init(_:illustration:description:actions:)`, that fills its slots with parts styled from inside (`EmptyStateContent.Label`, `.Description`, `.Actions`), named under one namespace the way SwiftUI's `SearchUnavailableContent` backs `.search`. A second initializer without `actions` covers states with nothing to do. Call sites stay SwiftUI's own view: `ContentUnavailableView(.watchlistEmptyTitle, illustration: DesignSystem.Illustrations.emptyList, description: .watchlistEmptyMessage)`. Shared states are presets in CoreUI ([Feature UI](feature-ui.md#what-a-screen-shows-without-content)).
 - Components never fetch, cache or decide policy. An image session or cache is injected by the app through the environment.
 - A view that renders a domain type and is used by several features belongs in CoreUI (`MovieSummaryCard`), built from DesignSystem parts. A view used by one feature stays in that feature.
 

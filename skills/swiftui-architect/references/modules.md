@@ -4,6 +4,7 @@
 - Feature packages: what a feature is, its four targets
 - Folder layout
 - Package.swift template
+- Models
 - Services, errors and DTO mapping
 - Cross-feature services: consumer-owned ports
 - Core and CoreUI
@@ -30,10 +31,11 @@ Packages/MovieDetail/
 ├── Sources/
 │   ├── MovieDetailCore/
 │   │   ├── Models/            Movie.swift, CastMember.swift, MovieDetailError.swift
-│   │   └── Services/          MovieDetailServiceProtocol.swift, MockMovieDetailService.swift
+│   │   └── Services/          MovieDetailServiceProtocol.swift, MockMovieDetailService.swift,
+│   │                          MovieCastServiceProtocol.swift, MockMovieCastService.swift
 │   ├── MovieDetailLive/
 │   │   ├── Mapping/           Movie+TMDB.swift, MovieDetailError+TMDB.swift
-│   │   └── Services/          MovieDetailService.swift
+│   │   └── Services/          MovieDetailService.swift, MovieCastService.swift
 │   └── MovieDetailUI/
 │       ├── Navigation/        MovieDetailDestination.swift
 │       ├── Resources/         Localizable.xcstrings
@@ -122,9 +124,27 @@ let package = Package(
 
 Never add `.defaultIsolation(MainActor.self)` to a package; mark UI types `@MainActor` explicitly.
 
+## Models
+
+XCore models describe what the screens show, not the API's responses.
+
+- **The whole thing is a plain noun; what a list shows of it adds `Summary`**: `Movie` and `MovieSummary`, `HomeSection` and `HomeSectionSummary`. A summary links to its whole thing by id.
+- **A model is complete for its role.** If reusing a model somewhere would leave fields empty or filled with placeholders, that role gets its own type. The whole thing also leaves out what loads separately, such as a [paged list](feature-ui.md#a-thing-and-its-paged-list).
+- **Illogical values can't be written, because each fact is stated once.** When two properties could disagree, such as an id saying where a section comes from and content saying what it holds, carry one inside the other and compute it, rather than checking in an initializer. A value loaded by its id doesn't store the id again unless something reads it.
+
+```swift
+// Can disagree: nothing stops a genre's id from holding a list's content.
+public let id: HomeSection.ID
+public let content: Content
+
+// Can't: the content says where it comes from (`.movies(from: .genre(28), items: …)`), and the id follows.
+public let content: Content
+public var id: HomeSection.ID { … }
+```
+
 ## Services, errors and DTO mapping
 
-XCore defines the contract in domain terms. One ready-made method per resource a screen shows, kept as readable as the [Home example](feature-ui.md#several-resources-and-pagination); mapping, aggregation and de-duplication live in the service, so view models only assign what it returns.
+XCore defines the contract in domain terms. Each screen has its own protocol, declaring only what that screen loads, with one ready-made method per resource, kept as readable as the [Home example](feature-ui.md#several-resources-and-pagination). Mapping, aggregation and de-duplication live in the service, so view models only assign what it returns.
 
 ```swift
 public protocol MovieDetailServiceProtocol: Sendable {
@@ -132,7 +152,14 @@ public protocol MovieDetailServiceProtocol: Sendable {
     func movie(id: MovieSummary.ID) async throws -> Movie
     func cast(movieID: MovieSummary.ID) async throws -> [CastMember]
 }
+
+public protocol MovieCastServiceProtocol: Sendable {
+    /// - Throws: `MovieDetailError`. Cancellation propagates as `CancellationError`.
+    func cast(movieID: MovieSummary.ID) async throws -> [CastMember]
+}
 ```
+
+Each protocol has one live service in XLive and one mock in XCore. A step two live services share, such as reading extra artwork for their results, is an internal extension on the client in XLive, not a service conforming to two protocols.
 
 Every feature has its own error enum, cased by what its screens show. Never centralize errors into a shared type.
 
@@ -144,36 +171,9 @@ public enum MovieDetailError: Error, Equatable, Sendable {
 }
 ```
 
-XLive maps transport errors and DTOs into the feature's types. Mapping lives in `Model+Source.swift` extensions; a DTO missing a required field maps to `nil` and is dropped.
-
-```swift
-extension CastMember {
-    init?(_ credit: Components.Schemas.CastCredit) {
-        guard let creditID = credit.creditId, let personID = credit.id, let name = credit.name else {
-            return nil
-        }
-        self.init(
-            id: creditID,
-            personID: personID,
-            name: name,
-            character: credit.character,
-            profileURL: TMDBImage.url(path: credit.profilePath, size: .profile)
-        )
-    }
-}
-
-extension MovieDetailError {
-    init(_ error: TMDBError) {
-        switch error {
-        case .offline: self = .offline
-        case .unexpectedStatus(404, _): self = .notFound
-        case .unexpectedStatus, .invalidResponse: self = .unavailable
-        }
-    }
-}
-```
-
-The live service catches the transport error and rethrows the feature's: `catch let error as TMDBError { throw MovieDetailError(error) }`.
+XLive maps transport errors and DTOs into the feature's types, in `Model+Source.swift` extensions (`CastMember+TMDB.swift`, `MovieDetailError+TMDB.swift`):
+- A model maps from its DTO in a failable initializer; a DTO missing a required field maps to `nil` and is dropped.
+- The feature's error maps from the transport error in an initializer, such as a 404 to `.notFound`. The live service catches the transport error and rethrows the feature's: `catch let error as TMDBError { throw MovieDetailError(error) }`.
 
 ## Cross-feature services: consumer-owned ports
 

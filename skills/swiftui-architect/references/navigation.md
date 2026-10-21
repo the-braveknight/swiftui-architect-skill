@@ -92,7 +92,7 @@ Inject it once from `XApp` with `.environment(router)`. The selected tab belongs
 
 ## Destination and DestinationView (app)
 
-`Destination` lists the app's pushable screens. One initializer per feature is the only place a feature's destination becomes an app screen, so all cross-feature wiring is readable in one file.
+`Destination` lists the app's pushable screens. One initializer per feature is the only place a feature's destination becomes an app screen, so all cross-feature wiring is readable in one file. Several feature cases can open the same app screen: Discover's and MovieDetail's `.movie(id:)` both become `.movieDetail(id:)`.
 
 ```swift
 /// The app's pushed screens. Features never see this type.
@@ -177,32 +177,9 @@ Button(.personDetailBiographyShowMore) { isShowingFullBiography = true }
     .sheet(isPresented: $isShowingFullBiography) {
         PersonBiographySheet(name: name, biography: biography)
     }
-
-// Presented view
-struct PersonBiographySheet: View {
-    let name: String
-    let biography: String
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        NavigationStack {
-            ScrollView { Text(biography) }
-                .navigationTitle(name)
-                .toolbar { PersonBiographySheetToolbar(dismiss: dismiss) }
-        }
-    }
-}
-
-struct PersonBiographySheetToolbar: ToolbarContent {
-    let dismiss: DismissAction
-
-    var body: some ToolbarContent {
-        ToolbarItem(placement: .cancellationAction) {
-            Button(role: .close) { dismiss() }
-        }
-    }
-}
 ```
+
+`PersonBiographySheet` takes those plain values, wraps its content in a `NavigationStack` for its title, and closes with a `ToolbarContent` struct holding `Button(role: .close) { dismiss() }`.
 
 ## Previews
 

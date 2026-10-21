@@ -14,10 +14,10 @@
 | Feature package | the capability | `Discover`, `MovieDetail`, `Watchlist` |
 | Feature targets | `XCore`, `XUI`, `XLive`, `XTests` | `MovieDetailUI` |
 | Shared package and targets | `Core`, `CoreUI` | |
-| Domain model | a plain noun; never ends in `Detail` | `Movie`, `Person`, `CastMember` |
-| Model shared across features | names what it is in lists | `MovieSummary` |
+| Domain model | a plain noun for the whole thing; never ends in `Detail` | `Movie`, `Person`, `HomeSection` |
+| What a list shows of a model | the model's name + `Summary` | `MovieSummary`, `HomeSectionSummary` |
 | Feature error | `XError` | `MovieDetailError` |
-| Service protocol (XCore) | `XServiceProtocol` | `DiscoverServiceProtocol` |
+| Service protocol (XCore) | `XServiceProtocol`, one per screen, `X` being the screen's noun | `DiscoverServiceProtocol`, `MovieCastServiceProtocol` |
 | Live service (XLive) | `XService` | `DiscoverService` |
 | Mock (XCore) | `MockXService`, exposed as `.mock` | `MockDiscoverService` |
 | Consumer-owned port | named for the consumer's need | `WatchlistMembershipServiceProtocol` |
@@ -25,7 +25,7 @@
 | Service method | the value it returns | `movie(id:)`, `cast(movieID:)`, `loadShelves()`, `loadSections(page:)` |
 | View model | `XViewModel`, one per screen | `MovieCastViewModel` |
 | View model state | per resource: the data named for what it is, `isLoading…`, `…Error`; paged: `next…Page`, `isLoadingNext…Page`, `next…PageError`; computed `isLoading` and `error` only on screens with several resources. Each error property has its own type | `shelves`, `isLoadingShelves`, `shelvesError`, `nextSectionsPage` |
-| A page from a service | `Page<Item>` (Core) with `items` and `nextPage` | `Page<HomeSection>` |
+| A page from a service | `Page<Item>` (Core) with `items` and `nextPage` | `Page<HomeSectionSummary>` |
 | Focused model | a noun for what it is, no `ViewModel` suffix, no SwiftUI term of art | `WatchlistMembership` |
 | Public screen view | `XView` | `MovieDetailView`, `MovieCastView` |
 | State view | `XStateView`, picks the content, the error or progress | `DiscoverStateView` |

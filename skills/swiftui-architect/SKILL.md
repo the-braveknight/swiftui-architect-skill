@@ -57,7 +57,7 @@ Targets, folders, Package.swift template, Core/CoreUI rules: [references/modules
 | Which screen a destination shows | App: `Destination` + `DestinationView` |
 | Where a feature's views can take the user | Feature: `XDestination` |
 | Views, view models, strings | Feature: `XUI` |
-| Models, errors, service protocol, mock | Feature: `XCore` |
+| Models, errors, a service protocol and mock per screen | Feature: `XCore` |
 | Live service, DTO mapping, persistence | Feature: `XLive` |
 | Sheets, full-screen covers, alerts | The presenting feature view, as `@State` |
 
@@ -117,6 +117,7 @@ var body: some Scene {
     }
     .environment(\.discoverService, discoverService)
     .environment(\.movieDetailService, movieDetailService)
+    .environment(\.movieCastService, movieCastService)
 }
 ```
 
@@ -138,6 +139,7 @@ View and view-model shapes, ownership, presentations: [references/feature-ui.md]
 - **DesignSystem**: tokens under one namespace (`DesignSystem.Colors.Text.primary`), native style protocols with dot-syntax members (`.buttonStyle(.chip)`, `.progressViewStyle(.loadingDots)`), domain-free components. See [references/design-system.md](references/design-system.md).
 - **Localization**: one String Catalog per XUI target and one in the app; Xcode generates `LocalizedStringResource` symbols used with dot notation (`Text(.discoverNavigationTitle)`, `Button(.discoverActionRetry, action: retry)`); assets use generated symbols (`Image(.logo)`). See [references/localization.md](references/localization.md).
 - **Testing**: each feature package has its own scheme and tests; view model tests use actor stubs; Live tests check DTO mapping. See [references/testing.md](references/testing.md).
+- **Models**: the whole thing is a plain noun and what a list shows of it is `XSummary`; each is complete for its role, and states each fact once so illogical values can't be written. See [references/modules.md](references/modules.md#models).
 - **Naming and formatting**: see [references/conventions.md](references/conventions.md).
 
 ## Concurrency
@@ -153,13 +155,13 @@ Out of scope here; use a concurrency skill. The architecture assumes:
 
 ```
 - [ ] Create Packages/X with XCore, XUI, XLive, XTests (template in modules.md)
-- [ ] XCore: models, XError, XServiceProtocol, MockXService + `.mock`
-- [ ] XLive: XService mapping DTOs to XCore models and transport errors to XError
+- [ ] XCore: models, XError, and per screen an XServiceProtocol and MockXService + `.mock`
+- [ ] XLive: an XService per protocol, mapping DTOs to XCore models and transport errors to XError
 - [ ] XUI: XViewModel, XView, XStateView, XContentView, XDestination, Localizable.xcstrings
 - [ ] XTests: view model tests with actor stubs, mapping tests
 - [ ] Infrastructure: add any endpoints the live service needs
 - [ ] App: add the local package to the Xcode project and link XCore, XUI and XLive to the app target
-- [ ] App: add the environment key, build the service in XApp.init, inject it on the Scene
+- [ ] App: for each service protocol, add the environment key, build the service in XApp.init, inject it on the Scene
 - [ ] App: add XScreen(s), Destination cases + Destination.init(_: XDestination), DestinationView cases
 - [ ] App: register XDestination at the root of every stack that can show the feature
 - [ ] Build the feature scheme and the app; run the feature's tests
@@ -177,8 +179,10 @@ Out of scope here; use a concurrency skill. The architecture assumes:
 **Add a screen to an existing feature**
 
 ```
+- [ ] XCore: the screen's service protocol and mock; XLive: its live service
 - [ ] XUI: view model + views; add a case to XDestination; push it with NavigationLink(value:)
-- [ ] App: XScreen that reads services and builds the view model
+- [ ] App: environment key, build the service in XApp.init and inject it
+- [ ] App: XScreen that reads the service and builds the view model
 - [ ] App: Destination case, Destination.init mapping, DestinationView case
 - [ ] If the screen is reachable from a stack that didn't show this feature before, register XDestination there
 ```

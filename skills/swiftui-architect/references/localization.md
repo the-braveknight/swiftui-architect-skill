@@ -28,18 +28,7 @@ Generated symbols are `internal` and carry their own bundle, so a feature's stri
   `discover.navigation.title`, `movie_detail.section.cast.see_all`, `search.error.offline.message`.
 - App keys start with `app.`: `app.tab.discover`, `app.settings.language`.
 - Every entry has a translator comment and a translation for every supported language.
-- Add the key to the catalog first, then use its symbol. An entry, as stored in `Localizable.xcstrings`:
-
-```json
-"discover.action.retry" : {
-  "comment" : "Button that retries loading Discover after a failure.",
-  "extractionState" : "manual",
-  "localizations" : {
-    "ar" : { "stringUnit" : { "state" : "translated", "value" : "حاول مرة أخرى" } },
-    "en" : { "stringUnit" : { "state" : "translated", "value" : "Try Again" } }
-  }
-}
-```
+- Add the key to the catalog first, then use its symbol.
 
 ## Using generated symbols
 
