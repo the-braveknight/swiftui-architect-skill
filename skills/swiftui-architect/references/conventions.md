@@ -17,7 +17,7 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 | Shared packages | `Core` (with `CoreUI`), `DesignSystem`, `Networking` | |
 | Domain model | a plain noun for the whole thing; never ends in `Detail` or a transport word | `Movie`, `Person`, `HomeSection` |
 | What a list shows of a model | the model's name + `Summary` | `MovieSummary`, `HomeSectionSummary` |
-| Feature error | `XError`, cased by what screens show; one per screen when their failures differ | `MovieDetailError.notFound`, `HomeSectionDetailError` |
+| Feature error | `XError`, cased by what screens show; one per screen when their failures differ | `MovieDetailError.notFound`, `GenreDetailError` |
 | Service protocol (XCore) | `XService`, one per screen | `DiscoverService`, `MovieCastService` |
 | Service implementation (XLive) | its source + the protocol's name | `TMDBDiscoverService`, `SwiftDataWatchlistService` |
 | Mock (XCore) | `Mock` + the protocol's name, exposed as `.mock`, and `.mock(_:)` for a scenario | `MockDiscoverService`, `.mock(.failure(.offline))` |
@@ -32,7 +32,7 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 | View model state | per resource: the data named for what it is (`[]` for a collection, `nil` for a single value, until it loads), `isLoading…`, `…Error`; paged: `next…Page`, `isLoadingNext…Page`, `next…PageError`; keyed: the key (`selectedSeason`, `query`), and a plain `var` for input a view binds (`text`); computed `isLoading` and `error` only when a rule spans several resources | `shelves`, `isLoadingShelves`, `shelvesError`, `nextSectionsPage` |
 | Focused model | `…ViewModel` when it only makes sense with the views it drives; otherwise a noun for what it is, no SwiftUI term of art | `WatchlistMembership` |
 | Public screen view | `XView` | `MovieDetailView`, `MovieCastView` |
-| State view | `XStateView`, picks the mode, the content, the error or progress | `DiscoverStateView` |
+| State view | `XStateView`, picks the mode, then the content, the error, progress or the empty state | `DiscoverStateView` |
 | Content view | `XContentView`, lays out the loaded values | `DiscoverContentView` |
 | Mode views | the screen's names with the mode after `X` | `GenreDetailSearchStateView`, `GenreDetailSearchContentView`, `GenreDetailSearchNextPageFooter` |
 | Sections | `XHeader`, `XRail`, `XRow`, `XCard`; one view per resource: `X` + resource + `View` | `MovieCastRail`, `HomeBannersView`, `HomeSectionsView` |

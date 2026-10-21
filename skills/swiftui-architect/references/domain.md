@@ -49,7 +49,7 @@ A model used by one feature lives in its XCore; one that several features share,
 
 ## Errors
 
-Every feature has its own error enum, cased by what its screens show, or one per screen when their failures differ: Home's feed can't be "not found", but a section opened by its id can (`HomeError` and `HomeSectionDetailError`). Never centralize errors into a shared type.
+Every feature has its own error enum, cased by what its screens show, or one per screen when their failures differ: Home's feed can't be "not found", but a genre opened by its id can (`HomeError` and `GenreDetailError`). Never centralize errors into a shared type.
 
 ```swift
 public enum MovieDetailError: Error, Equatable {

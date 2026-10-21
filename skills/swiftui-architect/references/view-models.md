@@ -70,7 +70,7 @@ A screen can have data while it refreshes, data and a failed refresh, or an erro
 Rules for each load method:
 - Set `isLoading…` for the duration of the load (`defer`).
 - On success, assign what the service returns and clear the error. On failure, keep the data and record the error, so a retry keeps the error view on screen until a load succeeds.
-- State views check in a fixed order: the content whenever there is data, the error only when there's nothing to show, progress while the load runs, and otherwise the empty state where the design has one ([views](views.md#xview-xstateview-and-xcontentview)). While there's data, the state view reads only the data, so a refresh starting or ending doesn't redraw it.
+- State views read the data first: the content whenever there is data, then the error, progress and the empty state ([views](views.md#xview-xstateview-and-xcontentview)).
 
 ## Errors and cancellation
 
@@ -255,6 +255,8 @@ func select(_ season: Season) {
     selectedSeason = season
     episodes = []
     episodesError = nil
+    // The view loads them next, so until then they show as loading rather than as none.
+    isLoadingEpisodes = true
 }
 
 func loadEpisodes() async {
@@ -262,7 +264,14 @@ func loadEpisodes() async {
         return
     }
 
-    // Loading, errors and cancellation as in any load.
+    isLoadingEpisodes = true
+    // A load for a season no longer selected leaves the flag to the selected season's load.
+    defer {
+        if season == selectedSeason {
+            isLoadingEpisodes = false
+        }
+    }
+
     do {
         let episodes = try await service.episodes(of: season)
         // Another season may have been selected while these loaded.
@@ -271,14 +280,14 @@ func loadEpisodes() async {
         }
         self.episodes = episodes
         self.episodesError = nil
-    } catch { … }
+    } catch { … }   // as in any load, recording an error only while its season is selected
 }
 ```
 
-- Changing the key is a synchronous action that empties the data and clears its error and paging, so the old key's data never shows under the new one.
+- Changing the key is a synchronous action that empties the data, clears its error and paging, and sets `isLoading…`, since its load follows at once. The old key's data never shows under the new one, and the first frame shows progress rather than the empty state.
 - `XView` loads from `.task(id: viewModel.selectedSeason)`. SwiftUI cancels the previous key's load, and loads again when the view reappears.
-- A response can arrive before its cancellation does, so the load drops a result whose key no longer matches.
-- Typed text is input, not a key. The view model holds it as a plain `var` the field binds to, and `XView` applies it to the key after a pause in typing (`.task(id: viewModel.text)` with a short sleep) and at once on submit.
+- A response can arrive before its cancellation does, so a load whose key no longer matches drops its result or error and leaves `isLoading…` to the current key's load.
+- Typed text is input, not a key. The view model holds it as a plain `var` the field binds to, and `XView` applies it to the key after a pause in typing (`.task(id: viewModel.text)` with a short sleep), and at once on submit or when the field is cleared.
 
 ## Focused models and modes
 
@@ -372,4 +381,4 @@ private actor StubMovieDetailService: MovieDetailService {
 
 Cover the rules the screen follows: a resource loaded on appear starts out loading, the data loads, the error is recorded, a failed refresh keeps the data, a successful retry clears the error, and cancellation isn't an error. A paged screen also covers a failed page keeping what's loaded, a retried page loading, the first page clearing the next page's error, a page that arrives after a refresh being dropped, and a restarted footer still loading its page. Tests that interleave two loads use a stub that holds each request until the test answers it.
 
-A keyed resource also covers a new key starting the data over and a result for an old key being dropped. A mode's view model is tested on its own, like any view model.
+A keyed resource also covers a new key starting the data over and showing it as loading, and an old key's load being dropped and leaving the current key loading. A mode's view model is tested on its own, like any view model.

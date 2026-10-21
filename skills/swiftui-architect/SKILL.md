@@ -97,11 +97,11 @@ Models, errors, services, naming, ports: [references/domain.md](references/domai
 
 - `@MainActor @Observable public final class XViewModel`, built by the app with IDs and services. Its `init` does assignments only. State is `private(set)`, except input a view binds, such as a search field's text; actions are internal verbs (`load()`, `loadNextSectionsPage()`).
 - Each resource has its data (`[]` for a collection, `nil` for a single value, until it loads), `isLoading…` (`true` from the start when it loads on appear) and `…Error`; a paged one adds `next…Page`, `isLoadingNext…Page` and `next…PageError`. Each error property has its own type.
-- A resource keyed by something the user changes (search words, a selected season) starts over when the key changes: its data empties, it loads from `.task(id:)` on the view, and a result for an old key is dropped.
+- A resource keyed by something the user changes (search words, a selected season) starts over when the key changes: its data empties and it shows as loading, it loads from `.task(id:)` on the view, and a load for an old key is dropped.
 - `load()` runs independent loads side by side and dependent ones after what they need. A screen gets computed `isLoading` and `error`, never stored, only when a rule spans several resources.
 - Cancellation is never a failure: catch `CancellationError` and keep the data and the error. Then the feature's error, then a fallback case.
 - A thing and its paged list are two resources, not a value paged as a whole.
-- A part of a screen with its own input and lifecycle gets its own model. Name it `…ViewModel` when it only makes sense with the views it drives, and a plain noun when it's a concept of its own (`WatchlistMembership`). A *mode*, such as a server search scoped to one screen, is such a view model; search across the app is its own screen instead, and searching what a screen already shows is a filter in its content view.
+- A part of a screen with its own input and lifecycle gets its own model. Name it `…ViewModel` when it only makes sense with the views it drives, and a plain noun when it's a concept of its own (`WatchlistMembership`). A *mode*, such as a server search scoped to one screen, is such a view model ([when search is a mode](#workflows)).
 
 The loading shape, pagination, keyed resources, focused models and modes, and tests: [references/view-models.md](references/view-models.md).
 

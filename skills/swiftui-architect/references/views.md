@@ -97,8 +97,7 @@ struct DiscoverContentView: View {
 
 - `XView` never decides between states. It owns the view models, applies what every state shares, and starts every load: `.task` for the screen's, so the load outlives the progress view ([cancellation](view-models.md#errors-and-cancellation)), and `.task(id:)` for a [keyed resource](view-models.md#keyed-resources).
 - `XStateView` only picks what to show, in a fixed order: the content whenever there is data, the error only when there's nothing to show, progress while the load runs, and otherwise the empty state where the design has one. While there's data it reads only the data, so a refresh starting or ending doesn't redraw it. It switches over the error itself and shows CoreUI's presets, so a feature has no error view of its own.
-- `XStateView` passes the data down, so `XContentView` takes values (`DiscoverContentView(shelves:)`). It also takes the view model when a view inside it acts, such as a paging footer.
-- `XContentView` owns the scroll container and lays out the content, one view per resource or section.
+- `XContentView` takes the values `XStateView` passes down (`DiscoverContentView(shelves:)`), owns the scroll container and lays them out, one view per resource or section. It also takes the view model when a view inside it acts, such as a paging footer.
 - A title from loaded data goes with that data: in `XContentView` when the content is the thing it names (`.navigationTitle(movie.title)`), in `XView` when the thing loads beside the content, so it stays up in every state (`.navigationTitle(viewModel.genre?.name ?? "")`). A toolbar that only makes sense with content goes in `XContentView`.
 
 ## What a screen shows without content
@@ -217,11 +216,13 @@ public var body: some View {
         .onSubmit(of: .search) {
             searchViewModel.apply()
         }
-        // Searches once typing pauses.
+        // Searches once typing pauses, and shows the genre again as soon as the field is cleared.
         .task(id: searchViewModel.text) {
-            try? await Task.sleep(for: .milliseconds(400))
-            guard !Task.isCancelled else {
-                return
+            if !searchViewModel.text.isEmpty {
+                try? await Task.sleep(for: .milliseconds(400))
+                guard !Task.isCancelled else {
+                    return
+                }
             }
             searchViewModel.apply()
         }
