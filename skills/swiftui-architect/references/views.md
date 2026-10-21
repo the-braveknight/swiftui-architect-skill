@@ -1,6 +1,6 @@
 # Views
 
-A screen is a small family of views in its feature's XUI target: `XView`, the public entry point, renders `XStateView`, which picks what to show, and `XContentView` lays the content out. Keep them plain, native SwiftUI: a view model in, views out, `NavigationLink(value:)` for navigation. For SwiftUI technique beyond these shapes, use a SwiftUI skill.
+A screen is a small family of views in its feature's XUI target: `XView`, the public entry point, renders `XStateView`, which picks what to show, and `XContentView` lays the content out. Keep them plain, native SwiftUI: a view model in, views out, `NavigationLink(value:)` for navigation. For SwiftUI technique inside these shapes (state, modifiers, layout, navigation APIs), use a SwiftUI skill ([related skills](../SKILL.md#related-skills)).
 
 ## Contents
 - File roles
@@ -218,7 +218,7 @@ private struct HomeSectionsNextPageLoader: View {
 - Toolbars are `ToolbarContent` structs in XUI (`WatchlistToolbar`).
 - Never create views from non-view types. View models expose domain values; display mappings are XUI extensions returning `LocalizedStringResource` (`DiscoverCategory.title`), never `Text` or `Image`.
 - Use native controls with DesignSystem styles: `Button` with `.buttonStyle(.filledProminent)`, `NavigationLink` with `.buttonStyle(.content)`, `ProgressView()`.
-- Strings come from the feature's String Catalog through generated symbols ([modules](modules.md#localization-and-assets)).
+- Strings come from the feature's String Catalog through generated symbols ([modules](modules.md#localization-assets-and-fonts)).
 
 ## Previews
 
@@ -231,6 +231,12 @@ Every public view has a preview built on mocks, so the feature is its own demo a
     }
 }
 
+#Preview("Offline") {
+    NavigationStack {
+        DiscoverView(viewModel: DiscoverViewModel(service: .mock(.failure(.offline))))
+    }
+}
+
 #Preview("Arabic") {
     NavigationStack {
         DiscoverView(viewModel: DiscoverViewModel(service: .mock))
@@ -239,5 +245,7 @@ Every public view has a preview built on mocks, so the feature is its own demo a
     .environment(\.layoutDirection, .rightToLeft)
 }
 ```
+
+A mock that takes a scenario shows each state the screen has, its errors included ([mocks](domain.md#mocks)).
 
 To click through a feature's own screens in previews, see [navigation previews](navigation.md#previews).

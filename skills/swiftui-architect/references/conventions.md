@@ -17,10 +17,10 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 | Shared packages | `Core` (with `CoreUI`), `DesignSystem`, `Networking` | |
 | Domain model | a plain noun for the whole thing; never ends in `Detail` or a transport word | `Movie`, `Person`, `HomeSection` |
 | What a list shows of a model | the model's name + `Summary` | `MovieSummary`, `HomeSectionSummary` |
-| Feature error | `XError`, cased by what screens show | `MovieDetailError.notFound` |
+| Feature error | `XError`, cased by what screens show; one per screen when their failures differ | `MovieDetailError.notFound`, `HomeSectionDetailError` |
 | Service protocol (XCore) | `XService`, one per screen | `DiscoverService`, `MovieCastService` |
 | Service implementation (XLive) | its source + the protocol's name | `TMDBDiscoverService`, `SwiftDataWatchlistService` |
-| Mock (XCore) | `Mock` + the protocol's name, exposed as `.mock` | `MockDiscoverService` |
+| Mock (XCore) | `Mock` + the protocol's name, exposed as `.mock`, and `.mock(_:)` for a scenario | `MockDiscoverService`, `.mock(.failure(.offline))` |
 | Consumer-owned port | named for the consumer's need | `WatchlistMembershipService` |
 | App adapter for a port | the port's role + `Adapter` | `WatchlistMembershipAdapter` |
 | Service read | a noun phrase for what it returns | `movie(id:)`, `cast(movieID:)`, `sections(page:)` |

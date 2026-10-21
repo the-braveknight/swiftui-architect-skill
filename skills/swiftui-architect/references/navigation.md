@@ -7,7 +7,7 @@ Native SwiftUI navigation only: `NavigationStack(path:)`, `NavigationLink(value:
 - XDestination (feature)
 - Pushing from feature views
 - Router and TabDestination (app)
-- Destination and DestinationView (app)
+- Destination and DestinationView (app), and screens that don't exist yet
 - Registering destinations
 - Programmatic navigation
 - Push or present
@@ -134,6 +134,17 @@ struct DestinationView: View {
     }
 }
 ```
+
+### Screens that don't exist yet
+
+A feature links to a place in its own words even before that place is built, such as sign-in from a "Watch Now" button (`MovieDetailDestination.signIn`). The app maps it to a placeholder until the real screen ships:
+
+```swift
+case .signIn:
+    ComingSoonScreen(.appDestinationSignIn)
+```
+
+When the screen arrives, only `DestinationView` changes; the features that link to it don't.
 
 ## Registering destinations
 

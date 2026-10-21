@@ -78,6 +78,8 @@ Rules for each load method:
 2. `let error as XError`: record it.
 3. Anything else: the fallback case of that property's type (`.unavailable`).
 
+How tasks, isolation and cancellation work is a Swift Concurrency skill's subject ([related skills](../SKILL.md#related-skills)); what follows is how this shape relies on them.
+
 **Cancellation is never a failure.** The networking client rethrows a cancelled request as `CancellationError` ([networking](networking.md#errors-and-cancellation)), so a view model needs only the one catch.
 - `XView` runs `load()` from `.task`, which cancels it when the view disappears and runs it again when the view reappears (a tab switch, a pop back). The second run is a silent refresh: the data stays on screen.
 - Start `load()` from `.task` on `XView`, never on the progress view. The progress view goes away when the first resource arrives, and cancelling its task would cancel the loads that follow.
@@ -216,22 +218,23 @@ public final class HomeSectionDetailViewModel {
     /// Section
     private(set) var section: HomeSection?
     private(set) var isLoadingSection: Bool = true
-    private(set) var sectionError: HomeError?
+    private(set) var sectionError: HomeSectionDetailError?
 
     /// Movies
     private(set) var movies: [MovieSummary] = []
     private(set) var isLoadingMovies: Bool = false
-    private(set) var moviesError: HomeError?
+    private(set) var moviesError: HomeSectionDetailError?
     private(set) var nextMoviesPage: Int?
     private(set) var isLoadingNextMoviesPage = false
-    private(set) var nextMoviesPageError: HomeError?
+    private(set) var nextMoviesPageError: HomeSectionDetailError?
 
     /// Whether the detail has nothing to show yet: its section, or a section's first movies.
     var isLoading: Bool {
         (isLoadingSection && section == nil) || (isLoadingMovies && movies.isEmpty)
     }
 
-    var error: HomeError? {
+    /// Why the detail has nothing to show. Unlike Home's feed, a section opened by its id can be not found.
+    var error: HomeSectionDetailError? {
         section == nil ? sectionError : (movies.isEmpty ? moviesError : nil)
     }
 

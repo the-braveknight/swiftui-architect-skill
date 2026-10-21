@@ -49,7 +49,7 @@ A model used by one feature lives in its XCore; one that several features share,
 
 ## Errors
 
-Every feature has its own error enum, cased by what its screens show. Never centralize errors into a shared type.
+Every feature has its own error enum, cased by what its screens show, or one per screen when their failures differ: Home's feed can't be "not found", but a section opened by its id can (`HomeError` and `HomeSectionDetailError`). Never centralize errors into a shared type.
 
 ```swift
 public enum MovieDetailError: Error, Equatable {
@@ -133,7 +133,7 @@ public struct TMDBMovieDetailService: MovieDetailService {
 }
 ```
 
-- Methods are `@concurrent`, so requests and mapping run off the main actor of the view model that awaits them. Protocol requirements and mocks stay unannotated.
+- Methods are `@concurrent`, so requests and mapping run off the main actor of the view model that awaits them. Protocol requirements and mocks stay unannotated. For isolation and `Sendable` beyond this, use a Swift Concurrency skill ([related skills](../SKILL.md#related-skills)).
 - Mapping lives in `Model+Source.swift` extensions (`Movie+TMDB.swift`, `MovieDetailError+TMDB.swift`). A model maps from its response in a failable initializer: a list item missing a required field is dropped, and a whole response that can't be read is `.unavailable`.
 - The feature's error maps from the client's transport error in an initializer, such as a 404 to `.notFound`. `CancellationError` passes through untouched, because the client already rethrows a cancelled request as one ([networking](networking.md#errors-and-cancellation)).
 - A step that two live services share, such as reading extra artwork for their results, is an internal extension on the client in XLive, not one service conforming to two protocols.
@@ -144,17 +144,34 @@ XCore ships a public mock of every protocol, so previews, the app's sample mode 
 
 ```swift
 public struct MockMovieDetailService: MovieDetailService {
-    public init() {}
+    /// What the mock answers: sample data, or a failure to preview an error state.
+    public enum Scenario: Sendable {
+        case sample
+        case failure(MovieDetailError)
+    }
 
-    public func movie(id: MovieSummary.ID) async throws -> Movie { … sample data … }
+    private let scenario: Scenario
+
+    public init(scenario: Scenario = .sample) {
+        self.scenario = scenario
+    }
+
+    public func movie(id: MovieSummary.ID) async throws -> Movie {
+        if case .failure(let error) = scenario { throw error }
+        … sample data …
+    }
+
     public func cast(movieID: MovieSummary.ID) async throws -> [CastMember] { … }
 }
 
 extension MovieDetailService where Self == MockMovieDetailService {
     public static var mock: Self { Self() }
+
+    public static func mock(_ scenario: MockMovieDetailService.Scenario) -> Self { Self(scenario: scenario) }
 }
 ```
 
+- A scenario lets each preview show one state the screen really has: a kind of sample (a movie or a series) or one of the feature's errors. `.mock` stays the plain sample.
 - A mock that keeps state (a watchlist that remembers toggles) is an actor, and `.mock` returns a fresh instance.
 - An actor's synchronous method satisfies an `async` requirement and a non-throwing one satisfies `throws`, so actor mocks and test stubs repeat `async` or `throws` only when they need them.
 - Tests use private stubs in XTests instead ([testing](modules.md#testing)).

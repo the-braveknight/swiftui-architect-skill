@@ -40,10 +40,11 @@ The trade-offs are real: more `Package.swift` files to maintain, some deliberate
 - The views a screen is made of: `XView`, `XStateView`, `XContentView`, sections and paging footers.
 - App composition: the `XApp` initializer as the dependency-injection root, environment keys, `XScreen` composition views.
 - Routing: feature `XDestination` values, an app-owned `Router`, one mapping file, registration at stack roots.
+- Localization, assets and fonts per module: String Catalogs with generated symbols, asset catalogs with generated symbols, fonts that DesignSystem registers.
 - Naming and folder conventions.
 
-Out of scope, and covered by other skills:
-- SwiftUI view code technique: [SwiftUI Expert](https://github.com/AvdLee/SwiftUI-Agent-Skill), [SwiftUI Pro](https://github.com/twostraws/swiftui-agent-skill)
+Out of scope, and covered by other skills the agent loads alongside this one:
+- SwiftUI view code technique: Apple's `swiftui-specialist`, built into Xcode's coding assistant; [SwiftUI Expert](https://github.com/AvdLee/SwiftUI-Agent-Skill); [SwiftUI Pro](https://github.com/twostraws/swiftui-agent-skill)
 - Swift Concurrency: [Swift Concurrency](https://github.com/AvdLee/Swift-Concurrency-Agent-Skill), [Swift Concurrency Pro](https://github.com/twostraws/Swift-Concurrency-Agent-Skill)
 
 ## Layout

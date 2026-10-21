@@ -76,7 +76,7 @@ Targets, folders, Package.swift, Core, CoreUI and DesignSystem: [references/modu
 ## Domain and services in one page
 
 - Domain models are `Equatable`, `Sendable` value types shaped for what screens show. The whole thing is a plain noun (`Movie`); what a list shows of it adds `Summary` (`MovieSummary`). Each is complete for its role and states each fact once, so an illogical value can't be written.
-- Each feature has its own error enum, cased by what its screens show (`offline`, `notFound`, `unavailable`). Errors are never shared, and an empty answer is never an error.
+- Each feature has its own error enum, cased by what its screens show (`offline`, `notFound`, `unavailable`), or one per screen when their failures differ. Errors are never shared, and an empty answer is never an error.
 - XCore declares a service protocol per screen, holding only what that screen loads. Names follow the Swift API Design Guidelines: the protocol is the role's noun, reads are noun phrases for what they return, and changes are verbs.
 
 ```swift
@@ -142,7 +142,7 @@ Register only at stack roots, never inside a feature screen: a screen that appea
 
 ## Concurrency
 
-Out of scope here; use a concurrency skill. The architecture assumes:
+Writing concurrent code is out of scope here; use a Swift Concurrency skill ([Related skills](#related-skills)). The architecture assumes:
 - Swift 6 language mode everywhere, with `NonisolatedNonsendingByDefault`, `InferIsolatedConformances` and `MemberImportVisibility` in packages.
 - Packages have no default actor isolation and no `nonisolated` workarounds or unchecked escape hatches. View models and their tests are explicitly `@MainActor`; services are `Sendable`; live service methods are `@concurrent`; stateful services, mocks and stubs are actors.
 - The app target may use MainActor default isolation, since it is only SwiftUI composition.
@@ -198,6 +198,11 @@ Naming and folders: [references/conventions.md](references/conventions.md).
 
 ## Related skills
 
-If installed, use these for how to write the code; this skill decides where it lives and what shape it takes:
-- SwiftUI view code: `swiftui-expert-skill` (https://github.com/AvdLee/SwiftUI-Agent-Skill) or `swiftui-pro` (https://github.com/twostraws/swiftui-agent-skill)
-- Swift Concurrency: `swift-concurrency` (https://github.com/AvdLee/Swift-Concurrency-Agent-Skill) or `swift-concurrency-pro` (https://github.com/twostraws/Swift-Concurrency-Agent-Skill)
+This skill decides where code lives and what shape it takes. Load these, when installed, alongside it for how to write the code:
+
+| Writing or reviewing | Skill |
+|---|---|
+| View bodies, state and data flow, modifiers, lists, navigation and presentation APIs, previews | A SwiftUI skill: `swiftui-specialist` (Apple's, built into Xcode's coding assistant), `swiftui-expert-skill` (https://github.com/AvdLee/SwiftUI-Agent-Skill) or `swiftui-pro` (https://github.com/twostraws/swiftui-agent-skill) |
+| Service and client methods, view model loads, task groups, cancellation, actors, `Sendable`, test stubs | A Swift Concurrency skill: `swift-concurrency` (https://github.com/AvdLee/Swift-Concurrency-Agent-Skill) or `swift-concurrency-pro` (https://github.com/twostraws/Swift-Concurrency-Agent-Skill) |
+
+Where this skill states a shape (a view model's loads, `XView`'s `.task`, a live service's `@concurrent` methods), follow it, and use those skills for everything inside it.
