@@ -39,7 +39,7 @@ The trade-offs are real: more `Package.swift` files to maintain, some deliberate
 - View models: per-resource loading state, several resources, pagination, resources keyed by what the user picks or types, nested models for parts of a screen such as a search within it, feature error types, cancellation.
 - The views a screen is made of: `XView`, `XStateView`, `XContentView`, sections and paging footers, and state views that read the data first, so a refresh doesn't redraw them.
 - App composition: the `XApp` initializer as the dependency-injection root, environment keys, `XScreen` composition views.
-- Routing: feature `XDestination` values, an app-owned `Router`, one mapping file, registration at stack roots.
+- Routing: feature `XDestination` values, CoreUI's `CoreDestination` for the places several features open, an app-owned `Router`, one mapping file, registration at stack roots.
 - Localization, assets and fonts per module: String Catalogs with generated symbols, asset catalogs with generated symbols, fonts that DesignSystem registers.
 - Naming and folder conventions.
 

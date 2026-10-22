@@ -41,6 +41,7 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 | Shared screen states | `ContentUnavailableView` presets in CoreUI, named for the situation | `.offline(retry:)`, `.unavailable(retry:)`, `.notFound`, `.noResults` |
 | Toolbar | `XToolbar` (`ToolbarContent`) in XUI | `WatchlistToolbar` |
 | Feature destinations | `XDestination`; cases name the place and carry IDs | `MovieDetailDestination.cast(movieID:)` |
+| Shared destinations | `CoreDestination` in CoreUI: the places several features open | `CoreDestination.movie(id:)` |
 | App navigation | `Router`, `TabDestination`, `Destination`, `DestinationView` | |
 | App screen | `XScreen` | `MovieDetailScreen` |
 | App `Destination` case | the app screen's name without `Screen` | `.movieDetail(id:)`, `.movieCast(movieID:)` |
@@ -63,4 +64,4 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 | Networking | `openapi.yaml`, `openapi-generator-config.yaml`, the client, its error, `Middleware/` |
 | App | `App/`, `Adapters/`, `Extensions/Environment/`, `Navigation/`, `Screens/` |
 
-One type per file, named after the type. Small private helper views may share their parent's file.
+One type per file, named after the type; a nested model's file adds it to its view model's name (`MovieDetailViewModel+WatchlistMembership.swift`). Small private helper views may share their parent's file.

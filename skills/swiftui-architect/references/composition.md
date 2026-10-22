@@ -128,7 +128,7 @@ struct DiscoverScreen: View {
         @Bindable var router = router
         NavigationStack(path: $router[.discover]) {
             DiscoverView(viewModel: DiscoverViewModel(service: discoverService))
-                .navigationDestination(for: DiscoverDestination.self) { destination in
+                .navigationDestination(for: CoreDestination.self) { destination in
                     DestinationView(destination: Destination(destination))
                 }
                 .navigationDestination(for: MovieDetailDestination.self) { destination in

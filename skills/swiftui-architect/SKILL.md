@@ -57,6 +57,7 @@ Targets, folders, Package.swift, Core, CoreUI and DesignSystem: [references/modu
 | Domain models, errors, a service protocol and mock per screen | Feature: `XCore` |
 | Live services, mapping API responses and errors to the domain | Feature: `XLive` |
 | View models, views, strings, where its views can go (`XDestination`) | Feature: `XUI` |
+| The places several features open (`CoreDestination`) | `CoreUI` |
 | The generated API, the client over it, error classification | `Networking` |
 | Building the client and services, injecting them | App: `XApp.init`, through the environment |
 | Building a screen: reading services, creating view models | App: one `XScreen` per screen |
@@ -126,17 +127,19 @@ Shapes, modes, paging footer, passing data, structure rules: [references/views.m
 .environment(\.movieCastService, movieCastService)
 ```
 
-A feature declares everywhere its views can go in its own `XDestination`, carrying IDs; the app maps each case to a screen once, and registers each destination type at the root of every stack that can show it:
+A feature declares everywhere its views can go in its own `XDestination`, carrying IDs. The places several features open, such as a movie's details, are cased once in CoreUI's `CoreDestination`. The app maps each case to a screen once, and registers each destination type at the root of every stack that can show it:
 
 ```swift
 public enum MovieDetailDestination: Hashable, Codable, Sendable {
-    case movie(id: MovieSummary.ID)
     case cast(movieID: MovieSummary.ID)
     case person(id: Int)
 }
 
 NavigationStack(path: $router[.discover]) {
     DiscoverView(viewModel: DiscoverViewModel(service: discoverService))
+        .navigationDestination(for: CoreDestination.self) { destination in
+            DestinationView(destination: Destination(destination))
+        }
         .navigationDestination(for: MovieDetailDestination.self) { destination in
             DestinationView(destination: Destination(destination))
         }
@@ -161,7 +164,7 @@ Writing concurrent code is out of scope here; use a Swift Concurrency skill ([Re
 - [ ] XCore: domain models, XError, and per screen a service protocol and its mock + `.mock`
 - [ ] Networking: add the endpoints to openapi.yaml and a client method for each
 - [ ] XLive: a live service per protocol, mapping responses to the domain and TMDBError to XError
-- [ ] XUI: XViewModel, XView, XStateView, XContentView, XDestination, Localizable.xcstrings
+- [ ] XUI: XViewModel, XView, XStateView, XContentView, XDestination, Localizable.xcstrings; places another feature already links to, such as a movie's details, are pushed as `CoreDestination`, not added to XDestination
 - [ ] XTests: view model tests with actor stubs, mapping tests
 - [ ] App: add the local package to the Xcode project and link XCore, XUI and XLive to the app target
 - [ ] App: for each service protocol, add the environment key, build the service in XApp.init, inject it on the Scene
@@ -192,6 +195,7 @@ Writing concurrent code is out of scope here; use a Swift Concurrency skill ([Re
 **Link one feature to another** (MovieDetail opens Trailers)
 
 ```
+- [ ] If the place is a `CoreDestination`, push it and stop here. If another feature's XDestination already has it, move that case to `CoreDestination`, with its mapping, and push that
 - [ ] Source feature: add a case to its XDestination in its own words (`.trailers(movieID:)`) and push it with NavigationLink(value:)
 - [ ] If the source needs data the target owns (does this movie have trailers?), declare a port in the source's XCore with a mock, and implement it in an app adapter
 - [ ] App: map the new case in Destination.init(_: SourceDestination) to the target's app screen

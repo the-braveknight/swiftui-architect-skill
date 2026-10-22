@@ -5,6 +5,7 @@ Native SwiftUI navigation only: `NavigationStack(path:)`, `NavigationLink(value:
 ## Contents
 - The model
 - XDestination (feature)
+- CoreDestination (CoreUI)
 - Pushing from feature views
 - Router and TabDestination (app)
 - Destination and DestinationView (app), and screens that don't exist yet
@@ -30,14 +31,13 @@ The same path works inside a feature (MovieDetail → its cast screen) and acros
 
 ## XDestination (feature)
 
-One enum per feature in `XUI/Navigation/XDestination.swift`: everywhere its views can take the user, its own screens and other features' screens alike, in the feature's own vocabulary.
+One enum per feature in `XUI/Navigation/XDestination.swift`: everywhere its views can take the user, its own screens and other features' screens alike, in the feature's own vocabulary. The places several features open come from [`CoreDestination`](#coredestination-coreui) instead.
 
 ```swift
-/// Where MovieDetail's views can take the user. They push one with `NavigationLink(value:)`; the app
-/// builds each screen and registers this type once, at the root of every stack that can show MovieDetail.
+/// Where MovieDetail's views can take the user, besides the places several features open (`CoreDestination`).
+/// They push one with `NavigationLink(value:)`; the app builds each screen and registers this type once, at the
+/// root of every stack that can show MovieDetail.
 public enum MovieDetailDestination: Hashable, Codable, Sendable {
-    /// A movie's details, e.g. a recommendation.
-    case movie(id: MovieSummary.ID)
     /// Everyone credited in a movie.
     case cast(movieID: MovieSummary.ID)
     /// The person behind a cast credit.
@@ -47,11 +47,32 @@ public enum MovieDetailDestination: Hashable, Codable, Sendable {
 
 - Cases carry identifiers (IDs, slugs, keys), never models or data to display. The pushed screen loads what it shows. `Codable` keeps stacks restorable and deep-linkable.
 - Name cases for the place, not the action (`.person(id:)`, not `.showPerson`).
+- A feature whose every place is shared has no `XDestination`.
+
+## CoreDestination (CoreUI)
+
+The places several features open, such as a movie's details or signing in, are cased once, in `CoreUI/Navigation/CoreDestination.swift`:
+
+```swift
+/// Places several features open. Views push one with `NavigationLink(value:)`, like their feature's own
+/// destinations; the app maps each case to its screen once and registers this type at the root of every stack.
+public enum CoreDestination: Hashable, Codable, Sendable {
+    /// A movie's details.
+    case movie(id: MovieSummary.ID)
+    /// Signing in, which the watchlist needs.
+    case signIn
+}
+```
+
+- A place moves here once a second feature links to it, so every feature and every tab opens it the same way. A place only one feature links to stays in that feature's `XDestination`, even another feature's screen (`MovieDetailDestination.person(id:)`).
+- Cases name places, never features or screens (`.movie(id:)`, not `.movieDetail`); the app still decides which screen each one shows.
+- A CoreUI view that links, such as a banner whose posters open movies, pushes `CoreDestination` itself, with no protocol or closures for its links.
+- The same rules as any destination: identifiers only, `Codable`.
 
 ## Pushing from feature views
 
 ```swift
-NavigationLink(value: MovieDetailDestination.movie(id: movie.id)) {
+NavigationLink(value: CoreDestination.movie(id: movie.id)) {
     MovieSummaryCard(movie: movie)
 }
 .buttonStyle(.content)
@@ -92,7 +113,7 @@ Inject it once from `XApp` with `.environment(router)`. The selected tab belongs
 
 ## Destination and DestinationView (app)
 
-`Destination` lists the app's pushable screens. One initializer per feature is the only place a feature's destination becomes an app screen, so all cross-feature wiring is readable in one file. Several feature cases can open the same app screen: Discover's and MovieDetail's `.movie(id:)` both become `.movieDetail(id:)`.
+`Destination` lists the app's pushable screens. One initializer per destination type, `CoreDestination`'s and each feature's, is the only place a destination becomes an app screen, so all cross-feature wiring is readable in one file.
 
 ```swift
 /// The app's pushed screens. Features never see this type.
@@ -100,18 +121,20 @@ enum Destination: Hashable {
     case movieDetail(id: MovieSummary.ID)
     case movieCast(movieID: MovieSummary.ID)
     case personDetail(id: Person.ID)
+    case signIn
 }
 
 extension Destination {
-    init(_ destination: DiscoverDestination) {
+    /// The places several features open lead to the same screen from every tab.
+    init(_ destination: CoreDestination) {
         switch destination {
         case .movie(let id): self = .movieDetail(id: id)
+        case .signIn: self = .signIn
         }
     }
 
     init(_ destination: MovieDetailDestination) {
         switch destination {
-        case .movie(let id): self = .movieDetail(id: id)
         case .cast(let movieID): self = .movieCast(movieID: movieID)
         case .person(let id): self = .personDetail(id: id)
         }
@@ -130,6 +153,8 @@ struct DestinationView: View {
             MovieCastScreen(movieID: movieID)
         case .personDetail(let id):
             PersonDetailScreen(personID: id)
+        case .signIn:
+            ComingSoonScreen(.appDestinationSignIn)
         }
     }
 }
@@ -137,7 +162,7 @@ struct DestinationView: View {
 
 ### Screens that don't exist yet
 
-A feature links to a place in its own words even before that place is built, such as sign-in from a "Watch Now" button (`MovieDetailDestination.signIn`). The app maps it to a placeholder until the real screen ships:
+A feature links to a place even before that place is built, such as sign-in from a "Watch Now" button (`CoreDestination.signIn`). The app maps it to a placeholder until the real screen ships:
 
 ```swift
 case .signIn:
@@ -148,7 +173,7 @@ When the screen arrives, only `DestinationView` changes; the features that link 
 
 ## Registering destinations
 
-Every tab-root screen registers, at its stack root, each `XDestination` type that can appear in its stack, all in the same form:
+Every tab-root screen registers, at its stack root, `CoreDestination` and each `XDestination` type that can appear in its stack, all in the same form:
 
 ```swift
 .navigationDestination(for: MovieDetailDestination.self) { destination in
@@ -166,7 +191,7 @@ Only the app navigates in code, by changing Router state. Deep links and notific
 
 ```swift
 router.selectedTab = .discover
-router[.discover].append(MovieDetailDestination.movie(id: 550))
+router[.discover].append(CoreDestination.movie(id: 550))
 ```
 
 Pop to root by assigning an empty `NavigationPath()`. Because every destination is `Codable`, `NavigationPath.CodableRepresentation` can persist and restore stacks; make `TabDestination` `Codable` too to restore the selected tab.
@@ -206,7 +231,7 @@ Feature previews wrap the view in a `NavigationStack`. To click through a featur
 ```swift
 #Preview {
     NavigationStack {
-        MovieDetailPreviewScreen(destination: .movie(id: 1))
+        MovieDetailView(viewModel: …)   // built on .mock services
             .navigationDestination(for: MovieDetailDestination.self) { destination in
                 MovieDetailPreviewScreen(destination: destination)
             }
@@ -219,8 +244,6 @@ private struct MovieDetailPreviewScreen: View {
 
     var body: some View {
         switch destination {
-        case .movie(let id):
-            MovieDetailView(viewModel: …)   // built on .mock services
         case .cast(let movieID):
             MovieCastView(viewModel: …)
         case .person(let id):

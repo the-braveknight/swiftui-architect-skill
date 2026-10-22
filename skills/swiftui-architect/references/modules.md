@@ -46,7 +46,8 @@ Packages/MovieDetail/
 │       ├── Models/            display mappings
 │       ├── Navigation/        MovieDetailDestination.swift
 │       ├── Resources/         Localizable.xcstrings
-│       ├── View Models/       MovieDetailViewModel.swift, MovieCastViewModel.swift, WatchlistMembership.swift
+│       ├── View Models/       MovieDetailViewModel.swift, MovieDetailViewModel+WatchlistMembership.swift,
+│       │                      MovieCastViewModel.swift
 │       └── Views/             MovieDetailView.swift, MovieDetailStateView.swift, MovieDetailContentView.swift, …
 └── Tests/MovieDetailTests/
     ├── Live/                  MovieDetailMappingTests.swift
@@ -142,7 +143,7 @@ The shared package mirrors a feature's layers.
 | Target | Contains | Imports |
 |---|---|---|
 | `Core` | `Domain/`: the vocabulary several features and services share (`MovieSummary`, `Page<Item>`) | Foundation only |
-| `CoreUI` | `Components/`: views several features show, those that render Core types (`MovieSummaryCard`, `MovieSummaryRow`) and the shared screen states (`ContentUnavailableView.offline(retry:)`), with the copy they share | `Core`, `DesignSystem` |
+| `CoreUI` | `Components/`: views several features show, those that render Core types (`MovieSummaryCard`, `MovieSummaryRow`) and the shared screen states (`ContentUnavailableView.offline(retry:)`), with the copy they share. `Navigation/`: `CoreDestination`, the places several features open ([navigation](navigation.md#coredestination-coreui)) | `Core`, `DesignSystem` |
 
 ```swift
 /// One page of a paginated list, as a service returns it.
@@ -163,7 +164,7 @@ Promotion rule: move a type into Core or CoreUI only when a second feature needs
 Never in Core or CoreUI:
 - Models used by one feature (`Movie`, `Person`, `CastMember`, `WatchlistItem`)
 - Errors, service protocols or ports
-- Navigation types (`XDestination` belongs to features, `Destination` and `Router` to the app)
+- Navigation types other than `CoreDestination` (`XDestination` belongs to features, `Destination` and `Router` to the app)
 - Environment keys, app state, preferences
 - Generated API types or anything from infrastructure
 - "Utils" grab-bags; a helper lives next to the concept it serves
