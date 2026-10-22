@@ -31,7 +31,7 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 | View model | `XViewModel`, one per screen: pushed onto a stack, or a tab's root | `MovieCastViewModel` |
 | View model actions | imperative verbs | `load()`, `loadNextSectionsPage()`, `toggle(_:)` |
 | View model state | per resource: the data named for what it is (`[]` for a collection, `nil` for a single value, until it loads), `isLoading…`, `…Error`; paged: `next…Page`, `isLoadingNext…Page`, `next…PageError`; keyed: the key (`selectedSeason`, `query`), and a plain `var` for input a view binds (`text`); presented: a plain `var` (`isFilterPresented`); computed `isLoading` and `error` only when a rule spans several resources | `shelves`, `isLoadingShelves`, `shelvesError`, `nextSectionsPage` |
-| Nested model | declared inside its view model, named for what it does, never `…ViewModel` | `GenreDetailViewModel.SearchSession`, `MovieDetailViewModel.WatchlistMembership` |
+| Nested model | declared inside its view model; a plain noun for what it holds ([naming](view-models.md#naming-nested-models)), never `…ViewModel` | `GenreDetailViewModel.SearchSession`, `MovieDetailViewModel.WatchlistMembership` |
 | Public screen view | `XView` | `MovieDetailView`, `MovieCastView` |
 | State view | `XStateView`, picks the mode, then the content, the error, progress or the empty state | `DiscoverStateView` |
 | Content view | `XContentView`, lays out the loaded values | `DiscoverContentView` |

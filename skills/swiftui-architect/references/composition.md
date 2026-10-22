@@ -85,7 +85,7 @@ extension EnvironmentValues {
 }
 ```
 
-- Only app screens read these keys. Feature views never read services from the environment; they receive view models.
+- Only app screens read these keys. Feature views never read services from the environment: `XView` receives its view model from the screen, and the views below it read that view model from the environment.
 - The app always injects real instances, so a default only matters in previews. A stateless struct mock is a stable default; `.mock` on an actor mock returns a fresh instance on each read, so a preview that needs a mock's state to persist injects one stored instance.
 
 ## ContentView

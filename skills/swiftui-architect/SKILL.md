@@ -101,15 +101,16 @@ Models, errors, services, naming, ports: [references/domain.md](references/domai
 - `load()` runs independent loads side by side and dependent ones after what they need. A screen gets computed `isLoading` and `error`, never stored, only when a rule spans several resources.
 - Cancellation is never a failure: catch `CancellationError` and keep the data and the error. Then the feature's error, then a fallback case.
 - A thing and its paged list are two resources, not a value paged as a whole.
-- A part of a screen whose state changes on its own gets a nested `@Observable` model, declared inside the view model and owned by it, named for what it does and never `…ViewModel` (`SearchSession`, `WatchlistMembership`). It uses the view model's services. A *mode*, such as a server search scoped to one screen, is such a model ([when search is a mode](#workflows)).
+- A part of a screen whose state changes on its own gets a nested `@Observable` model, declared inside the view model and owned by it, named as a plain noun for what it holds and never `…ViewModel` (`SearchSession`, `WatchlistMembership`). It uses the view model's services. A single flag or value stays on the view model, and so does a key with what it loads, such as a selected season and its episodes. A *mode*, such as a server search scoped to one screen, is such a model ([when search is a mode](#workflows)).
 
 The loading shape, pagination, keyed resources, nested models and modes, and tests: [references/view-models.md](references/view-models.md).
 
 ## Views in one page
 
-- `XView` (public) owns the view model as `@State`, starts every load (`.task`, and `.task(id:)` for keyed resources and typing pauses), applies what every state shares (a title that stays up while loading, a search field, toolbars and the sheets they open), and renders `XStateView`.
+- `XView` (public) owns the view model as `@State` and puts it in the environment as its outermost modifier, starts every load (`.task`, and `.task(id:)` for keyed resources and typing pauses), applies what every state shares (a title that stays up while loading, a search field, toolbars and the sheets they open), and renders `XStateView`.
 - `XStateView` checks in a fixed order: the content whenever there is data, the error only when there's nothing to show, progress while loading, then the empty state. While there's data it reads only the data, so a refresh doesn't redraw it. It passes values down, and shows CoreUI's `ContentUnavailableView` presets; an empty state appears only where the design has one. A mode is picked in its first branch and has a state view of its own.
-- `XContentView` lays out the values it's given in its scroll container, one view per resource or section. It also takes the view model only when a child acts on it, like a paging footer.
+- `XContentView` lays out the values it's given in its scroll container, one view per resource or section.
+- Views below `XView` that read their own state or act, such as state views, paging footers and toolbars, read the view model with `@Environment(XViewModel.self)`, and a nested model through it; display views take values. A preview of a view below `XView` injects a view model, since reading a missing one crashes.
 - Each is its own file. No closures passed down for view-model actions; toolbars are `ToolbarContent` structs.
 
 Shapes, modes, paging footer, passing data, structure rules: [references/views.md](references/views.md).

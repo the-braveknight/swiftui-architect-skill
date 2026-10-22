@@ -16,12 +16,12 @@ A screen is a small family of views in its feature's XUI target: `XView`, the pu
 
 | File | Role |
 |---|---|
-| `XView` | Public entry point. Owns the view model as `@State`; applies what every state shares (title, search field, toolbars and the sheets they open); starts every load from `.task`, and `.task(id:)` for keyed resources; renders `XStateView` |
-| `XStateView` | Picks the mode when it's active, then the content, the error, progress or the empty state; passes the data to the content view as values; switches over the error and shows CoreUI's presets |
+| `XView` | Public entry point. Owns the view model as `@State` and puts it in the environment; applies what every state shares (title, search field, toolbars and the sheets they open); starts every load from `.task`, and `.task(id:)` for keyed resources; renders `XStateView` |
+| `XStateView` | Reads the view model from the environment; picks the mode when it's active, then the content, the error, progress or the empty state; passes the data to the content view as values; switches over the error and shows CoreUI's presets |
 | `XContentView` | Takes the loaded values and lays them out in its scroll container, one view per resource or section |
-| `XSearchStateView`, `XSearchContentView`, `XSearchNextPageFooter` | A [mode](#modes)'s own family, shaped like the screen's and taking the mode's nested model |
+| `XSearchStateView`, `XSearchContentView`, `XSearchNextPageFooter` | A [mode](#modes)'s own family, shaped like the screen's and reading the mode through the view model |
 | `XHeader`, `XRail`, `XRow`, `XCard`, `XBannersView`, `XSectionsView` | One section, resource or element each, taking only the values it reads |
-| `X…NextPageFooter` | Loads the next page of a paged resource while it's on screen; takes the view model |
+| `X…NextPageFooter` | Loads the next page of a paged resource while it's on screen; reads the view model from the environment |
 | `XToolbar` | A `ToolbarContent` struct; an item that opens a screen pushes an `XDestination` value |
 | `Models/X+Title.swift` | Display mappings from XCore values to `LocalizedStringResource` |
 
@@ -40,7 +40,7 @@ public struct DiscoverView: View {
     }
 
     public var body: some View {
-        DiscoverStateView(viewModel: viewModel)
+        DiscoverStateView()
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .navigationTitle(.discoverNavigationTitle)
             .task {
@@ -49,6 +49,8 @@ public struct DiscoverView: View {
             .refreshable {
                 await viewModel.load()
             }
+            // Outermost, so toolbars and sheets read it too.
+            .environment(viewModel)
     }
 }
 
@@ -56,7 +58,7 @@ public struct DiscoverView: View {
 /// Renders the shelves whenever there are some, the error only when there's nothing to show, and progress while the
 /// first load runs. A retry loads again while the error stays on screen.
 struct DiscoverStateView: View {
-    let viewModel: DiscoverViewModel
+    @Environment(DiscoverViewModel.self) private var viewModel
 
     var body: some View {
         if !viewModel.shelves.isEmpty {
@@ -95,9 +97,9 @@ struct DiscoverContentView: View {
 }
 ```
 
-- `XView` never decides between states. It owns the view model, applies what every state shares, and starts every load: `.task` for the screen's, so the load outlives the progress view ([cancellation](view-models.md#errors-and-cancellation)), and `.task(id:)` for a [keyed resource](view-models.md#keyed-resources).
+- `XView` never decides between states. It owns the view model, puts it in the environment as its outermost modifier, applies what every state shares, and starts every load: `.task` for the screen's, so the load outlives the progress view ([cancellation](view-models.md#errors-and-cancellation)), and `.task(id:)` for a [keyed resource](view-models.md#keyed-resources). It's the only view that injects the view model ([passing data](#passing-data-to-views)).
 - `XStateView` only picks what to show, in a fixed order: the content whenever there is data, the error only when there's nothing to show, progress while the load runs, and otherwise the empty state where the design has one. While there's data it reads only the data, so a refresh starting or ending doesn't redraw it. It switches over the error itself and shows CoreUI's presets, so a feature has no error view of its own.
-- `XContentView` takes the values `XStateView` passes down (`DiscoverContentView(shelves:)`), owns the scroll container and lays them out, one view per resource or section. It also takes the view model when a view inside it acts, such as a paging footer.
+- `XContentView` takes the values `XStateView` passes down (`DiscoverContentView(shelves:)`), owns the scroll container and lays them out, one view per resource or section. A view inside it that acts, such as a paging footer, reads the view model from the environment, so the content view doesn't pass it along; the content view reads it only to act itself, such as a mode's `.refreshable`.
 - A title from loaded data goes with that data: in `XContentView` when the content is the thing it names (`.navigationTitle(movie.title)`), in `XView` when the thing loads beside the content, so it stays up in every state (`.navigationTitle(viewModel.genre?.name ?? "")`). A toolbar that only makes sense with content goes in `XContentView`.
 
 ## What a screen shows without content
@@ -116,18 +118,18 @@ struct DiscoverContentView: View {
 
 ## Several resources and the paging footer
 
-The state view follows the resource the content can't do without ([view models](view-models.md#several-resources)) and passes the others' values along. The content view lays out one view per resource; only the footer, which reads its own paging state and loads the next page, uses the view model:
+The state view follows the resource the content can't do without ([view models](view-models.md#several-resources)) and passes the others' values along. The content view lays out one view per resource; only the footer, which reads its own paging state and loads the next page, reads the view model:
 
 ```swift
 // HomeStateView.swift
 /// Renders Home whenever there are sections, with whatever banners have loaded; the error only when there are no
 /// sections, and progress while they load.
 struct HomeStateView: View {
-    let viewModel: HomeViewModel
+    @Environment(HomeViewModel.self) private var viewModel
 
     var body: some View {
         if !viewModel.sections.isEmpty {
-            HomeContentView(banners: viewModel.banners, sections: viewModel.sections, viewModel: viewModel)
+            HomeContentView(banners: viewModel.banners, sections: viewModel.sections)
         } else if let error = viewModel.sectionsError {
             switch error {
             case .offline:
@@ -150,7 +152,6 @@ struct HomeStateView: View {
 struct HomeContentView: View {
     let banners: [MovieSummary]
     let sections: [HomeSectionSummary]
-    let viewModel: HomeViewModel
 
     var body: some View {
         ScrollView {
@@ -159,7 +160,7 @@ struct HomeContentView: View {
                     HomeBannersView(banners: banners)
                 }
                 HomeSectionsView(sections: sections)
-                HomeSectionsNextPageFooter(viewModel: viewModel)
+                HomeSectionsNextPageFooter()
             }
         }
     }
@@ -169,14 +170,14 @@ struct HomeContentView: View {
 /// Loads the next page while the end of the sections is on screen, or offers a retry after a failure. Draws nothing
 /// once the last page has loaded.
 struct HomeSectionsNextPageFooter: View {
-    let viewModel: HomeViewModel
+    @Environment(HomeViewModel.self) private var viewModel
 
     var body: some View {
         if viewModel.nextSectionsPageError != nil, !viewModel.isLoadingNextSectionsPage {
             Button(.homeActionRetry, action: retry)
                 .buttonStyle(.filled)
         } else if let nextPage = viewModel.nextSectionsPage {
-            HomeSectionsNextPageLoader(nextPage: nextPage, viewModel: viewModel)
+            HomeSectionsNextPageLoader(nextPage: nextPage)
         }
     }
 
@@ -187,7 +188,7 @@ struct HomeSectionsNextPageFooter: View {
 
 private struct HomeSectionsNextPageLoader: View {
     let nextPage: Int
-    let viewModel: HomeViewModel
+    @Environment(HomeViewModel.self) private var viewModel
     @State private var isVisible = false
 
     var body: some View {
@@ -209,7 +210,7 @@ A [mode](view-models.md#modes) replaces the screen's content while it's active, 
 // GenreDetailView.swift
 public var body: some View {
     @Bindable var searchSession = viewModel.searchSession
-    GenreDetailStateView(viewModel: viewModel)
+    GenreDetailStateView()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .navigationTitle(viewModel.genre?.name ?? "")
         .searchable(text: $searchSession.text, prompt: .genreDetailSearchPrompt)
@@ -235,18 +236,19 @@ public var body: some View {
         .refreshable {
             await viewModel.load()
         }
+        .environment(viewModel)
 }
 
 // GenreDetailStateView.swift
 /// The search while there are words to search for; otherwise the genre's movies, the error or progress.
 struct GenreDetailStateView: View {
-    let viewModel: GenreDetailViewModel
+    @Environment(GenreDetailViewModel.self) private var viewModel
 
     var body: some View {
         if viewModel.searchSession.isActive {
-            GenreDetailSearchStateView(session: viewModel.searchSession)
+            GenreDetailSearchStateView()
         } else if !viewModel.movies.isEmpty {
-            GenreDetailContentView(movies: viewModel.movies, viewModel: viewModel)
+            GenreDetailContentView(movies: viewModel.movies)
         } else if let error = viewModel.moviesError {
             switch error { … }
         } else if viewModel.isLoadingMovies {
@@ -258,14 +260,14 @@ struct GenreDetailStateView: View {
 // GenreDetailSearchStateView.swift
 /// The results for the words, the error, progress or no results.
 struct GenreDetailSearchStateView: View {
-    let session: GenreDetailViewModel.SearchSession
+    @Environment(GenreDetailViewModel.self) private var viewModel
 
     var body: some View {
-        if !session.results.isEmpty {
-            GenreDetailSearchContentView(results: session.results, session: session)
-        } else if let error = session.resultsError {
+        if !viewModel.searchSession.results.isEmpty {
+            GenreDetailSearchContentView(results: viewModel.searchSession.results)
+        } else if let error = viewModel.searchSession.resultsError {
             switch error { … }
-        } else if session.isLoadingResults {
+        } else if viewModel.searchSession.isLoadingResults {
             ProgressView()
         } else {
             ContentUnavailableView.noResults
@@ -276,7 +278,7 @@ struct GenreDetailSearchStateView: View {
 
 - `XView` holds what every state shares, the search field included, so the field stays up while the screen loads, fails or searches. It binds the field to the mode's text and runs the mode's tasks beside the screen's.
 - The state view reads only `isActive` from the mode, which changes when words are applied, not on each keystroke. Typing redraws `XView`, whose children's inputs haven't changed, and nothing below it.
-- The mode's family is shaped like the screen's: a state view that checks its results in the same order, a content view with its own scroll container and `.refreshable`, which refreshes the results rather than the screen, and its own paging footer.
+- The mode's family is shaped like the screen's: a state view that checks its results in the same order, a content view with its own scroll container and `.refreshable`, which refreshes the results rather than the screen, and its own paging footer. They read the mode through the screen's view model (`viewModel.searchSession`).
 - The mode sits beside the content, not inside `XContentView`. The content view exists only once the screen's own data has loaded, so a mode inside it couldn't show while that data loads or after it fails, and the content view would end up deciding states.
 
 ## Passing data to views
@@ -284,16 +286,19 @@ struct GenreDetailSearchStateView: View {
 | Who | Holds | How |
 |---|---|---|
 | App `XScreen` | Creates the screen's view model with every service it and its nested models use | Inline in `body`, passed to `XView` |
-| `XView` | Owns it for the screen's lifetime, binds its input and presents what its toolbar opens | `@State private var viewModel`; `@Bindable var searchSession = viewModel.searchSession` in `body`; `.sheet(isPresented: $viewModel.isFilterPresented)` |
-| State views, footers | Read the data, errors, loading and paging state they decide from, and call actions | Plain `let viewModel`, or the nested model they act on (`session:`); Observation tracks each property read |
-| Content views | The loaded values, and the view model only when a view inside acts | `GenreDetailContentView(movies:viewModel:)` |
-| Display views (sections, rows, cards) | The values they show | `title: String`, `movie: MovieSummary`, `sections: [HomeSectionSummary]` |
+| `XView` | Owns it for the screen's lifetime, puts it in the environment, binds its input and presents what its toolbar opens | `@State private var viewModel`; `.environment(viewModel)` as its outermost modifier; `@Bindable var searchSession = viewModel.searchSession` in `body`; `.sheet(isPresented: $viewModel.isFilterPresented)` |
+| State views, footers, toolbars, and sections that read their own state or act | Read the data, errors, loading and paging state they decide from, and call actions | `@Environment(GenreDetailViewModel.self) private var viewModel`, and a nested model through it (`viewModel.searchSession`); Observation tracks each property read |
+| Content views | The loaded values | `GenreDetailContentView(movies:)`; the environment only when the content view acts itself, such as a mode's `.refreshable` |
+| Display views (sections, rows, cards) | The values they show, never the view model | `title: String`, `movie: MovieSummary`, `sections: [HomeSectionSummary]` |
 | A view that needs a binding | Derives one | `@Bindable var viewModel = viewModel` in `body` |
 | What a screen presents | Its view model | A plain `var` the view binds (`isFilterPresented`) |
-| Form input inside a sheet, focus | The view that edits | `@State private var` |
+| Form input inside a sheet, focus | The view that edits | `@State private var`; seeded from a value the sheet takes, since `init` can't read the environment (`SearchFilterView(filter: viewModel.query.filter)`) |
 
-- A view takes the view model, or the nested model it acts on, only when it reads state of its own, such as a resource's loading flag or error, or calls the view model, like a paging footer.
-- Don't pass closures down through views for the view model's actions. A closure can't be compared, so a view that takes one is re-evaluated whenever its parent is, while a view holding the view model re-renders only for the properties it reads.
+- A view reads the view model from the environment only when it reads state of its own, such as a resource's loading flag or error, or calls the view model, like a paging footer. A view that only passes data along takes the values instead.
+- Display views take values even though the view model is in reach, so a row never depends on one screen and can move to CoreUI when a second feature needs it.
+- `XView` injects once per screen, as its outermost modifier, so its toolbar items and the sheets it presents read the view model too. Nested models aren't injected separately. A pushed screen never sees the previous screen's view model, since destinations are registered at the stack root and each `XView` injects its own.
+- A view reading a view model that wasn't injected crashes at runtime rather than failing to build, so a preview of any view below `XView` injects one ([previews](#previews)).
+- Don't pass closures down through views for the view model's actions. A closure can't be compared, so a view that takes one is re-evaluated whenever its parent is, while a view reading the view model re-renders only for the properties it reads.
 - A leaf whose button fires one action, such as a preset's retry, may take a closure, since nothing below it can be skipped. Pass a private method of the view that makes the call (`.offline(retry: retry)`), so the action has a name.
 
 ## View structure rules
@@ -333,5 +338,17 @@ Every public view has a preview built on mocks, so the feature is its own demo a
 ```
 
 A mock that takes a scenario shows each state the screen has, its errors included ([mocks](domain.md#mocks)).
+
+A preview of a view below `XView`, such as a sheet, injects the view model `XView` would have:
+
+```swift
+#Preview {
+    Color.clear
+        .sheet(isPresented: .constant(true)) {
+            SearchFilterView(filter: SearchFilter())
+        }
+        .environment(SearchViewModel(service: .mock))
+}
+```
 
 To click through a feature's own screens in previews, see [navigation previews](navigation.md#previews).

@@ -174,7 +174,7 @@ Pop to root by assigning an empty `NavigationPath()`. Because every destination 
 ## Push or present
 
 - **Push** (`NavigationLink(value:)`) when the screen loads its own data, needs services, other features can reach it, or it belongs in the back stack.
-- **Present** (`sheet`, `fullScreenCover`, `alert`) when the content is self-contained and built from values the presenting view already has: a full biography, a poster viewer, a confirmation. A presented view takes plain values, or the presenting screen's view model when it changes that screen's state, such as a filter it edits; never a service.
+- **Present** (`sheet`, `fullScreenCover`, `alert`) when the content is self-contained and built from values the presenting view already has: a full biography, a poster viewer, a confirmation. A presented view takes plain values, or reads the presenting screen's view model from the environment when it changes that screen's state, such as a filter it edits; never a service. Every sheet on the screen inherits the view model `XView` injected.
 
 ## Sheets, covers and alerts
 
@@ -186,11 +186,15 @@ What a screen presents is state on its view model, a plain `var` its views bind,
 var isFullBiographyPresented = false
 
 // PersonBiographySection
-@Bindable var viewModel = viewModel
-Button(.personDetailBiographyShowMore) { viewModel.isFullBiographyPresented = true }
-    .sheet(isPresented: $viewModel.isFullBiographyPresented) {
-        PersonBiographySheet(name: name, biography: biography)
-    }
+@Environment(PersonDetailViewModel.self) private var viewModel
+
+var body: some View {
+    @Bindable var viewModel = viewModel
+    Button(.personDetailBiographyShowMore) { viewModel.isFullBiographyPresented = true }
+        .sheet(isPresented: $viewModel.isFullBiographyPresented) {
+            PersonBiographySheet(name: name, biography: biography)
+        }
+}
 ```
 
 `PersonBiographySheet` takes those plain values, wraps its content in a `NavigationStack` for its title, and closes with a `ToolbarContent` struct holding `Button(role: .close) { dismiss() }`.

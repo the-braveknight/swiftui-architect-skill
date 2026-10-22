@@ -291,7 +291,7 @@ func loadEpisodes() async {
 
 ## Nested models and modes
 
-A view model belongs to a screen: a view pushed onto a stack, or a tab's root. A part of a screen whose state changes on its own, such as a search within it or a watchlist button, gets a nested `@Observable` model instead: a type declared inside the screen's view model, made in its `init` with the services the view model was given, and owned by it. Name it for what it does, never `…ViewModel`: `GenreDetailViewModel.SearchSession`, `MovieDetailViewModel.WatchlistMembership`.
+A view model belongs to a screen: a view pushed onto a stack, or a tab's root. A part of a screen whose state changes on its own, such as a search within it or a watchlist button, gets a nested `@Observable` model instead: a type declared inside the screen's view model, made in its `init` with the services the view model was given, and owned by it. Name it as a [noun for what it holds](#naming-nested-models): `GenreDetailViewModel.SearchSession`, `MovieDetailViewModel.WatchlistMembership`.
 
 ```swift
 @MainActor
@@ -332,10 +332,26 @@ extension MovieDetailViewModel {
 }
 ```
 
-- Only the views that read a nested model redraw when it changes: `WatchlistButton(membership: viewModel.watchlistMembership)` redraws for the watchlist, and the rest of the screen doesn't.
+- Only the views that read a nested model redraw when it changes: the watchlist button reads `viewModel.watchlistMembership` and redraws for the watchlist, and the rest of the screen doesn't.
 - The app builds one object per screen and `XView` owns one. A nested model is a `let` on its view model, so it lives exactly as long as the screen.
 - It uses services its view model takes: the screen's own, or a port such as `WatchlistMembershipService`. It never gets a service of its own for being nested.
 - A view binds its input by deriving a binding in `body`: `@Bindable var searchSession = viewModel.searchSession`, then `$searchSession.text`.
+
+### Naming nested models
+
+Name it for the one thing a user would recognize on the screen, as a plain noun:
+
+| What it holds | Noun | Examples |
+|---|---|---|
+| Input that starts and ends a stretch of work, and what that input loads | `…Session`, as in `URLSession` | `SearchSession` |
+| A fact about the item on screen that the user can change | the fact | `WatchlistMembership`, `MovieRating` |
+| Something that runs over time | what runs | `TrailerPlayback`, `Countdown` |
+| Edits kept until they're saved | `…Draft` | `ReviewDraft` |
+| Input checked as it's typed | `…Form` | `SignInForm` |
+
+- Never `…ViewModel`, which belongs to screens; `…Manager`, `…Controller`, `…Handler`, `…Coordinator` or `…Helper`, which say it does work rather than what it is; `…State`, which reads like an enum; `…Store`, which suggests persistence or app-wide sharing; or a view's name, such as `WatchlistButtonModel`.
+- Check it reads in "the screen has a ___": the genre's screen has a search session, the movie has a watchlist membership.
+- Nest only a part with its own input, loading or errors. A single flag or value, such as `isFilterPresented` or a selected tab, stays a property on the view model, and so does a key with what it loads, such as a selected season and its episodes ([keyed resources](#keyed-resources)).
 
 ### Modes
 
