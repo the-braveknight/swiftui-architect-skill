@@ -50,10 +50,10 @@ public final class DiscoverViewModel {
 ```
 
 - `@MainActor @Observable public final class`, one per screen (a view pushed onto a stack, or a tab's root) and never for a part of one ([nested models](#nested-models-and-modes)), with a `public init` taking IDs and services. The app's `XScreen` builds one on every `body` pass and the view keeps only the first, so `init` does assignments only: no tasks, subscriptions or I/O.
-- State is `private(set)`; actions are internal methods the views call (`load()`, `loadNextSectionsPage()`, `toggle(_:)`), named as imperative verbs because they change state. The exceptions are input a view binds, such as a search field's text, and what the screen presents, such as `isFilterPresented`: plain `var`s ([keyed resources](#keyed-resources), [presentations](navigation.md#sheets-covers-and-alerts)).
+- State is `private(set)`; actions are internal methods the views call (`load()`, `refresh()`, `loadNextSectionsPage()`, `toggle(_:)`), named as imperative verbs because they change state. The exceptions are input a view binds, such as a search field's text, and what the screen presents, such as `isFilterPresented`: plain `var`s ([keyed resources](#keyed-resources), [presentations](navigation.md#sheets-covers-and-alerts)).
 - No data processing of its own: every value it stores comes from the service as it is.
 - No pushing or routing, no views, no display strings, no other feature. State holds domain values; display mappings are XUI extensions.
-- `load()` is safe to call again (refresh, retry), with no `loadIfNeeded()` variants or "already loaded" latches.
+- `load()` is safe to call again (a retry, the view reappearing), with no `loadIfNeeded()` variants or "already loaded" latches. A screen with a paged list guards it on that list and adds `refresh()` ([coming back to a paged list](#coming-back-to-a-paged-list)).
 
 ## One resource: data, activity and error
 
@@ -82,7 +82,7 @@ Rules for each load method:
 How tasks, isolation and cancellation work is a Swift Concurrency skill's subject ([related skills](../SKILL.md#related-skills)); what follows is how this shape relies on them.
 
 **Cancellation is never a failure.** The networking client rethrows a cancelled request as `CancellationError` ([networking](networking.md#errors-and-cancellation)), so a view model needs only the one catch.
-- `XView` runs `load()` from `.task`, which cancels it when the view disappears and runs it again when the view reappears (a tab switch, a pop back). The second run is a silent refresh: the data stays on screen.
+- `XView` runs `load()` from `.task`, which cancels it when the view disappears and runs it again when the view reappears (a tab switch, a pop back). The second run is a silent refresh: the data stays on screen. A paged list is the exception, since loading its first page again drops the pages after it ([coming back to a paged list](#coming-back-to-a-paged-list)).
 - Start `load()` from `.task` on `XView`, never on the progress view. The progress view goes away when the first resource arrives, and cancelling its task would cancel the loads that follow.
 - A retry button starts `Task { await viewModel.load() }`. Keep its main-actor start, since `load()` is main-actor-isolated and begins by setting state; never mark it `@concurrent`. The task isn't cancelled with the view, which is harmless because `load()` can run again.
 - Loads may overlap, such as a retry during a refresh. Both ask for the same data, the last to finish wins, and `isLoading…` can end early. That's harmless too.
@@ -123,7 +123,18 @@ public final class HomeViewModel {
         self.service = service
     }
 
+    /// Loads the banners and the first page of sections unless Home has sections, so coming back to it keeps the
+    /// pages it has.
     func load() async {
+        guard sections.isEmpty else {
+            return
+        }
+
+        await refresh()
+    }
+
+    /// Loads the banners again, and the sections from the first page.
+    func refresh() async {
         await withDiscardingTaskGroup { group in
             group.addTask {
                 await self.loadBanners()
@@ -143,7 +154,8 @@ public final class HomeViewModel {
 
 - Home's state view checks `sections`, `sectionsError` and `isLoadingSections`, so banners failing on their own don't fail Home.
 - When a rule spans several resources, such as a screen that can't show anything until two of them load, the screen gets computed `isLoading` and `error` for its state view, with the type that view switches over. Never store them, since two loads would end up writing one value.
-- `load()` runs the independent loads side by side in a discarding task group, which suits loads that return nothing. When a resource depends on another, such as episodes picked from the loaded title, `load()` loads that one first and then the rest side by side.
+- The independent loads run side by side in a discarding task group, which suits loads that return nothing. When a resource depends on another, such as episodes picked from the loaded title, that one loads first and then the rest side by side.
+- Home's loads sit in `refresh()` because its sections are paged ([coming back to a paged list](#coming-back-to-a-paged-list)).
 
 ## Pagination
 
@@ -188,6 +200,17 @@ func loadNextSectionsPage() async {
 - It has no in-flight guard. The footer's task restarts as the footer scrolls out and back in, and the restarted call must be able to load.
 - Later pages append. No de-duplication across pages and no merging helpers on models; the service decides what a page holds.
 
+### Coming back to a paged list
+
+Coming back to a screen runs its `.task` again. Loading the first page again would replace every page the user scrolled through, and the shorter list would bring the footer on screen and load the second page at once. So a screen with a paged list guards `load()` on that list and moves its loads into `refresh()`, as [Home does](#several-resources).
+
+- The guard checks the list the state view follows. It adds no flag and no condition per resource.
+- `.refreshable` calls `refresh()`, which starts the list over from the first page and loads the screen's other resources again.
+- A retry calls `load()`. After a failure the list is empty, so the guard lets the load through.
+- A resource beside the list, such as Home's banners, loads again only on a refresh. One that failed stays left out when the user comes back.
+- A keyed paged list guards its own load the same way ([keyed resources](#keyed-resources)).
+- A screen without a paged list keeps one `load()` for `.task`, `.refreshable` and retries: its silent refresh on return loses nothing.
+
 ## A thing and its paged list
 
 A screen that shows one thing and a paged list belonging to it, such as a genre's "See all", loads them as two resources: the thing, and its list a page at a time. The screen has its own service:
@@ -219,7 +242,16 @@ public final class GenreDetailViewModel {
     private(set) var isLoadingNextMoviesPage = false
     private(set) var nextMoviesPageError: GenreDetailError?
 
+    /// Loads the genre and the first page of its movies unless there are movies, so coming back keeps the pages.
     func load() async {
+        guard movies.isEmpty else {
+            return
+        }
+
+        await refresh()
+    }
+
+    func refresh() async {
         // The genre doesn't decide whether there are movies, so both load side by side.
         await withDiscardingTaskGroup { group in
             group.addTask {
@@ -286,6 +318,7 @@ func loadEpisodes() async {
 
 - Changing the key is a synchronous action that empties the data, clears its error and paging, and sets `isLoading…` when a load follows, which a cleared search doesn't. The old key's data never shows under the new one, and the first frame shows progress rather than the empty state.
 - `XView` loads from `.task(id: viewModel.selectedSeason)`. SwiftUI cancels the previous key's load, and loads again when the view reappears.
+- A keyed paged list, such as search results, guards its load on the list like a [screen's](#coming-back-to-a-paged-list) (`guard results.isEmpty`), with a refresh method for its `.refreshable`. A new key empties the list, so the guard lets the new key's load through.
 - A response can arrive before its cancellation does, so a load whose key no longer matches drops its result or error and leaves `isLoading…` to the current key's load.
 - Typed text is input, not a key. The view model holds it as a plain `var` the field binds to, and `XView` applies it to the key after a pause in typing (`.task(id: viewModel.text)` with a short sleep), and at once on submit or when the field is cleared.
 
@@ -387,7 +420,10 @@ extension GenreDetailViewModel {
 
         /// Searches for the words in the field. New words start the results over, and load from `load()`.
         func apply() { … }
+        /// Loads the first page unless there are results, so coming back to the genre keeps the pages.
         func load() async { … }
+        /// Loads the results again from the first page: pulling to refresh them.
+        func refresh() async { … }
         func loadNextResultsPage() async { … }
     }
 }
@@ -419,6 +455,6 @@ private actor StubMovieDetailService: MovieDetailService {
 }
 ```
 
-Cover the rules the screen follows: a resource loaded on appear starts out loading, the data loads, the error is recorded, a failed refresh keeps the data, a successful retry clears the error, and cancellation isn't an error. A paged screen also covers a failed page keeping what's loaded, a retried page loading, the first page clearing the next page's error, a page that arrives after a refresh being dropped, and a restarted footer still loading its page. Tests that interleave two loads use a stub that holds each request until the test answers it.
+Cover the rules the screen follows: a resource loaded on appear starts out loading, the data loads, the error is recorded, a failed refresh keeps the data, a successful retry clears the error, and cancellation isn't an error. A paged screen also covers a failed page keeping what's loaded, a retried page loading, the first page clearing the next page's error, a page that arrives after a refresh being dropped, a restarted footer still loading its page, and loading again keeping the pages it has. Tests that interleave two loads use a stub that holds each request until the test answers it.
 
 A keyed resource also covers a new key starting the data over and showing it as loading, and an old key's load being dropped and leaving the current key loading. A nested model is tested on its own, made the way its view model makes it.

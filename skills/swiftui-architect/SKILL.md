@@ -101,6 +101,7 @@ Models, errors, services, naming, ports: [references/domain.md](references/domai
 - `load()` runs independent loads side by side and dependent ones after what they need. A screen gets computed `isLoading` and `error`, never stored, only when a rule spans several resources.
 - Cancellation is never a failure: catch `CancellationError` and keep the data and the error. Then the feature's error, then a fallback case.
 - A thing and its paged list are two resources, not a value paged as a whole.
+- Coming back to a screen runs `load()` again. A screen with a paged list guards it on that list (`guard sections.isEmpty else { return }`) so it keeps the pages it has, and pull to refresh calls `refresh()`, which starts the list over. A keyed paged list guards its own load the same way.
 - A part of a screen whose state changes on its own gets a nested `@Observable` model, declared inside the view model and owned by it, named as a plain noun for what it holds and never `…ViewModel` (`SearchSession`, `WatchlistMembership`). It uses the view model's services. A single flag or value stays on the view model, and so does a key with what it loads, such as a selected season and its episodes. A *mode*, such as a server search scoped to one screen, is such a model ([when search is a mode](#workflows)).
 
 The loading shape, pagination, keyed resources, nested models and modes, and tests: [references/view-models.md](references/view-models.md).

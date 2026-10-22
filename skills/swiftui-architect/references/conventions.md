@@ -29,7 +29,7 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 | A page from a service | `Page<Item>` (Core) with `items` and `nextPage` | `Page<HomeSectionSummary>` |
 | API client and its errors | the API's name + `Client` / `Error`; client methods keep the spec's operation names | `TMDBClient.movieDetails(id:)`, `TMDBError` |
 | View model | `XViewModel`, one per screen: pushed onto a stack, or a tab's root | `MovieCastViewModel` |
-| View model actions | imperative verbs | `load()`, `loadNextSectionsPage()`, `toggle(_:)` |
+| View model actions | imperative verbs; `refresh()` beside `load()` on a screen with a paged list | `load()`, `refresh()`, `loadNextSectionsPage()`, `toggle(_:)` |
 | View model state | per resource: the data named for what it is (`[]` for a collection, `nil` for a single value, until it loads), `isLoading…`, `…Error`; paged: `next…Page`, `isLoadingNext…Page`, `next…PageError`; keyed: the key (`selectedSeason`, `query`), and a plain `var` for input a view binds (`text`); presented: a plain `var` (`isFilterPresented`); computed `isLoading` and `error` only when a rule spans several resources | `shelves`, `isLoadingShelves`, `shelvesError`, `nextSectionsPage` |
 | Nested model | declared inside its view model; a plain noun for what it holds ([naming](view-models.md#naming-nested-models)), never `…ViewModel` | `GenreDetailViewModel.SearchSession`, `MovieDetailViewModel.WatchlistMembership` |
 | Public screen view | `XView` | `MovieDetailView`, `MovieCastView` |

@@ -234,7 +234,7 @@ public var body: some View {
             await viewModel.load()
         }
         .refreshable {
-            await viewModel.load()
+            await viewModel.refresh()
         }
         .environment(viewModel)
 }
