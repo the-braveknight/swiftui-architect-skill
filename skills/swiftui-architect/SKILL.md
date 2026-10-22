@@ -1,6 +1,6 @@
 ---
 name: swiftui-architect
-description: Architects modular SwiftUI apps as feature-module Swift packages (XCore, XUI, XLive, XTests) on shared Core, CoreUI, DesignSystem and Networking packages, with an app target that composes screens, injects services and routes navigation. Use when creating or restructuring an app's modules, adding a feature or screen, designing domain models, services, or view models that load several resources, page, fail or search, deciding where a type belongs, or wiring navigation between screens and features in a multi-package SwiftUI codebase.
+description: Architects modular SwiftUI apps as feature-module Swift packages (XCore, XUI, XLive, XTests) on shared Core, CoreUI, DesignSystem and Networking packages, with an app target that composes screens, injects services and routes navigation. Use when creating or restructuring an app's modules, adding a feature or screen, designing domain models, services, or view models that load several resources, page, fail or search, deciding where a type belongs, or wiring navigation between screens and features in a multi-package SwiftUI codebase. Also use when reviewing such a codebase for where code belongs and the shape it takes.
 ---
 
 # SwiftUI Architect
@@ -113,7 +113,7 @@ The loading shape, pagination, keyed resources, nested models and modes, and tes
 - `XStateView` checks in a fixed order: the content whenever there is data, the error only when there's nothing to show, progress while loading, then the empty state. While there's data it reads only the data, so a refresh doesn't redraw it. It passes values down, and shows CoreUI's `ContentUnavailableView` presets; an empty state appears only where the design has one. A mode is picked in its first branch and has a state view of its own.
 - `XContentView` lays out the values it's given in its scroll container, one view per resource or section.
 - Views below `XView` that read their own state or act, such as state views, paging footers and toolbars, read the view model with `@Environment(XViewModel.self)`, and a nested model through it; display views take values. A preview of a view below `XView` injects a view model, since reading a missing one crashes.
-- Screen state lives in the view model, directly or in a nested model: what's presented, what a sheet edits before it's applied, selections. A view's own `@State` holds only visual mechanics no test or other view needs, such as a measured height or whether a paging footer is on screen.
+- Screen state lives in the view model, directly or in a nested model: what's presented, what a sheet edits before it's applied, selections. A view's own `@State` holds only mechanics no test or other view needs: a measured height, whether a paging footer is on screen, or how a reusable component works inside, such as a carousel's page. What the screen acts on comes into a component as a value or a binding.
 - Each is its own file. No closures passed down for view-model actions; toolbars are `ToolbarContent` structs.
 
 Shapes, modes, paging footer, passing data, structure rules: [references/views.md](references/views.md).
@@ -158,6 +158,8 @@ Writing concurrent code is out of scope here; use a Swift Concurrency skill ([Re
 
 ## Workflows
 
+Copy the checklist for the task into your response and check items off as you go.
+
 **Add a feature**
 
 ```
@@ -171,7 +173,7 @@ Writing concurrent code is out of scope here; use a Swift Concurrency skill ([Re
 - [ ] App: for each service protocol, add the environment key, build the service in XApp.init, inject it on the Scene
 - [ ] App: add XScreen(s), Destination cases + Destination.init(_: XDestination), DestinationView cases
 - [ ] App: register XDestination at the root of every stack that can show the feature
-- [ ] Build the feature scheme and the app; run the feature's tests
+- [ ] Build the feature's scheme and the app, and run the feature's tests; fix and repeat until both pass
 ```
 
 **Add a screen to an existing feature**
@@ -183,15 +185,14 @@ Writing concurrent code is out of scope here; use a Swift Concurrency skill ([Re
 - [ ] App: XScreen that reads the service and builds the view model
 - [ ] App: Destination case, Destination.init mapping, DestinationView case
 - [ ] If the screen is reachable from a stack that didn't show this feature before, register XDestination there
+- [ ] Build the feature's scheme and the app, and run the feature's tests; fix and repeat until both pass
 ```
 
-**Add search**
+**Add search**: pick the case that fits.
 
-```
-- [ ] Search across the app (a Search tab, a search screen) → its own screen, usually its own feature, with its own service, view model and views
-- [ ] Searching what a screen already shows → filter the loaded values in XContentView; no new resource or service
-- [ ] Searching the server within one screen's scope → a mode: a `SearchSession` nested in XViewModel and made with the screen's service, with its own state and content views, picked in XStateView's first branch
-```
+- Search across the app (a Search tab, a search screen) → its own screen, usually its own feature, with its own service, view model and views.
+- Searching what a screen already shows → filter the loaded values in XContentView; no new resource or service.
+- Searching the server within one screen's scope → a mode: a `SearchSession` nested in XViewModel and made with the screen's service, with its own state and content views, picked in XStateView's first branch.
 
 **Link one feature to another** (Movie opens Trailers)
 
@@ -201,6 +202,7 @@ Writing concurrent code is out of scope here; use a Swift Concurrency skill ([Re
 - [ ] If the source needs data the target owns (does this movie have trailers?), declare a port in the source's XCore with a mock, and implement it in an app adapter
 - [ ] App: map the new case in Destination.init(_: SourceDestination) to the target's app screen
 - [ ] App: register the target's XDestination in every stack that can reach it, directly or through other features (usually every tab)
+- [ ] Build both features' schemes and the app; fix and repeat until they pass
 ```
 
 **Decide where a type belongs**

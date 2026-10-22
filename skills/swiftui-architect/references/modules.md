@@ -191,22 +191,16 @@ Each module owns the strings, images and colors it shows, and reaches them throu
 
 **Strings**
 - Each XUI target has a String Catalog (`Resources/Localizable.xcstrings`) for everything its views show; the app has one for its own chrome (tabs, settings). CoreUI's catalog holds only copy every feature must say the same way, such as the shared screen states. XCore, XLive, Core and DesignSystem show no text. A string two features show is duplicated in each catalog.
-- Add the key to the catalog first (`discover.navigation.title`), then use its generated symbol: `Text(.discoverNavigationTitle)`, `Button(.discoverActionRetry, action: retry)`, `.navigationTitle(.discoverNavigationTitle)`. Symbols are internal to their module and carry its bundle. A literal in a package would need `bundle: #bundle`, or it silently looks in the app's bundle.
-- Every entry has a translator comment, describing each placeholder by position. Plurals and device variations are variations of one entry, and a placeholder entry generates a function (`.searchNoResultsMessage(query)`).
+- Add the key to the catalog first (`discover.navigation.title`), then use its generated symbol: `Text(.discoverNavigationTitle)`, `Button(.discoverActionRetry, action: retry)`, `.navigationTitle(.discoverNavigationTitle)`; a key with a placeholder generates a function (`.searchNoResultsMessage(query)`). Symbols are internal to their module and carry its bundle. A literal in a package would need `bundle: #bundle`, or it silently looks in the app's bundle.
 - A non-view type that carries user-facing text holds a `LocalizedStringResource`, never a `String`, so it resolves at display time in the right locale and bundle. Display mappings are XUI extensions on domain values (`DiscoverCategory.title`); models and view models hold no display strings.
-- Numbers, dates, durations and lists use format styles (`Text(date, format: .dateTime.year().month().day())`), never fixed format strings or concatenation.
-- Layout uses `leading` and `trailing`; an image that implies direction sets its direction in the asset catalog. Previews include a right-to-left locale.
 - Content from the backend is already localized: the networking layer sends the app's language with each request, and views show it as a plain `String`.
 
 **Images and colors**
 - Each module keeps an asset catalog for what it shows: a feature's artwork in its XUI target, shared icons, illustrations and colors in DesignSystem, the app icon in the app.
 - Use the generated symbols: `Image(.emptyWatchlist)`, `Color(.accentHighlight)`, `Label(.watchlistActionAdd, image: .bookmark)`. Never `Image("name")`.
-- Prefer SF Symbols (`systemImage:`) where the design uses them. Ship custom artwork as vectors (SVG or PDF, single scale, preserving vector data), and icons at the size the design draws them, so `Image(resource)` needs no resizing.
-- Dark-mode and high-contrast variants live in the catalog, not in code. DesignSystem exposes colors as semantic tokens (`DesignSystem.Colors.Text.primary`), whether a catalog or code defines them.
 
 **Fonts**
 - Custom fonts ship in DesignSystem's resources. A package has no Info.plist for `UIAppFonts`, so DesignSystem registers them itself (`CTFontManagerRegisterFontsForURL(url, .process, nil)`), once, before the first view draws.
-- Typography tokens scale with Dynamic Type relative to a text style (`Font.custom(_:size:relativeTo:)`).
 
 **Build setup**
 - The app sets `LOCALIZATION_PREFERS_STRING_CATALOGS`, `STRING_CATALOG_GENERATE_SYMBOLS`, `SWIFT_EMIT_LOC_STRINGS` and `ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS`.

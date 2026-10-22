@@ -60,7 +60,7 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 | XLive | `Mapping/`, `Services/` (and `Persistence/` when it stores data) |
 | XTests | `ViewModels/`, `Live/`, `Fixtures.swift` |
 | Core | `Domain/` |
-| CoreUI | `Components/`, `Resources/` |
+| CoreUI | `Components/`, `Navigation/`, `Resources/` |
 | Networking | `openapi.yaml`, `openapi-generator-config.yaml`, the client, its error, `Middleware/` |
 | App | `App/`, `Adapters/`, `Extensions/Environment/`, `Navigation/`, `Screens/` |
 

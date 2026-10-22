@@ -295,6 +295,7 @@ struct GenreDetailSearchStateView: View {
 | What a screen presents | Its view model | A plain `var` the view binds (`isFilterPresented`) |
 | What a sheet edits before it's applied | Its view model | A plain `var` (`filterDraft`) that the action opening the sheet fills from the screen's state (`openFilter()`); the sheet binds it, so `SearchFilterView()` takes nothing ([presentations](navigation.md#sheets-covers-and-alerts)) |
 | Focus and visual mechanics: a measured size, whether a footer is on screen, gesture progress | The view | `@FocusState` or `@State private var`; never data, a presentation or an edit a test would check |
+| A reusable component's internal state: a carousel's page, a slider's drag, a synopsis expanded by "Read more" | The component, even one that reads the view model | `@State private var`; what the screen acts on comes in as a value or a binding (the range a slider picks). A DesignSystem or CoreUI component has no view model to hold it |
 
 - `XView` holds no `@State` beside its view model, and no view below it holds screen state. Anything a test, a deep link or another view could need lives in the view model, directly or in a nested model, so a screen's whole state is one type a test can drive.
 - A view reads the view model from the environment only when it reads state of its own, such as a resource's loading flag or error, or calls the view model, like a paging footer. A view that only passes data along takes the values instead.

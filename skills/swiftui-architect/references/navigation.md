@@ -80,7 +80,6 @@ NavigationLink(value: CoreDestination.movieDetail(id: movie.id)) {
 NavigationLink(.movieDetailSectionCastSeeAll, value: MovieDestination.cast(movieID: movieID))
 ```
 
-- In a `List`, hide the disclosure chevron when the design calls for it: `.navigationLinkIndicatorVisibility(.hidden)`.
 - Feature views never receive navigation closures, a router, or a path.
 - View models never navigate.
 
