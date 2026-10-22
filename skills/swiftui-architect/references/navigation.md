@@ -65,7 +65,7 @@ public enum CoreDestination: Hashable, Codable, Sendable {
 ```
 
 - A place moves here once a second feature links to it, so every feature and every tab opens it the same way. A place only one feature links to stays in that feature's `XDestination`, even another feature's screen (`MovieDestination.person(id:)`).
-- Cases name the screen they open, its feature included (`.movieDetail(id:)`, not `.movie(id:)`). `CoreDestination` sits outside every feature, so each case says whose screen it opens, and the app maps it one-to-one onto its `Destination`. A feature's own `XDestination` names places in its own words (`.cast(movieID:)`), since the enum's name already says whose they are.
+- Cases name the screen they open (`.movieDetail(id:)`, not `.movie(id:)`): the enum sits outside every feature, so each case says whose screen it is, and the app maps it one-to-one onto `Destination`. A feature's `XDestination` names places in its own words (`.cast(movieID:)`), since its name already says whose they are.
 - A CoreUI view that links, such as a banner whose posters open movies, pushes `CoreDestination` itself, with no protocol or closures for its links.
 - The same rules as any destination: identifiers only, `Codable`.
 

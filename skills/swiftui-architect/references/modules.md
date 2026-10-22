@@ -14,7 +14,7 @@ The app is built from local Swift packages: one per feature, plus a few shared p
 
 ## Feature packages
 
-A feature is a vertical slice around one capability, and it owns that capability's data contract. It may export several screens (Movie exports a movie's details screen and its cast screen); screens never define the boundary. Name the package after the capability, never after one of its screens: `Discover`, `Search`, `Watchlist`, `Movie`, `Person`, not `MovieDetail`. The screens carry the screen's name (`MovieDetailView`, `MovieCastView`).
+A feature is a vertical slice around one capability, and it owns that capability's data contract. It may export several screens (Movie exports a movie's details screen and its cast screen); screens never define the boundary. Name the package after the capability, never after one of its screens: `Discover`, `Search`, `Watchlist`, `Movie`, `Person`, not `MovieDetail`. Its screens keep their own names (`MovieDetailView`, `MovieCastView`).
 
 | Target | Contains | Imports |
 |---|---|---|

@@ -7,7 +7,7 @@ description: Architects modular SwiftUI apps as feature-module Swift packages (X
 
 Decides where code lives, who owns it, and the shape of the pieces that hold an app together: modules, domain models, services, view models, the views a screen is made of, composition and routing. For how to write SwiftUI or concurrency code itself, defer to the skills in [Related skills](#related-skills).
 
-Names: `X` stands for a feature (`Discover`, `Movie`), or for a screen when a feature has several (`MovieDetail` → `MovieDetailService`, `MovieDetailViewModel`, `MovieDetailView`, `MovieDetailScreen`; `MovieCast` → `MovieCastService`, …). A feature is named for its capability, never for one of its screens, so the `Movie` feature's main screen is `MovieDetail`. A *screen* is one navigable page: the feature exports its view, and the app composes it in an `XScreen`. The running example is a movie browser on the TMDB API.
+Names: `X` stands for a feature (`Discover`, `Movie`), or for a screen when a feature has several (`MovieDetail`, `MovieCast` → `MovieCastService`, `MovieCastViewModel`, `MovieCastView`, `MovieCastScreen`). A feature is named for its capability, never for one of its screens. A *screen* is one navigable page: the feature exports its view, and the app composes it in an `XScreen`. The running example is a movie browser on the TMDB API.
 
 ## The shape
 

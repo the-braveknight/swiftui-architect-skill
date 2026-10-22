@@ -72,18 +72,7 @@ Rules for each load method:
 - On success, assign what the service returns and clear the error. On failure, keep the data and record the error, so a retry keeps the error view on screen until a load succeeds.
 - State views read the data first: the content whenever there is data, then the error, progress and the empty state ([views](views.md#xview-xstateview-and-xcontentview)).
 
-A resource keeps only the state its views read. Data always; `isLoading…` and `…Error` only when the screen shows progress or a failure for it. A resource the screen quietly leaves out when it fails, such as the movies Search suggests, keeps just its data, and its load assigns on success and does nothing on failure:
-
-```swift
-/// Loads the movies Search suggests. Suggestions that fail to load are left out.
-func loadSuggestions() async {
-    do {
-        suggestions = try await service.suggestions()
-    } catch {
-        // Search shows no suggestions rather than an error.
-    }
-}
-```
+A resource keeps only the state its views read. Data always; `isLoading…` and `…Error` only when the screen shows progress or a failure for it. A resource the screen quietly leaves out when it fails, such as the movies Search suggests, keeps just its data, and its load assigns on success and does nothing on failure.
 
 ## Errors and cancellation
 
