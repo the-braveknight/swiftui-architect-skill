@@ -21,6 +21,8 @@ MoviesApp/
 └── Screens/                        one XScreen per screen
 ```
 
+The app target may use MainActor default isolation, since it only composes SwiftUI. Packages never do ([modules](modules.md#packageswift-template)).
+
 ## XApp.swift
 
 Build the client and every service and adapter in `init()`. Store them as `let` properties typed as the feature protocols, and inject them on the `Scene` so every window and every screen sees the same instances. Use no DI container and no singletons.
@@ -29,7 +31,6 @@ Build the client and every service and adapter in `init()`. Store them as `let` 
 @main
 struct MoviesApp: App {
     @State private var router = Router()
-    private let imageSession: URLSession
     private let discoverService: any DiscoverService
     private let movieDetailService: any MovieDetailService
     private let movieCastService: any MovieCastService
@@ -37,8 +38,6 @@ struct MoviesApp: App {
     private let watchlistMembershipService: any WatchlistMembershipService
 
     init() {
-        imageSession = URLSession(configuration: .default)
-
         do {
             let client = try TMDBClient(session: .shared)
             let watchlistService = try SwiftDataWatchlistService.persistent()
@@ -57,7 +56,6 @@ struct MoviesApp: App {
         WindowGroup {
             ContentView()
                 .environment(router)
-                .asyncImageURLSession(imageSession)
         }
         .environment(\.discoverService, discoverService)
         .environment(\.movieDetailService, movieDetailService)

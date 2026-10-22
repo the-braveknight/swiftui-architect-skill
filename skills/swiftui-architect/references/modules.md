@@ -175,10 +175,10 @@ Identifiers cross features as IDs (`MovieSummary.ID`), not as objects. Don't add
 
 One domain-free package, imported by every UI target, holding the visual language:
 - **Tokens** under one namespace, by role: `DesignSystem.Colors.Text.primary`, `DesignSystem.Spacing.space5`. Tokens are values, never views.
-- **Styles** for native controls, as conformances to SwiftUI's style protocols exposed as static members, so features keep using `Button`, `NavigationLink` and `Toggle`: `.buttonStyle(.chip)`, `.buttonStyle(.content)`. A variant is a parameter on one style (`.chip(.text)`), not a new type.
-- **Components** that take plain values and view builders (`Rail(_:content:accessory:)`, `RemoteImage(url:)`), and initializers that restyle native views by extending them rather than wrapping them, such as an empty-state initializer on `ContentUnavailableView`.
+- **Styles** for native controls, as conformances to SwiftUI's style protocols exposed as static members, so features keep using `Button`, `NavigationLink` and `Toggle` (`.buttonStyle(.content)`).
+- **Components** that take plain values and view builders, such as a rail or a remote image, and extensions that restyle native views rather than wrappers around them.
 
-It never knows a feature model, service, destination or screen, has no strings of its own, and decides no policy: an image `URLSession` or cache is injected by the app (`.asyncImageURLSession(imageSession)`). A view that renders a domain type and is used by several features belongs in CoreUI, built from DesignSystem parts.
+It never knows a feature model, service, destination or screen, has no strings of its own, and decides no policy: an image session or cache comes from the app. A view that renders a domain type and is used by several features belongs in CoreUI, built from DesignSystem parts.
 
 ## Networking and other infrastructure
 
@@ -193,14 +193,13 @@ Each module owns the strings, images and colors it shows, and reaches them throu
 - Each XUI target has a String Catalog (`Resources/Localizable.xcstrings`) for everything its views show; the app has one for its own chrome (tabs, settings). CoreUI's catalog holds only copy every feature must say the same way, such as the shared screen states. XCore, XLive, Core and DesignSystem show no text. A string two features show is duplicated in each catalog.
 - Add the key to the catalog first (`discover.navigation.title`), then use its generated symbol: `Text(.discoverNavigationTitle)`, `Button(.discoverActionRetry, action: retry)`, `.navigationTitle(.discoverNavigationTitle)`; a key with a placeholder generates a function (`.searchNoResultsMessage(query)`). Symbols are internal to their module and carry its bundle. A literal in a package would need `bundle: #bundle`, or it silently looks in the app's bundle.
 - A non-view type that carries user-facing text holds a `LocalizedStringResource`, never a `String`, so it resolves at display time in the right locale and bundle. Display mappings are XUI extensions on domain values (`DiscoverCategory.title`); models and view models hold no display strings.
-- Content from the backend is already localized: the networking layer sends the app's language with each request, and views show it as a plain `String`.
 
 **Images and colors**
 - Each module keeps an asset catalog for what it shows: a feature's artwork in its XUI target, shared icons, illustrations and colors in DesignSystem, the app icon in the app.
 - Use the generated symbols: `Image(.emptyWatchlist)`, `Color(.accentHighlight)`, `Label(.watchlistActionAdd, image: .bookmark)`. Never `Image("name")`.
 
 **Fonts**
-- Custom fonts ship in DesignSystem's resources. A package has no Info.plist for `UIAppFonts`, so DesignSystem registers them itself (`CTFontManagerRegisterFontsForURL(url, .process, nil)`), once, before the first view draws.
+- Custom fonts ship in DesignSystem's resources. A package has no Info.plist for `UIAppFonts`, so DesignSystem registers them itself, once, before the first view draws.
 
 **Build setup**
 - The app sets `LOCALIZATION_PREFERS_STRING_CATALOGS`, `STRING_CATALOG_GENERATE_SYMBOLS`, `SWIFT_EMIT_LOC_STRINGS` and `ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS`.

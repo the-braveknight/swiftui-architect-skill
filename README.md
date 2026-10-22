@@ -53,7 +53,7 @@ Out of scope, and covered by other skills the agent loads alongside this one:
 swiftui-architect-skill/
 ├── .claude-plugin/              Claude Code plugin and marketplace manifests
 ├── skills/swiftui-architect/
-│   ├── SKILL.md                 entry point: shape, dependency rules, ownership, workflows
+│   ├── SKILL.md                 entry point: shape, rules, gotchas, workflows, which reference to read
 │   └── references/
 │       ├── modules.md           targets, folders, Package.swift, Core, CoreUI, DesignSystem, strings, tests
 │       ├── domain.md            domain models, errors, service protocols and naming, live services, mocks, ports

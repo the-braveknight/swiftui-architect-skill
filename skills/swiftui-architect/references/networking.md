@@ -72,36 +72,12 @@ namingStrategy: idiomatic
 public struct TMDBClient: Sendable {
     private let client: Client
 
-    public init(session: URLSession = .shared) throws {
-        try self.init(transport: URLSessionTransport(configuration: .init(session: session)))
-    }
-
-    /// Tests pass a stub transport.
-    init(transport: any ClientTransport) throws {
-        client = Client(
-            serverURL: try Servers.Server1.url(),
-            transport: transport,
-            middlewares: []   // only what the API requires, such as auth
-        )
-    }
-
     public func movieDetails(id: Int) async throws -> Components.Schemas.MovieDetails {
-        try await classifyingErrors {
-            switch try await client.movieDetails(path: .init(movieId: id)) {
-            case .ok(let response):
-                try response.body.json
-            case .undocumented(let status, _):
-                throw TMDBError.unexpectedStatus(status)
-            }
-        }
-    }
-
-    /// Rethrows what a request throws as `TMDBError` or `CancellationError`.
-    private func classifyingErrors<Value>(_ request: () async throws -> Value) async throws -> Value {
-        do {
-            return try await request()
-        } catch {
-            throw TMDBError.classify(error)
+        switch try await client.movieDetails(path: .init(movieId: id)) {
+        case .ok(let response):
+            try response.body.json
+        case .undocumented(let status, _):
+            throw TMDBError.unexpectedStatus(status)
         }
     }
 }
@@ -110,11 +86,12 @@ public struct TMDBClient: Sendable {
 - Methods keep the spec's operation names (`movie-details` → `movieDetails(id:)`), the standard OpenAPI naming, so the client reads like the spec it wraps. Swift naming practice starts at the domain: services and their methods ([domain](domain.md#naming-services-and-their-methods)).
 - Each method switches over every documented output plus `.undocumented`, with no `default`, so a response newly added to the spec is a compile error where it must be handled.
 - Unwrap envelopes here (`{ "data": … }`), so XLive maps the payload itself.
+- The client is built over a transport, so tests can pass a stub.
 - Middleware is for what every request needs and the API requires, such as an auth header or a language parameter. Add none the app doesn't need (logging, retries).
 
 ## Errors and cancellation
 
-The client rethrows every failure as either `TMDBError` or `CancellationError`. XLive maps `TMDBError` into the feature's error, and view models treat `CancellationError` as "nothing happened".
+Every client method rethrows what fails as either `TMDBError` or `CancellationError`. XLive maps `TMDBError` into the feature's error, and view models treat `CancellationError` as "nothing happened".
 
 ```swift
 public enum TMDBError: Error, Equatable {
@@ -127,39 +104,12 @@ public enum TMDBError: Error, Equatable {
     /// A status the spec doesn't document, such as 404.
     case unexpectedStatus(Int)
 }
-
-extension TMDBError {
-    /// A cancelled request surfaces as `URLError.cancelled`, or as whatever failed once its task was cancelled,
-    /// so both become `CancellationError`.
-    static func classify(_ error: any Error) -> any Error {
-        if Task.isCancelled {
-            return CancellationError()
-        }
-        var underlying = error
-        while let clientError = underlying as? ClientError {
-            underlying = clientError.underlyingError
-        }
-        switch underlying {
-        case let error as TMDBError:
-            return error
-        case is CancellationError:
-            return CancellationError()
-        case let error as URLError:
-            switch error.code {
-            case .cancelled: return CancellationError()
-            case .notConnectedToInternet, .networkConnectionLost: return TMDBError.offline
-            default: return TMDBError.requestFailed
-            }
-        default:
-            return TMDBError.invalidResponse
-        }
-    }
-}
 ```
 
-- The runtime wraps transport, decoding and middleware failures in `ClientError`; unwrap it before classifying.
-- Cancellation must arrive as `CancellationError`. URLSession reports a cancelled task as `URLError(.cancelled)`; left as a failure, a footer scrolled away mid-load would come back showing a retry, and a screen left mid-load would come back showing an error.
+- Failures are classified once, in the client, so live services see only `TMDBError` and `CancellationError`, never `URLError` or the runtime's errors.
+- Cancellation must arrive as `CancellationError`: URLSession reports a cancelled task as `URLError(.cancelled)`, and a request can fail some other way once its task is cancelled. Left as failures, a footer scrolled away mid-load would come back showing a retry, and a screen left mid-load would come back showing an error.
 - Only a lost connection is `.offline`. A timeout doesn't prove the device is offline.
+- The generated runtime wraps failures in `ClientError`; classify what it wraps.
 
 ## Testing
 

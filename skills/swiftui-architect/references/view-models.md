@@ -436,26 +436,7 @@ extension GenreDetailViewModel {
 
 ## Testing view models
 
-Swift Testing, `@MainActor` suites, one behavior per test, `@testable import XUI` to reach internal state and methods. A private actor stub in the test file returns queued results:
-
-```swift
-/// Returns each queued result in turn, one per call.
-private actor StubMovieDetailService: MovieDetailService {
-    private var results: [Result<Movie, any Error>]
-
-    init(_ results: Result<Movie, any Error>...) {
-        self.results = results
-    }
-
-    func movie(id: MovieSummary.ID) throws -> Movie {
-        try results.removeFirst().get()
-    }
-
-    func cast(movieID: MovieSummary.ID) -> [CastMember] {
-        []
-    }
-}
-```
+Swift Testing, `@MainActor` suites, one behavior per test, `@testable import XUI` to reach internal state and methods, and a private actor stub of the service in the test file.
 
 Cover the rules the screen follows: a resource loaded on appear starts out loading, the data loads, the error is recorded, a failed refresh keeps the data, a successful retry clears the error, and cancellation isn't an error. A paged screen also covers a failed page keeping what's loaded, a retried page loading, the first page clearing the next page's error, a page that arrives after a refresh being dropped, a restarted footer still loading its page, and loading again keeping the pages it has. Tests that interleave two loads use a stub that holds each request until the test answers it.
 

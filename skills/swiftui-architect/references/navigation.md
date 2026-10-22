@@ -153,7 +153,7 @@ struct DestinationView: View {
         case .personDetail(let id):
             PersonDetailScreen(personID: id)
         case .signIn:
-            ComingSoonScreen(.appDestinationSignIn)
+            SignInScreen()
         }
     }
 }
@@ -161,14 +161,7 @@ struct DestinationView: View {
 
 ### Screens that don't exist yet
 
-A feature links to a place even before that place is built, such as sign-in from a "Watch Now" button (`CoreDestination.signIn`). The app maps it to a placeholder until the real screen ships:
-
-```swift
-case .signIn:
-    ComingSoonScreen(.appDestinationSignIn)
-```
-
-When the screen arrives, only `DestinationView` changes; the features that link to it don't.
+A feature can link to a place before its screen is built. `DestinationView` shows a placeholder for it until the screen ships; then only `DestinationView` changes, and the features that link to it don't.
 
 ## Registering destinations
 
@@ -221,7 +214,7 @@ var body: some View {
 }
 ```
 
-`PersonBiographySheet` takes those plain values, wraps its content in a `NavigationStack` for its title, and closes with a `ToolbarContent` struct holding `Button(role: .close) { dismiss() }`.
+`PersonBiographySheet` takes those plain values.
 
 Search's filter, for example:
 

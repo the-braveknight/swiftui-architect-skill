@@ -186,22 +186,9 @@ struct HomeSectionsNextPageFooter: View {
         Task { await viewModel.loadNextSectionsPage() }
     }
 }
-
-private struct HomeSectionsNextPageLoader: View {
-    let nextPage: Int
-    @Environment(HomeViewModel.self) private var viewModel
-    @State private var isVisible = false
-
-    var body: some View {
-        ProgressView()
-            .onScrollVisibilityChange { isVisible = $0 }
-            // Asks again after each page in case the footer is still on screen once the page arrives.
-            .task(id: isVisible ? nextPage : nil) {
-                if isVisible { await viewModel.loadNextSectionsPage() }
-            }
-    }
-}
 ```
+
+`HomeSectionsNextPageLoader` shows progress and loads the next page while it's on screen, asking again after each page in case it's still in view.
 
 ## Modes
 
@@ -312,7 +299,7 @@ struct GenreDetailSearchStateView: View {
 - Choosing between a screen's states, a mode included, belongs in `XStateView`, not in a `Group { if … }`, `switch` or overlay in `XView`'s body.
 - Toolbars are `ToolbarContent` structs in XUI (`WatchlistToolbar`).
 - Never create views from non-view types. View models expose domain values; display mappings are XUI extensions returning `LocalizedStringResource` (`DiscoverCategory.title`), never `Text` or `Image`.
-- Use native controls with DesignSystem styles: `Button` with `.buttonStyle(.filledProminent)`, `NavigationLink` with `.buttonStyle(.content)`, `ProgressView()`.
+- Use native controls with DesignSystem's styles, such as `NavigationLink` with `.buttonStyle(.content)`.
 - Strings come from the feature's String Catalog through generated symbols ([modules](modules.md#localization-assets-and-fonts)).
 
 ## Previews

@@ -1,13 +1,13 @@
 ---
 name: swiftui-architect
-description: Architects modular SwiftUI apps as feature-module Swift packages (XCore, XUI, XLive, XTests) on shared Core, CoreUI, DesignSystem and Networking packages, with an app target that composes screens, injects services and routes navigation. Use when creating or restructuring an app's modules, adding a feature or screen, designing domain models, services, or view models that load several resources, page, fail or search, deciding where a type belongs, or wiring navigation between screens and features in a multi-package SwiftUI codebase. Also use when reviewing such a codebase for where code belongs and the shape it takes.
+description: Architects modular SwiftUI apps as feature Swift packages (XCore, XUI, XLive, XTests) on shared Core, CoreUI, DesignSystem and Networking packages, with an app target that composes screens, injects services and routes navigation. Use when adding a feature or screen to a SwiftUI app, creating or restructuring its Swift packages, designing its domain models, services or view models (loading, errors, pagination, search), wiring navigation or dependency injection between features, deciding where a type belongs, or reviewing such a codebase, even when the user doesn't name the architecture.
 ---
 
 # SwiftUI Architect
 
-Decides where code lives, who owns it, and the shape of the pieces that hold an app together: modules, domain models, services, view models, the views a screen is made of, composition and routing. For how to write SwiftUI or concurrency code itself, defer to the skills in [Related skills](#related-skills).
+Decides where code lives, who owns it, and the shape of the pieces that hold a modular SwiftUI app together. For how to write the SwiftUI or concurrency code inside those shapes, use the skills in [Related skills](#related-skills).
 
-Names: `X` stands for a feature (`Discover`, `Movie`), or for a screen when a feature has several (`MovieDetail`, `MovieCast` → `MovieCastService`, `MovieCastViewModel`, `MovieCastView`, `MovieCastScreen`). A feature is named for its capability, never for one of its screens. A *screen* is one navigable page: the feature exports its view, and the app composes it in an `XScreen`. The running example is a movie browser on the TMDB API.
+`X` stands for a feature, named for its capability (`Discover`, `Movie`), or for one of its screens (`MovieDetail`, `MovieCast` → `MovieCastService`, `MovieCastViewModel`, `MovieCastView`, `MovieCastScreen`). A *screen* is one navigable page: the feature exports its view, and the app composes it in an `XScreen`. The examples are a movie browser on the TMDB API.
 
 ## The shape
 
@@ -48,7 +48,6 @@ Hard rules:
 - DesignSystem knows no domain: no feature models, services or destinations.
 - The app is the only module that sees every feature, so it is the only place features meet.
 
-Targets, folders, Package.swift, Core, CoreUI and DesignSystem: [references/modules.md](references/modules.md).
 
 ## Who owns what
 
@@ -75,86 +74,28 @@ Targets, folders, Package.swift, Core, CoreUI and DesignSystem: [references/modu
 7. **Native SwiftUI, nothing invented.** No navigation libraries, DI containers, wrapper views around stacks, or infrastructure the app doesn't need.
 8. **One screen per kind of content.** When the things a feature opens load, page or search differently, each gets its own screen, rather than one detail screen that switches on what it was given.
 
-## Domain and services in one page
+## The shapes in brief
 
-- Domain models are `Equatable`, `Sendable` value types shaped for what screens show. The whole thing is a plain noun (`Movie`); what a list shows of it adds `Summary` (`MovieSummary`). Each is complete for its role and states each fact once, so an illogical value can't be written.
-- Each feature has its own error enum, cased by what its screens show (`offline`, `notFound`, `unavailable`), or one per screen when their failures differ. Errors are never shared, and an empty answer is never an error.
-- XCore declares a service protocol per screen, holding only what that screen loads from its source. A concern with a source of its own, such as searches kept on the device, is a service of its own that the view model takes beside it. Names follow the Swift API Design Guidelines: the protocol is the role's noun, reads are noun phrases for what they return, and changes are verbs.
+- **Models and errors.** Domain models are `Equatable`, `Sendable` values shaped for what screens show (`Movie`, and `MovieSummary` for a list). Each feature has its own error enum, cased by what its screens show (`offline`, `notFound`, `unavailable`); an empty answer is never an error.
+- **Services.** XCore declares a service protocol per screen that returns view-ready domain values (`Page<Item>` for a paged list) and throws the feature's error; a concern with a source of its own, such as searches kept on the device, is a service of its own. XLive implements each over the networking client and maps responses and errors into the domain. XCore ships a mock of each (`.mock`).
+- **View models.** `@MainActor @Observable public final class XViewModel`, one per screen (a pushed view or a tab's root), built by the app with IDs and services. Each resource has its data, `isLoading…` and `…Error`; a paged one adds `next…Page`, `isLoadingNext…Page` and `next…PageError`; a resource keeps only the state its views read. A part of the screen with its own input, loading or errors is a nested `@Observable` model inside the view model, never a `…ViewModel`.
+- **Views.** `XView` owns the view model as its only `@State`, puts it in the environment, starts every load and applies what every state shares. `XStateView` shows the content whenever there is data, otherwise the error, progress or the empty state. `XContentView` lays out the values it's given. Views that read state or act read the view model from the environment; display views take values.
+- **Screen state** lives in the view model, what's presented and what a sheet edits included. A view's own `@State` holds only mechanics no test needs, such as a carousel's page.
+- **Navigation.** A feature lists where its views go in its `XDestination`, carrying IDs; the places several features open are `CoreDestination` cases in CoreUI. The app maps each case to a screen in `Destination`, and registers each type at the root of every stack.
+- **Composition.** `XApp.init` builds the client and every service and injects them through environment keys; each `XScreen` reads them and builds its view model. No DI container.
+- **Concurrency.** Packages build in Swift 6 mode with no default actor isolation. View models are `@MainActor`, services `Sendable`, live service methods `@concurrent`, and stateful services and mocks actors.
 
-```swift
-public protocol MovieDetailService: Sendable {
-    /// - Throws: `MovieError`. Cancellation propagates as `CancellationError`.
-    func movie(id: MovieSummary.ID) async throws -> Movie
-    func cast(movieID: MovieSummary.ID) async throws -> [CastMember]
-}
-```
+## Gotchas
 
-- XLive's `TMDBMovieDetailService` calls the networking client in `@concurrent` methods, maps the response to the domain and the transport error to `MovieError`. XCore's `MockMovieDetailService` (`.mock`) serves previews.
-- Networking generates the API with Apple's swift-openapi-generator, wraps the generated client in `TMDBClient`, and rethrows every failure as `TMDBError`, or as `CancellationError` when the request was cancelled.
-
-Models, errors, services, naming, ports: [references/domain.md](references/domain.md). The networking package: [references/networking.md](references/networking.md).
-
-## View models in one page
-
-- `@MainActor @Observable public final class XViewModel`, one per screen: a view pushed onto a stack, or a tab's root. Built by the app with IDs and services; its `init` does assignments only. State is `private(set)`, except input a view binds, what the screen presents and what a sheet edits (`text`, `isFilterPresented`, `filterDraft`); actions are internal verbs (`load()`, `loadNextSectionsPage()`).
-- Each resource has its data (`[]` for a collection, `nil` for a single value, until it loads), `isLoading…` (`true` from the start when it loads on appear) and `…Error`; a paged one adds `next…Page`, `isLoadingNext…Page` and `next…PageError`. Each error property has its own type. A resource keeps only the state its views read: one the screen leaves out when it fails, such as suggestions, keeps just its data.
-- A resource keyed by something the user changes (search words, a selected season) starts over when the key changes: its data empties and, when a load follows, it shows as loading; it loads from `.task(id:)` on the view, and a load for an old key is dropped.
-- `load()` runs independent loads side by side and dependent ones after what they need. A screen gets computed `isLoading` and `error`, never stored, only when a rule spans several resources.
-- Cancellation is never a failure: catch `CancellationError` and keep the data and the error. Then the feature's error, then a fallback case.
-- A thing and its paged list are two resources, not a value paged as a whole.
-- Coming back to a screen runs `load()` again. A screen with a paged list guards it on that list (`guard sections.isEmpty else { return }`) so it keeps the pages it has, and pull to refresh calls `refresh()`, which starts the list over. A keyed paged list guards its own load the same way.
-- A part of a screen whose state changes on its own gets a nested `@Observable` model, declared inside the view model and owned by it, named as a plain noun for what it holds and never `…ViewModel` (`SearchSession`, `WatchlistMembership`). It uses the view model's services. A single flag or value stays on the view model, and so does a key with what it loads, such as a selected season and its episodes. A *mode*, such as a server search scoped to one screen, is such a model ([when search is a mode](#workflows)).
-
-The loading shape, pagination, keyed resources, nested models and modes, and tests: [references/view-models.md](references/view-models.md).
-
-## Views in one page
-
-- `XView` (public) owns the view model as `@State`, its only `@State`, and puts it in the environment as its outermost modifier, starts every load (`.task`, and `.task(id:)` for keyed resources and typing pauses), applies what every state shares (a title that stays up while loading, a search field, a bar of controls above every state, toolbars and the sheets they open), and renders `XStateView`.
-- `XStateView` checks in a fixed order: the content whenever there is data, the error only when there's nothing to show, progress while loading, then the empty state. While there's data it reads only the data, so a refresh doesn't redraw it. It passes values down, and shows CoreUI's `ContentUnavailableView` presets; an empty state appears only where the design has one. A mode is picked in its first branch and has a state view of its own.
-- `XContentView` lays out the values it's given in its scroll container, one view per resource or section.
-- Views below `XView` that read their own state or act, such as state views, paging footers and toolbars, read the view model with `@Environment(XViewModel.self)`, and a nested model through it; display views take values. A preview of a view below `XView` injects a view model, since reading a missing one crashes.
-- Screen state lives in the view model, directly or in a nested model: what's presented, what a sheet edits before it's applied, selections. A view's own `@State` holds only mechanics no test or other view needs: a measured height, whether a paging footer is on screen, or how a reusable component works inside, such as a carousel's page. What the screen acts on comes into a component as a value or a binding.
-- Each is its own file. No closures passed down for view-model actions; toolbars are `ToolbarContent` structs.
-
-Shapes, modes, paging footer, passing data, structure rules: [references/views.md](references/views.md).
-
-## Composition and routing in one page
-
-`XApp.swift` builds the client and every service in `init()`, keeps them as `let` properties typed as protocols, and injects them on the `Scene`. App `XScreen` views read them and build view models; tab-root screens own their `NavigationStack`. No DI container.
-
-```swift
-.environment(\.discoverService, discoverService)
-.environment(\.movieDetailService, movieDetailService)
-.environment(\.movieCastService, movieCastService)
-```
-
-A feature declares everywhere its views can go in its own `XDestination`, carrying IDs. The places several features open, such as a movie's details, are cased once in CoreUI's `CoreDestination`. The app maps each case to a screen once, and registers each destination type at the root of every stack that can show it:
-
-```swift
-public enum MovieDestination: Hashable, Codable, Sendable {
-    case cast(movieID: MovieSummary.ID)
-    case person(id: Int)
-}
-
-NavigationStack(path: $router[.discover]) {
-    DiscoverView(viewModel: DiscoverViewModel(service: discoverService))
-        .navigationDestination(for: CoreDestination.self) { destination in
-            DestinationView(destination: Destination(destination))
-        }
-        .navigationDestination(for: MovieDestination.self) { destination in
-            DestinationView(destination: Destination(destination))
-        }
-}
-```
-
-Register only at stack roots, never inside a feature screen: a screen that appears twice in one stack would register twice, which SwiftUI reports. App file shape and `XScreen`: [references/composition.md](references/composition.md). `XDestination`, `Router`, `Destination` and push or present: [references/navigation.md](references/navigation.md).
-
-## Concurrency
-
-Writing concurrent code is out of scope here; use a Swift Concurrency skill ([Related skills](#related-skills)). The architecture assumes:
-- Swift 6 language mode everywhere, with `NonisolatedNonsendingByDefault`, `InferIsolatedConformances` and `MemberImportVisibility` in packages.
-- Packages have no default actor isolation and no `nonisolated` workarounds or unchecked escape hatches. View models and their tests are explicitly `@MainActor`; services are `Sendable`; live service methods are `@concurrent`; stateful services, mocks and stubs are actors.
-- The app target may use MainActor default isolation, since it is only SwiftUI composition.
+- Register `navigationDestination` only at stack roots. Inside a feature screen it registers again when that screen appears twice in one stack, and SwiftUI reports a duplicate.
+- Start loads from `.task` on `XView`, never on the progress view, which goes away when the first data arrives and cancels the loads still running.
+- A cancelled request must reach the view model as `CancellationError`, not as an error to show. URLSession reports it as `URLError(.cancelled)`, so the client converts it; otherwise a screen left mid-load comes back showing an error.
+- Coming back to a screen runs its `.task` again. A screen with a paged list guards `load()` on that list (`guard sections.isEmpty else { return }`) and pulls to refresh through `refresh()`, or the pages already loaded are lost.
+- A load for a key that's no longer current, such as a season or search words, drops its result and leaves `isLoading…` to the current key's load: a response can arrive before its cancellation.
+- `XScreen` builds the view model on every `body` pass and `XView` keeps only the first, so a view model's `init` only assigns.
+- A view that reads a view model the environment doesn't have crashes at runtime, so a preview of any view below `XView` injects one.
+- A string literal in a package looks in the app's bundle unless it passes `bundle: #bundle`; use the catalog's generated symbols instead.
+- Never set `.defaultIsolation(MainActor.self)` in a package: generated OpenAPI code doesn't build under it, and domain types must stay nonisolated.
 
 ## Workflows
 
@@ -214,7 +155,20 @@ Copy the checklist for the task into your response and check items off as you go
 5. Talks to the API? Networking, mapped in XLive.
 6. Wiring two features together? The app.
 
-Naming and folders: [references/conventions.md](references/conventions.md).
+## References
+
+Read the reference for the part you're working on:
+
+| Reference | Read when |
+|---|---|
+| [references/modules.md](references/modules.md) | Creating a package or its `Package.swift`; choosing between a feature, Core, CoreUI and DesignSystem; strings, assets and fonts; where tests go |
+| [references/domain.md](references/domain.md) | Designing domain models, errors, service protocols, live services, mocks or ports between features, and naming them |
+| [references/networking.md](references/networking.md) | Adding an endpoint, or changing the API client or how it reports failures |
+| [references/view-models.md](references/view-models.md) | Writing a view model: loading state, several resources, pagination, keyed resources, nested models and modes, tests |
+| [references/views.md](references/views.md) | Writing a screen's views: the `XView` family, error and empty states, paging footers, modes, passing data, previews |
+| [references/composition.md](references/composition.md) | Wiring the app target: `XApp`, environment keys, `ContentView`, `XScreen` |
+| [references/navigation.md](references/navigation.md) | Adding a destination, linking features, navigating in code, or presenting a sheet |
+| [references/conventions.md](references/conventions.md) | Naming a type, file or folder |
 
 ## Related skills
 
