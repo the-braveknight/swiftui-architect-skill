@@ -7,14 +7,14 @@ description: Architects modular SwiftUI apps as feature-module Swift packages (X
 
 Decides where code lives, who owns it, and the shape of the pieces that hold an app together: modules, domain models, services, view models, the views a screen is made of, composition and routing. For how to write SwiftUI or concurrency code itself, defer to the skills in [Related skills](#related-skills).
 
-Names: `X` stands for a feature (`Discover`, `MovieDetail`), or for a screen when a feature has several (`MovieCast` → `MovieCastService`, `MovieCastViewModel`, `MovieCastView`, `MovieCastScreen`). A *screen* is one navigable page: the feature exports its view, and the app composes it in an `XScreen`. The running example is a movie browser on the TMDB API.
+Names: `X` stands for a feature (`Discover`, `Movie`), or for a screen when a feature has several (`MovieDetail` → `MovieDetailService`, `MovieDetailViewModel`, `MovieDetailView`, `MovieDetailScreen`; `MovieCast` → `MovieCastService`, …). A feature is named for its capability, never for one of its screens, so the `Movie` feature's main screen is `MovieDetail`. A *screen* is one navigable page: the feature exports its view, and the app composes it in an `XScreen`. The running example is a movie browser on the TMDB API.
 
 ## The shape
 
 ```
 App target              composition root: services, screens, routing
 │
-├── Feature packages    one per capability (Discover, Search, MovieDetail, …)
+├── Feature packages    one per capability (Discover, Search, Movie, …)
 │     XCore     domain models, errors, a service protocol and mock per screen
 │     XUI       view models, views, XDestination, strings
 │     XLive     live services: API responses → domain models
@@ -83,13 +83,13 @@ Targets, folders, Package.swift, Core, CoreUI and DesignSystem: [references/modu
 
 ```swift
 public protocol MovieDetailService: Sendable {
-    /// - Throws: `MovieDetailError`. Cancellation propagates as `CancellationError`.
+    /// - Throws: `MovieError`. Cancellation propagates as `CancellationError`.
     func movie(id: MovieSummary.ID) async throws -> Movie
     func cast(movieID: MovieSummary.ID) async throws -> [CastMember]
 }
 ```
 
-- XLive's `TMDBMovieDetailService` calls the networking client in `@concurrent` methods, maps the response to the domain and the transport error to `MovieDetailError`. XCore's `MockMovieDetailService` (`.mock`) serves previews.
+- XLive's `TMDBMovieDetailService` calls the networking client in `@concurrent` methods, maps the response to the domain and the transport error to `MovieError`. XCore's `MockMovieDetailService` (`.mock`) serves previews.
 - Networking generates the API with Apple's swift-openapi-generator, wraps the generated client in `TMDBClient`, and rethrows every failure as `TMDBError`, or as `CancellationError` when the request was cancelled.
 
 Models, errors, services, naming, ports: [references/domain.md](references/domain.md). The networking package: [references/networking.md](references/networking.md).
@@ -97,7 +97,7 @@ Models, errors, services, naming, ports: [references/domain.md](references/domai
 ## View models in one page
 
 - `@MainActor @Observable public final class XViewModel`, one per screen: a view pushed onto a stack, or a tab's root. Built by the app with IDs and services; its `init` does assignments only. State is `private(set)`, except input a view binds, what the screen presents and what a sheet edits (`text`, `isFilterPresented`, `filterDraft`); actions are internal verbs (`load()`, `loadNextSectionsPage()`).
-- Each resource has its data (`[]` for a collection, `nil` for a single value, until it loads), `isLoading…` (`true` from the start when it loads on appear) and `…Error`; a paged one adds `next…Page`, `isLoadingNext…Page` and `next…PageError`. Each error property has its own type.
+- Each resource has its data (`[]` for a collection, `nil` for a single value, until it loads), `isLoading…` (`true` from the start when it loads on appear) and `…Error`; a paged one adds `next…Page`, `isLoadingNext…Page` and `next…PageError`. Each error property has its own type. A resource keeps only the state its views read: one the screen leaves out when it fails, such as suggestions, keeps just its data.
 - A resource keyed by something the user changes (search words, a selected season) starts over when the key changes: its data empties and, when a load follows, it shows as loading; it loads from `.task(id:)` on the view, and a load for an old key is dropped.
 - `load()` runs independent loads side by side and dependent ones after what they need. A screen gets computed `isLoading` and `error`, never stored, only when a rule spans several resources.
 - Cancellation is never a failure: catch `CancellationError` and keep the data and the error. Then the feature's error, then a fallback case.
@@ -109,7 +109,7 @@ The loading shape, pagination, keyed resources, nested models and modes, and tes
 
 ## Views in one page
 
-- `XView` (public) owns the view model as `@State`, its only `@State`, and puts it in the environment as its outermost modifier, starts every load (`.task`, and `.task(id:)` for keyed resources and typing pauses), applies what every state shares (a title that stays up while loading, a search field, toolbars and the sheets they open), and renders `XStateView`.
+- `XView` (public) owns the view model as `@State`, its only `@State`, and puts it in the environment as its outermost modifier, starts every load (`.task`, and `.task(id:)` for keyed resources and typing pauses), applies what every state shares (a title that stays up while loading, a search field, a bar of controls above every state, toolbars and the sheets they open), and renders `XStateView`.
 - `XStateView` checks in a fixed order: the content whenever there is data, the error only when there's nothing to show, progress while loading, then the empty state. While there's data it reads only the data, so a refresh doesn't redraw it. It passes values down, and shows CoreUI's `ContentUnavailableView` presets; an empty state appears only where the design has one. A mode is picked in its first branch and has a state view of its own.
 - `XContentView` lays out the values it's given in its scroll container, one view per resource or section.
 - Views below `XView` that read their own state or act, such as state views, paging footers and toolbars, read the view model with `@Environment(XViewModel.self)`, and a nested model through it; display views take values. A preview of a view below `XView` injects a view model, since reading a missing one crashes.
@@ -131,7 +131,7 @@ Shapes, modes, paging footer, passing data, structure rules: [references/views.m
 A feature declares everywhere its views can go in its own `XDestination`, carrying IDs. The places several features open, such as a movie's details, are cased once in CoreUI's `CoreDestination`. The app maps each case to a screen once, and registers each destination type at the root of every stack that can show it:
 
 ```swift
-public enum MovieDetailDestination: Hashable, Codable, Sendable {
+public enum MovieDestination: Hashable, Codable, Sendable {
     case cast(movieID: MovieSummary.ID)
     case person(id: Int)
 }
@@ -141,7 +141,7 @@ NavigationStack(path: $router[.discover]) {
         .navigationDestination(for: CoreDestination.self) { destination in
             DestinationView(destination: Destination(destination))
         }
-        .navigationDestination(for: MovieDetailDestination.self) { destination in
+        .navigationDestination(for: MovieDestination.self) { destination in
             DestinationView(destination: Destination(destination))
         }
 }
@@ -193,7 +193,7 @@ Writing concurrent code is out of scope here; use a Swift Concurrency skill ([Re
 - [ ] Searching the server within one screen's scope → a mode: a `SearchSession` nested in XViewModel and made with the screen's service, with its own state and content views, picked in XStateView's first branch
 ```
 
-**Link one feature to another** (MovieDetail opens Trailers)
+**Link one feature to another** (Movie opens Trailers)
 
 ```
 - [ ] If the place is a `CoreDestination`, push it and stop here. If another feature's XDestination already has it, move that case to `CoreDestination`, with its mapping, and push that

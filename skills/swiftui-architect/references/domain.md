@@ -19,7 +19,7 @@ A domain model describes what the app wants to show, not what the API sends. The
 // What TMDB sends, generated in Networking: every field optional, a date as text, an image as a path.
 // Components.Schemas.MovieDetails(id:title:releaseDate:voteAverage:posterPath:genres:)
 
-// What MovieDetail shows, in MovieDetailCore:
+// What the Movie feature shows, in MovieCore:
 public struct Movie: Identifiable, Equatable, Sendable {
     public let id: Int
     public let title: String
@@ -53,7 +53,7 @@ A model used by one feature lives in its XCore; one that several features share,
 Every feature has its own error enum, cased by what its screens show, or one per screen when their failures differ: Home's feed can't be "not found", but a genre opened by its id can (`HomeError` and `GenreDetailError`). Never centralize errors into a shared type.
 
 ```swift
-public enum MovieDetailError: Error, Equatable {
+public enum MovieError: Error, Equatable {
     case offline
     case notFound
     case unavailable
@@ -71,22 +71,22 @@ XCore declares one service protocol per screen, holding only what that screen lo
 ```swift
 /// What the movie screen shows: the movie and its cast.
 public protocol MovieDetailService: Sendable {
-    /// - Throws: `MovieDetailError`. Cancellation propagates as `CancellationError`.
+    /// - Throws: `MovieError`. Cancellation propagates as `CancellationError`.
     func movie(id: MovieSummary.ID) async throws -> Movie
 
-    /// - Throws: `MovieDetailError`. Cancellation propagates as `CancellationError`.
+    /// - Throws: `MovieError`. Cancellation propagates as `CancellationError`.
     func cast(movieID: MovieSummary.ID) async throws -> [CastMember]
 }
 
 /// What the cast screen shows.
 public protocol MovieCastService: Sendable {
-    /// - Throws: `MovieDetailError`. Cancellation propagates as `CancellationError`.
+    /// - Throws: `MovieError`. Cancellation propagates as `CancellationError`.
     func cast(movieID: MovieSummary.ID) async throws -> [CastMember]
 }
 ```
 
 - Methods return domain values ready to show. A paged list returns `Page<Item>` from Core (`items`, `nextPage`); a screen that pages one thing's list has two methods, [the thing and its list](view-models.md#a-thing-and-its-paged-list). Don't wrap a page in a feature type to carry more, such as a total: a count the screen shows is a read of its own (`resultCount(for:)`).
-- Methods use untyped `throws` and name the error in the doc comment. Cancellation must reach the view model as `CancellationError`, and `throws(MovieDetailError)` couldn't carry it without a cancellation case in every domain error.
+- Methods use untyped `throws` and name the error in the doc comment. Cancellation must reach the view model as `CancellationError`, and `throws(MovieError)` couldn't carry it without a cancellation case in every domain error.
 - Protocols refine `Sendable`, so `any MovieDetailService` can be injected through the environment and held by a main-actor view model.
 - A screen's service holds what the screen loads from one source. A concern with a source of its own, such as searches kept on the device in user defaults, is a separate service (`RecentSearchesService`, implemented by `UserDefaultsRecentSearchesService`) that the view model takes beside it. A [nested model](view-models.md#nested-models-and-modes) uses its view model's services and never gets one for being nested; a capability another feature owns is a [port](#cross-feature-services-consumer-owned-ports).
 
@@ -123,11 +123,11 @@ public struct TMDBMovieDetailService: MovieDetailService {
         do {
             let response = try await client.movieDetails(id: id)
             guard let movie = Movie(response) else {
-                throw MovieDetailError.unavailable
+                throw MovieError.unavailable
             }
             return movie
         } catch let error as TMDBError {
-            throw MovieDetailError(error)
+            throw MovieError(error)
         }
     }
 
@@ -136,7 +136,7 @@ public struct TMDBMovieDetailService: MovieDetailService {
 ```
 
 - Methods are `@concurrent`, so requests and mapping run off the main actor of the view model that awaits them. Protocol requirements and mocks stay unannotated. For isolation and `Sendable` beyond this, use a Swift Concurrency skill ([related skills](../SKILL.md#related-skills)).
-- Mapping lives in `Model+Source.swift` extensions (`Movie+TMDB.swift`, `MovieDetailError+TMDB.swift`). A model maps from its response in a failable initializer: a list item missing a required field is dropped, and a whole response that can't be read is `.unavailable`.
+- Mapping lives in `Model+Source.swift` extensions (`Movie+TMDB.swift`, `MovieError+TMDB.swift`). A model maps from its response in a failable initializer: a list item missing a required field is dropped, and a whole response that can't be read is `.unavailable`.
 - The feature's error maps from the client's transport error in an initializer, such as a 404 to `.notFound`. `CancellationError` passes through untouched, because the client already rethrows a cancelled request as one ([networking](networking.md#errors-and-cancellation)).
 - A step that two live services share, such as reading extra artwork for their results, is an internal extension on the client in XLive, not one service conforming to two protocols.
 
@@ -149,7 +149,7 @@ public struct MockMovieDetailService: MovieDetailService {
     /// What the mock answers: sample data, or a failure to preview an error state.
     public enum Scenario: Sendable {
         case sample
-        case failure(MovieDetailError)
+        case failure(MovieError)
     }
 
     private let scenario: Scenario
@@ -183,7 +183,7 @@ extension MovieDetailService where Self == MockMovieDetailService {
 When feature A needs a capability that feature B owns, A declares a port in its own XCore, named for its own need. The app implements the port with an adapter over B. Neither feature imports the other.
 
 ```swift
-// MovieDetailCore: named for MovieDetail's need, not after Watchlist
+// MovieCore: named for the Movie feature's need, not after Watchlist
 public protocol WatchlistMembershipService: Sendable {
     func isInWatchlist(movieID: MovieSummary.ID) async throws -> Bool
     func addToWatchlist(_ movie: MovieSummary) async throws

@@ -6,19 +6,19 @@
 
 ## Naming
 
-`X` is the feature name in UpperCamelCase (`MovieDetail`); `x` is lowerCamelCase (`movieDetail`). A feature's other screens use their own noun in the same slots (`MovieCastService`, `MovieCastViewModel`, `MovieCastView`, `MovieCastScreen`).
+`X` is the feature name in UpperCamelCase (`Movie`); `x` is lowerCamelCase (`movie`). A feature's screens use their own noun in the same slots (`MovieDetailService`, `MovieDetailViewModel`, `MovieDetailView`, `MovieDetailScreen`; `MovieCastService`, …), and what spans the feature uses the feature's name (`MovieDestination`, `MovieError`).
 
 Names follow the [Swift API Design Guidelines](https://www.swift.org/documentation/api-design-guidelines/): they read as English at the call site, name things by role rather than type, and avoid abbreviations. Things and side-effect-free reads are nouns, changes are imperative verbs, and Booleans read as assertions. The reasoning for services is in [domain](domain.md#naming-services-and-their-methods).
 
 | Kind | Name | Example |
 |---|---|---|
-| Feature package | the capability | `Discover`, `MovieDetail`, `Watchlist` |
-| Feature targets | `XCore`, `XUI`, `XLive`, `XTests` | `MovieDetailUI` |
+| Feature package | the capability, never one of its screens | `Discover`, `Movie`, `Watchlist`; not `MovieDetail` |
+| Feature targets | `XCore`, `XUI`, `XLive`, `XTests` | `MovieUI` |
 | Shared packages | `Core` (with `CoreUI`), `DesignSystem`, `Networking` | |
 | Domain model | a plain noun for the whole thing; never ends in `Detail` or a transport word | `Movie`, `Person`, `HomeSection` |
 | What a list shows of a model | the model's name + `Summary` | `MovieSummary`, `HomeSectionSummary` |
 | A model's id | `let id` of its real type, which `Identifiable` names `X.ID`; `typealias ID` only for a type that doesn't store its id | `Movie.ID`, `HomeSection.ID` |
-| Feature error | `XError`, cased by what screens show; one per screen when their failures differ | `MovieDetailError.notFound`, `GenreDetailError` |
+| Feature error | `XError`, cased by what screens show; one per screen when their failures differ | `MovieError.notFound`, `GenreDetailError` |
 | Service protocol (XCore) | `XService`, one per screen; another for each concern with a source of its own | `DiscoverService`, `MovieCastService`, `RecentSearchesService` |
 | Service implementation (XLive) | its source + the protocol's name | `TMDBDiscoverService`, `SwiftDataWatchlistService`, `UserDefaultsRecentSearchesService` |
 | Mock (XCore) | `Mock` + the protocol's name, exposed as `.mock`, and `.mock(_:)` for a scenario | `MockDiscoverService`, `.mock(.failure(.offline))` |
@@ -40,14 +40,14 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 | Paging footer | `X` + resource + `NextPageFooter` | `HomeSectionsNextPageFooter` |
 | Shared screen states | `ContentUnavailableView` presets in CoreUI, named for the situation | `.offline(retry:)`, `.unavailable(retry:)`, `.notFound`, `.noResults` |
 | Toolbar | `XToolbar` (`ToolbarContent`) in XUI | `WatchlistToolbar` |
-| Feature destinations | `XDestination`; cases name the place and carry IDs | `MovieDetailDestination.cast(movieID:)` |
-| Shared destinations | `CoreDestination` in CoreUI: the places several features open | `CoreDestination.movie(id:)` |
+| Feature destinations | `XDestination`; cases name the place and carry IDs | `MovieDestination.cast(movieID:)` |
+| Shared destinations | `CoreDestination` in CoreUI: the places several features open, each case named for the screen it opens | `CoreDestination.movieDetail(id:)` |
 | App navigation | `Router`, `TabDestination`, `Destination`, `DestinationView` | |
 | App screen | `XScreen` | `MovieDetailScreen` |
 | App `Destination` case | the app screen's name without `Screen` | `.movieDetail(id:)`, `.movieCast(movieID:)` |
 | App entry point | `<AppName>App` | `MoviesApp` |
 | Environment key | `xService` in `EnvironmentValues+XService.swift` | `\.discoverService` |
-| Mapping file | `Model+Source.swift` | `Movie+TMDB.swift`, `MovieDetailError+TMDB.swift` |
+| Mapping file | `Model+Source.swift` | `Movie+TMDB.swift`, `MovieError+TMDB.swift` |
 | Display mapping | a property returning `LocalizedStringResource` | `DiscoverCategory.title` |
 | Test fixture | `make…` | `makeMovie(id:title:)` |
 

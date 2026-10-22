@@ -18,26 +18,26 @@ Native SwiftUI navigation only: `NavigationStack(path:)`, `NavigationLink(value:
 ## The model
 
 ```
-Feature view ── NavigationLink(value: MovieDetailDestination.cast(movieID: 550))
+Feature view ── NavigationLink(value: MovieDestination.cast(movieID: 550))
                       │  appended to the tab's NavigationPath
                       ▼
-Tab-root screen ── .navigationDestination(for: MovieDetailDestination.self)
+Tab-root screen ── .navigationDestination(for: MovieDestination.self)
                       │  Destination(destination)  → .movieCast(movieID: 550)
                       ▼
 DestinationView ── MovieCastScreen(movieID: 550) ── reads services, builds the view model
 ```
 
-The same path works inside a feature (MovieDetail → its cast screen) and across features (MovieDetail → PersonDetail). The feature never knows which.
+The same path works inside a feature (a movie's details → its cast screen) and across features (Movie → Person). The feature never knows which.
 
 ## XDestination (feature)
 
 One enum per feature in `XUI/Navigation/XDestination.swift`: everywhere its views can take the user, its own screens and other features' screens alike, in the feature's own vocabulary. The places several features open come from [`CoreDestination`](#coredestination-coreui) instead.
 
 ```swift
-/// Where MovieDetail's views can take the user, besides the places several features open (`CoreDestination`).
+/// Where the Movie feature's views can take the user, besides the places several features open (`CoreDestination`).
 /// They push one with `NavigationLink(value:)`; the app builds each screen and registers this type once, at the
-/// root of every stack that can show MovieDetail.
-public enum MovieDetailDestination: Hashable, Codable, Sendable {
+/// root of every stack that can show the feature.
+public enum MovieDestination: Hashable, Codable, Sendable {
     /// Everyone credited in a movie.
     case cast(movieID: MovieSummary.ID)
     /// The person behind a cast credit.
@@ -58,26 +58,26 @@ The places several features open, such as a movie's details or signing in, are c
 /// destinations; the app maps each case to its screen once and registers this type at the root of every stack.
 public enum CoreDestination: Hashable, Codable, Sendable {
     /// A movie's details.
-    case movie(id: MovieSummary.ID)
+    case movieDetail(id: MovieSummary.ID)
     /// Signing in, which the watchlist needs.
     case signIn
 }
 ```
 
-- A place moves here once a second feature links to it, so every feature and every tab opens it the same way. A place only one feature links to stays in that feature's `XDestination`, even another feature's screen (`MovieDetailDestination.person(id:)`).
-- Cases name places, never features or screens (`.movie(id:)`, not `.movieDetail`); the app still decides which screen each one shows.
+- A place moves here once a second feature links to it, so every feature and every tab opens it the same way. A place only one feature links to stays in that feature's `XDestination`, even another feature's screen (`MovieDestination.person(id:)`).
+- Cases name the screen they open, its feature included (`.movieDetail(id:)`, not `.movie(id:)`). `CoreDestination` sits outside every feature, so each case says whose screen it opens, and the app maps it one-to-one onto its `Destination`. A feature's own `XDestination` names places in its own words (`.cast(movieID:)`), since the enum's name already says whose they are.
 - A CoreUI view that links, such as a banner whose posters open movies, pushes `CoreDestination` itself, with no protocol or closures for its links.
 - The same rules as any destination: identifiers only, `Codable`.
 
 ## Pushing from feature views
 
 ```swift
-NavigationLink(value: CoreDestination.movie(id: movie.id)) {
+NavigationLink(value: CoreDestination.movieDetail(id: movie.id)) {
     MovieSummaryCard(movie: movie)
 }
 .buttonStyle(.content)
 
-NavigationLink(.movieDetailSectionCastSeeAll, value: MovieDetailDestination.cast(movieID: movieID))
+NavigationLink(.movieDetailSectionCastSeeAll, value: MovieDestination.cast(movieID: movieID))
 ```
 
 - In a `List`, hide the disclosure chevron when the design calls for it: `.navigationLinkIndicatorVisibility(.hidden)`.
@@ -128,12 +128,12 @@ extension Destination {
     /// The places several features open lead to the same screen from every tab.
     init(_ destination: CoreDestination) {
         switch destination {
-        case .movie(let id): self = .movieDetail(id: id)
+        case .movieDetail(let id): self = .movieDetail(id: id)
         case .signIn: self = .signIn
         }
     }
 
-    init(_ destination: MovieDetailDestination) {
+    init(_ destination: MovieDestination) {
         switch destination {
         case .cast(let movieID): self = .movieCast(movieID: movieID)
         case .person(let id): self = .personDetail(id: id)
@@ -176,7 +176,7 @@ When the screen arrives, only `DestinationView` changes; the features that link 
 Every tab-root screen registers, at its stack root, `CoreDestination` and each `XDestination` type that can appear in its stack, all in the same form:
 
 ```swift
-.navigationDestination(for: MovieDetailDestination.self) { destination in
+.navigationDestination(for: MovieDestination.self) { destination in
     DestinationView(destination: Destination(destination))
 }
 ```
@@ -191,7 +191,7 @@ Only the app navigates in code, by changing Router state. Deep links and notific
 
 ```swift
 router.selectedTab = .discover
-router[.discover].append(CoreDestination.movie(id: 550))
+router[.discover].append(CoreDestination.movieDetail(id: 550))
 ```
 
 Pop to root by assigning an empty `NavigationPath()`. Because every destination is `Codable`, `NavigationPath.CodableRepresentation` can persist and restore stacks; make `TabDestination` `Codable` too to restore the selected tab.
@@ -250,15 +250,15 @@ Feature previews wrap the view in a `NavigationStack`. To click through a featur
 #Preview {
     NavigationStack {
         MovieDetailView(viewModel: …)   // built on .mock services
-            .navigationDestination(for: MovieDetailDestination.self) { destination in
-                MovieDetailPreviewScreen(destination: destination)
+            .navigationDestination(for: MovieDestination.self) { destination in
+                MoviePreviewScreen(destination: destination)
             }
     }
 }
 
-/// Builds MovieDetail's own screens on mock services for previews. The app builds the real ones.
-private struct MovieDetailPreviewScreen: View {
-    let destination: MovieDetailDestination
+/// Builds the Movie feature's own screens on mock services for previews. The app builds the real ones.
+private struct MoviePreviewScreen: View {
+    let destination: MovieDestination
 
     var body: some View {
         switch destination {

@@ -131,10 +131,10 @@ struct DiscoverScreen: View {
                 .navigationDestination(for: CoreDestination.self) { destination in
                     DestinationView(destination: Destination(destination))
                 }
-                .navigationDestination(for: MovieDetailDestination.self) { destination in
+                .navigationDestination(for: MovieDestination.self) { destination in
                     DestinationView(destination: Destination(destination))
                 }
-                .navigationDestination(for: PersonDetailDestination.self) { destination in
+                .navigationDestination(for: PersonDestination.self) { destination in
                     DestinationView(destination: Destination(destination))
                 }
         }

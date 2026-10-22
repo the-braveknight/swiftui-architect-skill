@@ -14,7 +14,7 @@ The app is built from local Swift packages: one per feature, plus a few shared p
 
 ## Feature packages
 
-A feature is a vertical slice around one capability, and it owns that capability's data contract. It may export several screens (MovieDetail exports the movie screen and the cast screen); screens never define the boundary. Name the package after the capability: `Discover`, `Search`, `Watchlist`, `MovieDetail`, `PersonDetail`.
+A feature is a vertical slice around one capability, and it owns that capability's data contract. It may export several screens (Movie exports a movie's details screen and its cast screen); screens never define the boundary. Name the package after the capability, never after one of its screens: `Discover`, `Search`, `Watchlist`, `Movie`, `Person`, not `MovieDetail`. The screens carry the screen's name (`MovieDetailView`, `MovieCastView`).
 
 | Target | Contains | Imports |
 |---|---|---|
@@ -31,26 +31,26 @@ A feature is a vertical slice around one capability, and it owns that capability
 ## Folder layout
 
 ```
-Packages/MovieDetail/
+Packages/Movie/
 ├── Package.swift
 ├── Sources/
-│   ├── MovieDetailCore/
-│   │   ├── Models/            Movie.swift, CastMember.swift, MovieDetailError.swift
+│   ├── MovieCore/
+│   │   ├── Models/            Movie.swift, CastMember.swift, MovieError.swift
 │   │   └── Services/          MovieDetailService.swift, MockMovieDetailService.swift,
 │   │                          MovieCastService.swift, MockMovieCastService.swift,
 │   │                          WatchlistMembershipService.swift, MockWatchlistMembershipService.swift
-│   ├── MovieDetailLive/
-│   │   ├── Mapping/           Movie+TMDB.swift, CastMember+TMDB.swift, MovieDetailError+TMDB.swift
+│   ├── MovieLive/
+│   │   ├── Mapping/           Movie+TMDB.swift, CastMember+TMDB.swift, MovieError+TMDB.swift
 │   │   └── Services/          TMDBMovieDetailService.swift, TMDBMovieCastService.swift
-│   └── MovieDetailUI/
+│   └── MovieUI/
 │       ├── Models/            display mappings
-│       ├── Navigation/        MovieDetailDestination.swift
+│       ├── Navigation/        MovieDestination.swift
 │       ├── Resources/         Localizable.xcstrings
 │       ├── View Models/       MovieDetailViewModel.swift, MovieDetailViewModel+WatchlistMembership.swift,
 │       │                      MovieCastViewModel.swift
 │       └── Views/             MovieDetailView.swift, MovieDetailStateView.swift, MovieDetailContentView.swift, …
-└── Tests/MovieDetailTests/
-    ├── Live/                  MovieDetailMappingTests.swift
+└── Tests/MovieTests/
+    ├── Live/                  MovieMappingTests.swift
     ├── ViewModels/            MovieDetailViewModelTests.swift, MovieCastViewModelTests.swift
     └── Fixtures.swift
 ```
