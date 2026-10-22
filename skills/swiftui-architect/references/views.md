@@ -292,8 +292,10 @@ struct GenreDetailSearchStateView: View {
 | Display views (sections, rows, cards) | The values they show, never the view model | `title: String`, `movie: MovieSummary`, `sections: [HomeSectionSummary]` |
 | A view that needs a binding | Derives one | `@Bindable var viewModel = viewModel` in `body` |
 | What a screen presents | Its view model | A plain `var` the view binds (`isFilterPresented`) |
-| Form input inside a sheet, focus | The view that edits | `@State private var`; seeded from a value the sheet takes, since `init` can't read the environment (`SearchFilterView(filter: viewModel.query.filter)`) |
+| What a sheet edits before it's applied | Its view model | A plain `var` (`filterDraft`) that the action opening the sheet fills from the screen's state (`openFilter()`); the sheet binds it, so `SearchFilterView()` takes nothing ([presentations](navigation.md#sheets-covers-and-alerts)) |
+| Focus and visual mechanics: a measured size, whether a footer is on screen, gesture progress | The view | `@FocusState` or `@State private var`; never data, a presentation or an edit a test would check |
 
+- `XView` holds no `@State` beside its view model, and no view below it holds screen state. Anything a test, a deep link or another view could need lives in the view model, directly or in a nested model, so a screen's whole state is one type a test can drive.
 - A view reads the view model from the environment only when it reads state of its own, such as a resource's loading flag or error, or calls the view model, like a paging footer. A view that only passes data along takes the values instead.
 - Display views take values even though the view model is in reach, so a row never depends on one screen and can move to CoreUI when a second feature needs it.
 - `XView` injects once per screen, as its outermost modifier, so its toolbar items and the sheets it presents read the view model too. Nested models aren't injected separately. A pushed screen never sees the previous screen's view model, since destinations are registered at the stack root and each `XView` injects its own.
@@ -345,7 +347,7 @@ A preview of a view below `XView`, such as a sheet, injects the view model `XVie
 #Preview {
     Color.clear
         .sheet(isPresented: .constant(true)) {
-            SearchFilterView(filter: SearchFilter())
+            SearchFilterView()
         }
         .environment(SearchViewModel(service: .mock))
 }

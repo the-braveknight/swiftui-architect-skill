@@ -50,7 +50,7 @@ public final class DiscoverViewModel {
 ```
 
 - `@MainActor @Observable public final class`, one per screen (a view pushed onto a stack, or a tab's root) and never for a part of one ([nested models](#nested-models-and-modes)), with a `public init` taking IDs and services. The app's `XScreen` builds one on every `body` pass and the view keeps only the first, so `init` does assignments only: no tasks, subscriptions or I/O.
-- State is `private(set)`; actions are internal methods the views call (`load()`, `refresh()`, `loadNextSectionsPage()`, `toggle(_:)`), named as imperative verbs because they change state. The exceptions are input a view binds, such as a search field's text, and what the screen presents, such as `isFilterPresented`: plain `var`s ([keyed resources](#keyed-resources), [presentations](navigation.md#sheets-covers-and-alerts)).
+- State is `private(set)`; actions are internal methods the views call (`load()`, `refresh()`, `loadNextSectionsPage()`, `toggle(_:)`), named as imperative verbs because they change state. The exceptions are input a view binds, such as a search field's text, what the screen presents, such as `isFilterPresented`, and what a sheet edits before it's applied, such as `filterDraft`: plain `var`s ([keyed resources](#keyed-resources), [presentations](navigation.md#sheets-covers-and-alerts)).
 - No data processing of its own: every value it stores comes from the service as it is.
 - No pushing or routing, no views, no display strings, no other feature. State holds domain values; display mappings are XUI extensions.
 - `load()` is safe to call again (a retry, the view reappearing), with no `loadIfNeeded()` variants or "already loaded" latches. A screen with a paged list guards it on that list and adds `refresh()` ([coming back to a paged list](#coming-back-to-a-paged-list)).
@@ -384,7 +384,7 @@ Name it for the one thing a user would recognize on the screen, as a plain noun:
 
 - Never `…ViewModel`, which belongs to screens; `…Manager`, `…Controller`, `…Handler`, `…Coordinator` or `…Helper`, which say it does work rather than what it is; `…State`, which reads like an enum; `…Store`, which suggests persistence or app-wide sharing; or a view's name, such as `WatchlistButtonModel`.
 - Check it reads in "the screen has a ___": the genre's screen has a search session, the movie has a watchlist membership.
-- Nest only a part with its own input, loading or errors. A single flag or value, such as `isFilterPresented` or a selected tab, stays a property on the view model, and so does a key with what it loads, such as a selected season and its episodes ([keyed resources](#keyed-resources)).
+- Nest only a part with its own input, loading or errors. A single flag or value, such as `isFilterPresented`, `filterDraft` or a selected tab, stays a property on the view model, and so does a key with what it loads, such as a selected season and its episodes ([keyed resources](#keyed-resources)).
 
 ### Modes
 

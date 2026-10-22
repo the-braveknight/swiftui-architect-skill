@@ -62,7 +62,7 @@ Targets, folders, Package.swift, Core, CoreUI and DesignSystem: [references/modu
 | Building the client and services, injecting them | App: `XApp.init`, through the environment |
 | Building a screen: reading services, creating view models | App: one `XScreen` per screen |
 | Navigation state, and which screen each destination shows | App: `Router`, `Destination`, `DestinationView` |
-| Sheets, covers and alerts | The presenting screen's view model, as a plain `var` its view binds |
+| Sheets, covers and alerts, and what a sheet edits before it's applied | The presenting screen's view model, as plain `var`s its views bind |
 
 ## Principles
 
@@ -96,7 +96,7 @@ Models, errors, services, naming, ports: [references/domain.md](references/domai
 
 ## View models in one page
 
-- `@MainActor @Observable public final class XViewModel`, one per screen: a view pushed onto a stack, or a tab's root. Built by the app with IDs and services; its `init` does assignments only. State is `private(set)`, except input a view binds and what the screen presents (`text`, `isFilterPresented`); actions are internal verbs (`load()`, `loadNextSectionsPage()`).
+- `@MainActor @Observable public final class XViewModel`, one per screen: a view pushed onto a stack, or a tab's root. Built by the app with IDs and services; its `init` does assignments only. State is `private(set)`, except input a view binds, what the screen presents and what a sheet edits (`text`, `isFilterPresented`, `filterDraft`); actions are internal verbs (`load()`, `loadNextSectionsPage()`).
 - Each resource has its data (`[]` for a collection, `nil` for a single value, until it loads), `isLoading…` (`true` from the start when it loads on appear) and `…Error`; a paged one adds `next…Page`, `isLoadingNext…Page` and `next…PageError`. Each error property has its own type.
 - A resource keyed by something the user changes (search words, a selected season) starts over when the key changes: its data empties and, when a load follows, it shows as loading; it loads from `.task(id:)` on the view, and a load for an old key is dropped.
 - `load()` runs independent loads side by side and dependent ones after what they need. A screen gets computed `isLoading` and `error`, never stored, only when a rule spans several resources.
@@ -109,10 +109,11 @@ The loading shape, pagination, keyed resources, nested models and modes, and tes
 
 ## Views in one page
 
-- `XView` (public) owns the view model as `@State` and puts it in the environment as its outermost modifier, starts every load (`.task`, and `.task(id:)` for keyed resources and typing pauses), applies what every state shares (a title that stays up while loading, a search field, toolbars and the sheets they open), and renders `XStateView`.
+- `XView` (public) owns the view model as `@State`, its only `@State`, and puts it in the environment as its outermost modifier, starts every load (`.task`, and `.task(id:)` for keyed resources and typing pauses), applies what every state shares (a title that stays up while loading, a search field, toolbars and the sheets they open), and renders `XStateView`.
 - `XStateView` checks in a fixed order: the content whenever there is data, the error only when there's nothing to show, progress while loading, then the empty state. While there's data it reads only the data, so a refresh doesn't redraw it. It passes values down, and shows CoreUI's `ContentUnavailableView` presets; an empty state appears only where the design has one. A mode is picked in its first branch and has a state view of its own.
 - `XContentView` lays out the values it's given in its scroll container, one view per resource or section.
 - Views below `XView` that read their own state or act, such as state views, paging footers and toolbars, read the view model with `@Environment(XViewModel.self)`, and a nested model through it; display views take values. A preview of a view below `XView` injects a view model, since reading a missing one crashes.
+- Screen state lives in the view model, directly or in a nested model: what's presented, what a sheet edits before it's applied, selections. A view's own `@State` holds only visual mechanics no test or other view needs, such as a measured height or whether a paging footer is on screen.
 - Each is its own file. No closures passed down for view-model actions; toolbars are `ToolbarContent` structs.
 
 Shapes, modes, paging footer, passing data, structure rules: [references/views.md](references/views.md).

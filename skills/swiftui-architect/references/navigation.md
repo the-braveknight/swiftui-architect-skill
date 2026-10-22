@@ -203,7 +203,7 @@ Pop to root by assigning an empty `NavigationPath()`. Because every destination 
 
 ## Sheets, covers and alerts
 
-What a screen presents is state on its view model, a plain `var` its views bind, and never goes through the app. Any view can open it, an action can close it (applying a filter closes the filter), and tests can check it. What only the presented view edits, such as a filter before it's applied, is that view's `@State`. `XView` presents what any state can open, such as a filter from its toolbar; a sheet only the content opens is presented there. A presented view that needs a title or a close button owns an unmanaged `NavigationStack`:
+What a screen presents is state on its view model, a plain `var` its views bind, and never goes through the app. Any view can open it, an action can close it (applying a filter closes the filter), and tests can check it. What a presented view edits before it's applied, such as a filter, is the view model's too: a draft that the action opening the sheet fills from the screen's state, so each presentation starts from it and tests can check the edit. Open such a sheet only through that action. `XView` presents what any state can open, such as a filter from its toolbar; a sheet only the content opens is presented there. A presented view that needs a title or a close button owns an unmanaged `NavigationStack`:
 
 ```swift
 // PersonDetailViewModel
@@ -223,6 +223,24 @@ var body: some View {
 ```
 
 `PersonBiographySheet` takes those plain values, wraps its content in a `NavigationStack` for its title, and closes with a `ToolbarContent` struct holding `Button(role: .close) { dismiss() }`.
+
+Search's filter, for example:
+
+```swift
+// SearchViewModel
+/// Whether the filter is open.
+var isFilterPresented = false
+/// The filter being edited while it's open, starting from the search's own each time it opens.
+var filterDraft = SearchFilter()
+
+/// Opens the filter on the search's own.
+func openFilter() {
+    filterDraft = query.filter
+    isFilterPresented = true
+}
+```
+
+The toolbar's button calls `openFilter()`, `SearchFilterView` binds `$viewModel.filterDraft`, and its apply button calls `viewModel.apply(viewModel.filterDraft)`, which closes the filter.
 
 ## Previews
 
