@@ -32,7 +32,7 @@ App target              composition root: services, screens, routing
 Each module may import only what its arrow points at. Nothing points back up, and features never point at each other.
 
 ```
-App ──────► XCore, XUI, XLive, Shared, DesignSystem, Networking
+App ──────► XCore, XUI, XLive, Shared, SharedUI, DesignSystem, Networking
 XUI ──────► XCore, Shared, SharedUI, DesignSystem
 XLive ────► XCore, Shared, Networking
 XCore ────► Shared
@@ -58,7 +58,7 @@ Hard rules:
 | View models, views, strings, where its views can go (`XDestination`) | Feature: `XUI` |
 | The places several features open (`SharedDestination`) | `SharedUI` |
 | The generated API, the client over it, error classification | `Networking` |
-| Building the client and services, injecting them | App: `XApp.init`, through the environment |
+| Building the client and services, injecting them | App: `<AppName>App.init`, through the environment |
 | Building a screen: reading services, creating view models | App: one `XScreen` per screen |
 | Navigation state, and which screen each destination shows | App: `Router`, `Destination`, `DestinationView` |
 | Sheets, covers and alerts, and what a sheet edits before it's applied | The presenting screen's view model, as plain `var`s its views bind |
@@ -78,17 +78,17 @@ Hard rules:
 
 - **Models and errors.** Domain models are `Equatable`, `Sendable` values shaped for what screens show (`Movie`, and `MovieSummary` for a list). Each feature has its own error enum, cased by what its screens show (`offline`, `notFound`, `unavailable`); an empty answer is never an error.
 - **Services.** XCore declares a service protocol per screen that returns view-ready domain values (`Page<Item>` for a paged list) and throws the feature's error; a concern with a source of its own, such as searches kept on the device, is a service of its own. XLive implements each over the networking client and maps responses and errors into the domain. XCore ships a mock of each (`.mock`).
-- **View models.** `@MainActor @Observable public final class XViewModel`, one per screen (a pushed view or a tab's root), built by the app with IDs and services. Each resource has its data, `isLoading…` and `…Error`; a paged one adds `next…Page`, `isLoadingNext…Page` and `next…PageError`; a resource keeps only the state its views read. A part of the screen with its own input, loading or errors is a nested `@Observable` model inside the view model, never a `…ViewModel`.
-- **Views.** `XView` owns the view model as its only `@State`, puts it in the environment, starts every load and applies what every state shares. `XStateView` shows the content whenever there is data, otherwise the error, progress or the empty state. `XContentView` lays out the values it's given. Views that read state or act read the view model from the environment; display views take values.
+- **View models.** `@MainActor @Observable public final class XViewModel`, one per screen (a pushed view or a tab's root), built by the app with IDs and services. Each resource has its data, `isLoading…` and `…Error`; a paged one adds `next…Page`, `isLoadingNext…Page` and `next…PageError`; a resource keeps only the state its views read. A part only some views read, with its own input, loading or errors, such as a mode or a watchlist button, is a nested `@Observable` model inside the view model, never a `…ViewModel`; what the content shows, a selected season and its episodes included, stays on the view model.
+- **Views.** `XView` owns the view model as its only `@State`, puts it in the environment, starts the screen's loads and applies what every state shares. `XStateView` shows the content whenever there is data, otherwise the error, progress or the empty state. `XContentView` lays out the values it's given. Views that read state or act read the view model from the environment; display views take values.
 - **Screen state** lives in the view model, what's presented and what a sheet edits included. A view's own `@State` holds only mechanics no test needs, such as a carousel's page.
 - **Navigation.** A feature lists where its views go in its `XDestination`, carrying IDs; the places several features open are `SharedDestination` cases in SharedUI. The app maps each case to a screen in `Destination`, and registers each type at the root of every stack.
-- **Composition.** `XApp.init` builds the client and every service and injects them through environment keys; each `XScreen` reads them and builds its view model. No DI container.
+- **Composition.** `<AppName>App.init` builds the client and every service and injects them through environment keys; each `XScreen` reads them and builds its view model. No DI container.
 - **Concurrency.** Packages build in Swift 6 mode with no default actor isolation. View models are `@MainActor`, services `Sendable`, live service methods `@concurrent`, and stateful services and mocks actors.
 
 ## Gotchas
 
 - Register `navigationDestination` only at stack roots. Inside a feature screen it registers again when that screen appears twice in one stack, and SwiftUI reports a duplicate.
-- Start loads from `.task` on `XView`, never on the progress view, which goes away when the first data arrives and cancels the loads still running.
+- Start the screen's loads from `.task` on `XView`, never on its progress view, which goes away when the first data arrives and cancels the loads still running.
 - A cancelled request must reach the view model as `CancellationError`, not as an error to show. URLSession reports it as `URLError(.cancelled)`, so the client converts it; otherwise a screen left mid-load comes back showing an error.
 - Coming back to a screen runs its `.task` again. A screen with a paged list guards `load()` on that list (`guard sections.isEmpty else { return }`) and pulls to refresh through `refresh()`, or the pages already loaded are lost.
 - A load for a key that's no longer current, such as a season or search words, drops its result and leaves `isLoading…` to the current key's load: a response can arrive before its cancellation.
@@ -111,7 +111,7 @@ Copy the checklist for the task into your response and check items off as you go
 - [ ] XUI: XViewModel, XView, XStateView, XContentView, XDestination, Localizable.xcstrings; places another feature already links to, such as a movie's details, are pushed as `SharedDestination`, not added to XDestination
 - [ ] XTests: view model tests with actor stubs, mapping tests
 - [ ] App: add the local package to the Xcode project and link XCore, XUI and XLive to the app target
-- [ ] App: for each service protocol, add the environment key, build the service in XApp.init, inject it on the Scene
+- [ ] App: for each service protocol, add the environment key, build the service in <AppName>App.init, inject it on the Scene
 - [ ] App: add XScreen(s), Destination cases + Destination.init(_: XDestination), DestinationView cases
 - [ ] App: register XDestination at the root of every stack that can show the feature
 - [ ] Build the feature's scheme and the app, and run the feature's tests; fix and repeat until both pass
@@ -122,7 +122,7 @@ Copy the checklist for the task into your response and check items off as you go
 ```
 - [ ] XCore: the screen's service protocol and mock; XLive: its live service
 - [ ] XUI: view model + views; add a case to XDestination; push it with NavigationLink(value:)
-- [ ] App: environment key, build the service in XApp.init and inject it
+- [ ] App: environment key, build the service in <AppName>App.init and inject it
 - [ ] App: XScreen that reads the service and builds the view model
 - [ ] App: Destination case, Destination.init mapping, DestinationView case
 - [ ] If the screen is reachable from a stack that didn't show this feature before, register XDestination there
@@ -166,7 +166,7 @@ Read the reference for the part you're working on:
 | [references/networking.md](references/networking.md) | Adding an endpoint, or changing the API client or how it reports failures |
 | [references/view-models.md](references/view-models.md) | Writing a view model: loading state, several resources, pagination, keyed resources, nested models and modes, tests |
 | [references/views.md](references/views.md) | Writing a screen's views: the `XView` family, error and empty states, paging footers, modes, passing data, previews |
-| [references/composition.md](references/composition.md) | Wiring the app target: `XApp`, environment keys, `ContentView`, `XScreen` |
+| [references/composition.md](references/composition.md) | Wiring the app target: `<AppName>App`, environment keys, `ContentView`, `XScreen` |
 | [references/navigation.md](references/navigation.md) | Adding a destination, linking features, navigating in code, or presenting a sheet |
 | [references/conventions.md](references/conventions.md) | Naming a type, file or folder |
 

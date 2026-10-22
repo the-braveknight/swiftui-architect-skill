@@ -4,7 +4,7 @@ The app target is the composition root. It is the only module that imports every
 
 ## Contents
 - App target layout
-- XApp.swift
+- `<AppName>App.swift`
 - Environment keys
 - ContentView
 - XScreen: tab-root screens and pushed screens
@@ -23,7 +23,7 @@ MoviesApp/
 
 The app target may use MainActor default isolation, since it only composes SwiftUI. Packages never do ([modules](modules.md#packageswift-template)).
 
-## XApp.swift
+## `<AppName>App.swift`
 
 Build the client and every service and adapter in `init()`. Store them as `let` properties typed as the feature protocols, and inject them on the `Scene` so every window and every screen sees the same instances. Use no DI container and no singletons.
 

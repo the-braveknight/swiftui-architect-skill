@@ -57,7 +57,7 @@ public final class DiscoverViewModel {
 
 ## One resource: data, activity and error
 
-This is a proposed shape for keeping loading, errors and paging simple, not a rule. Adapt it when a screen needs more, such as a refresh indicator or a banner for a failed refresh.
+This is the default shape for loading, errors and paging. Adapt it only when a screen needs more, such as a refresh indicator or a banner for a failed refresh.
 
 A screen can have data while it refreshes, data and a failed refresh, or an error while it retries. A single `idle / loading / loaded / failed` enum holds only one of these at a time, so each view model ends up rebuilding the others. Three plain properties per resource hold them all, with no shared state type:
 
@@ -110,8 +110,6 @@ public final class HomeViewModel {
 
     /// Banners
     private(set) var banners: [MovieSummary] = []
-    private(set) var isLoadingBanners: Bool = true
-    private(set) var bannersError: HomeError?
 
     /// Sections
     private(set) var sections: [HomeSectionSummary] = []
@@ -148,7 +146,8 @@ public final class HomeViewModel {
         }
     }
 
-    // loadBanners() and loadSections() follow the one-resource shape; loadSections() asks for page 1.
+    // loadSections() follows the one-resource shape and asks for page 1. loadBanners() only assigns, leaving the
+    // banners out when they fail.
 
     func loadNextSectionsPage() async { … }   // below
 }
@@ -233,8 +232,6 @@ public final class GenreDetailViewModel {
 
     /// Genre
     private(set) var genre: Genre?
-    private(set) var isLoadingGenre: Bool = true
-    private(set) var genreError: GenreDetailError?
 
     /// Movies
     private(set) var movies: [MovieSummary] = []
@@ -266,7 +263,8 @@ public final class GenreDetailViewModel {
         }
     }
 
-    // loadGenre(), loadMovies() and loadNextMoviesPage() follow the shapes above.
+    // loadMovies() and loadNextMoviesPage() follow the shapes above. loadGenre() only assigns, leaving the title
+    // empty when it fails.
 }
 ```
 
@@ -307,7 +305,7 @@ func loadEpisodes() async {
     }
 
     do {
-        let episodes = try await service.episodes(of: season)
+        let episodes = try await service.episodes(seasonID: season.id)
         // Another season may have been selected while these loaded.
         guard season == selectedSeason else {
             return
@@ -386,7 +384,7 @@ Name it for the one thing a user would recognize on the screen, as a plain noun:
 
 - Never `…ViewModel`, which belongs to screens; `…Manager`, `…Controller`, `…Handler`, `…Coordinator` or `…Helper`, which say it does work rather than what it is; `…State`, which reads like an enum; `…Store`, which suggests persistence or app-wide sharing; or a view's name, such as `WatchlistButtonModel`.
 - Check it reads in "the screen has a ___": the genre's screen has a search session, the movie has a watchlist membership.
-- Nest only a part with its own input, loading or errors. A single flag or value, such as `isFilterPresented`, `filterDraft` or a selected tab, stays a property on the view model, and so does a key with what it loads, such as a selected season and its episodes ([keyed resources](#keyed-resources)).
+- Nest a part that only some of the screen's views read and that has its own input, loading or errors: a mode, or a control such as a watchlist button. What the screen's content shows stays on the view model, a key and what it loads included, such as a selected season and its episodes ([keyed resources](#keyed-resources)), and so does a single flag or value, such as `isFilterPresented`, `filterDraft` or a selected tab.
 
 ### Modes
 

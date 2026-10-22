@@ -106,7 +106,7 @@ final class Router {
 }
 ```
 
-Inject it once from `XApp` with `.environment(router)`. The selected tab belongs in the Router, next to the stacks. Each tab-root screen binds its stack to its own entry (`NavigationStack(path: $router[.discover])`), and a tab that has never pushed gets an empty path.
+Inject it once from `<AppName>App` with `.environment(router)`. The selected tab belongs in the Router, next to the stacks. Each tab-root screen binds its stack to its own entry (`NavigationStack(path: $router[.discover])`), and a tab that has never pushed gets an empty path.
 
 `TabDestination` is the tabs' selection value, named like every other place the app can go (`XDestination`, `Destination`), which leaves SwiftUI's `Tab` free for `ContentView`. It stays a plain list of cases: each tab's title and icon are written in `ContentView`, with no extension mapping cases to them.
 
@@ -243,13 +243,13 @@ Feature previews wrap the view in a `NavigationStack`. To click through a featur
     NavigationStack {
         MovieDetailView(viewModel: …)   // built on .mock services
             .navigationDestination(for: MovieDestination.self) { destination in
-                MoviePreviewScreen(destination: destination)
+                MoviePreviewDestinationView(destination: destination)
             }
     }
 }
 
 /// Builds the Movie feature's own screens on mock services for previews. The app builds the real ones.
-private struct MoviePreviewScreen: View {
+private struct MoviePreviewDestinationView: View {
     let destination: MovieDestination
 
     var body: some View {

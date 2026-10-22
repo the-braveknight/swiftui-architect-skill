@@ -2,7 +2,7 @@
 
 An agent skill that designs and maintains modular SwiftUI apps: vertical feature slices as Swift packages, a small shared horizontal layer, and an app target that owns composition and native SwiftUI navigation.
 
-This README is for people. Agents read [SKILL.md](skills/swiftui-architect/SKILL.md) and the files in [references/](skills/swiftui-architect/references/).
+This README is for people. Agents read [SKILL.md](skills/swiftui-architect/SKILL.md) and the files in [references/](skills/swiftui-architect/references/). Agents changing the skill follow [CLAUDE.md](CLAUDE.md).
 
 ## Why modular
 
@@ -38,7 +38,7 @@ The trade-offs are real: more `Package.swift` files to maintain, some deliberate
 - Service design and naming, following the Swift API Design Guidelines: a protocol per screen, reads as noun phrases, mocks for previews and tests, consumer-owned ports between features.
 - View models: per-resource loading state, several resources, pagination, resources keyed by what the user picks or types, nested models for parts of a screen such as a search within it, feature error types, cancellation.
 - The views a screen is made of: `XView`, `XStateView`, `XContentView`, sections and paging footers, and state views that read the data first, so a refresh doesn't redraw them.
-- App composition: the `XApp` initializer as the dependency-injection root, environment keys, `XScreen` composition views.
+- App composition: the `<AppName>App` initializer as the dependency-injection root, environment keys, `XScreen` composition views.
 - Routing: feature `XDestination` values, SharedUI's `SharedDestination` for the places several features open, an app-owned `Router`, one mapping file, registration at stack roots.
 - Localization, assets and fonts per module: String Catalogs with generated symbols, asset catalogs with generated symbols, fonts that DesignSystem registers.
 - Naming and folder conventions.
@@ -60,9 +60,10 @@ swiftui-architect-skill/
 │       ├── networking.md        swift-openapi-generator, the API client, errors and cancellation
 │       ├── view-models.md       loading state, several resources, pagination, keyed resources, nested models, tests
 │       ├── views.md             XView, XStateView, XContentView, paging footer, passing data
-│       ├── composition.md       XApp.swift, dependency injection, environment keys, XScreen
+│       ├── composition.md       <AppName>App.swift, dependency injection, environment keys, XScreen
 │       ├── navigation.md        XDestination, Router, Destination, registration, push or present
 │       └── conventions.md       naming and folders
+├── CLAUDE.md                    instructions for agents changing the skill
 ├── README.md
 └── LICENSE
 ```
