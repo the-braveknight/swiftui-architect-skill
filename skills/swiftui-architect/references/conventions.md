@@ -14,7 +14,7 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 |---|---|---|
 | Feature package | the capability, never one of its screens | `Discover`, `Movie`, `Watchlist`; not `MovieDetail` |
 | Feature targets | `XCore`, `XUI`, `XLive`, `XTests` | `MovieUI` |
-| Shared packages | `Core` (with `CoreUI`), `DesignSystem`, `Networking` | |
+| Shared packages | `Shared` (with `SharedUI`), `DesignSystem`, `Networking` | |
 | Domain model | a plain noun for the whole thing; never ends in `Detail` or a transport word | `Movie`, `Person`, `HomeSection` |
 | What a list shows of a model | the model's name + `Summary` | `MovieSummary`, `HomeSectionSummary` |
 | A model's id | `let id` of its real type, which `Identifiable` names `X.ID`; `typealias ID` only for a type that doesn't store its id | `Movie.ID`, `HomeSection.ID` |
@@ -26,7 +26,7 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 | App adapter for a port | the port's role + `Adapter` | `WatchlistMembershipAdapter` |
 | Service read | a noun phrase for what it returns | `movie(id:)`, `cast(movieID:)`, `sections(page:)` |
 | Service change | an imperative verb phrase | `addToWatchlist(_:)`, `removeFromWatchlist(movieID:)` |
-| A page from a service | `Page<Item>` (Core) with `items` and `nextPage` | `Page<HomeSectionSummary>` |
+| A page from a service | `Page<Item>` (Shared) with `items` and `nextPage` | `Page<HomeSectionSummary>` |
 | API client and its errors | the API's name + `Client` / `Error`; client methods keep the spec's operation names | `TMDBClient.movieDetails(id:)`, `TMDBError` |
 | View model | `XViewModel`, one per screen: pushed onto a stack, or a tab's root | `MovieCastViewModel` |
 | View model actions | imperative verbs; `refresh()` beside `load()` on a screen with a paged list | `load()`, `refresh()`, `loadNextSectionsPage()`, `toggle(_:)` |
@@ -38,10 +38,10 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 | Mode views | the screen's names with the mode after `X` | `GenreDetailSearchStateView`, `GenreDetailSearchContentView`, `GenreDetailSearchNextPageFooter` |
 | Sections | `XHeader`, `XRail`, `XRow`, `XCard`; one view per resource: `X` + resource + `View` | `MovieCastRail`, `HomeBannersView`, `HomeSectionsView` |
 | Paging footer | `X` + resource + `NextPageFooter` | `HomeSectionsNextPageFooter` |
-| Shared screen states | `ContentUnavailableView` presets in CoreUI, named for the situation | `.offline(retry:)`, `.unavailable(retry:)`, `.notFound`, `.noResults` |
+| Shared screen states | `ContentUnavailableView` presets in SharedUI, named for the situation | `.offline(retry:)`, `.unavailable(retry:)`, `.notFound`, `.noResults` |
 | Toolbar | `XToolbar` (`ToolbarContent`) in XUI | `WatchlistToolbar` |
 | Feature destinations | `XDestination`; cases name the place and carry IDs | `MovieDestination.cast(movieID:)` |
-| Shared destinations | `CoreDestination` in CoreUI: the places several features open, each case named for the screen it opens | `CoreDestination.movieDetail(id:)` |
+| Shared destinations | `SharedDestination` in SharedUI: the places several features open, each case named for the screen it opens | `SharedDestination.movieDetail(id:)` |
 | App navigation | `Router`, `TabDestination`, `Destination`, `DestinationView` | |
 | App screen | `XScreen` | `MovieDetailScreen` |
 | App `Destination` case | the app screen's name without `Screen` | `.movieDetail(id:)`, `.movieCast(movieID:)` |
@@ -59,8 +59,8 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 | XUI | `Navigation/`, `Models/` (display mappings), `View Models/`, `Views/`, `Resources/` |
 | XLive | `Mapping/`, `Services/` (and `Persistence/` when it stores data) |
 | XTests | `ViewModels/`, `Live/`, `Fixtures.swift` |
-| Core | `Domain/` |
-| CoreUI | `Components/`, `Navigation/`, `Resources/` |
+| Shared | `Domain/` |
+| SharedUI | `Components/`, `Navigation/`, `Resources/` |
 | Networking | `openapi.yaml`, `openapi-generator-config.yaml`, the client, its error, `Middleware/` |
 | App | `App/`, `Adapters/`, `Extensions/Environment/`, `Navigation/`, `Screens/` |
 

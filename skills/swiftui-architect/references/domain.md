@@ -46,7 +46,7 @@ public let content: Content
 public var id: HomeSection.ID { … }
 ```
 
-A model used by one feature lives in its XCore; one that several features share, and that must change for all of them together, lives in Core ([modules](modules.md#core-and-coreui)).
+A model used by one feature lives in its XCore; one that several features share, and that must change for all of them together, lives in Shared ([modules](modules.md#shared-and-sharedui)).
 
 ## Errors
 
@@ -85,7 +85,7 @@ public protocol MovieCastService: Sendable {
 }
 ```
 
-- Methods return domain values ready to show. A paged list returns `Page<Item>` from Core (`items`, `nextPage`); a screen that pages one thing's list has two methods, [the thing and its list](view-models.md#a-thing-and-its-paged-list). Don't wrap a page in a feature type to carry more, such as a total: a count the screen shows is a read of its own (`resultCount(for:)`).
+- Methods return domain values ready to show. A paged list returns `Page<Item>` from Shared (`items`, `nextPage`); a screen that pages one thing's list has two methods, [the thing and its list](view-models.md#a-thing-and-its-paged-list). Don't wrap a page in a feature type to carry more, such as a total: a count the screen shows is a read of its own (`resultCount(for:)`).
 - Methods use untyped `throws` and name the error in the doc comment. Cancellation must reach the view model as `CancellationError`, and `throws(MovieError)` couldn't carry it without a cancellation case in every domain error.
 - Protocols refine `Sendable`, so `any MovieDetailService` can be injected through the environment and held by a main-actor view model.
 - A screen's service holds what the screen loads from one source. A concern with a source of its own, such as searches kept on the device in user defaults, is a separate service (`RecentSearchesService`, implemented by `UserDefaultsRecentSearchesService`) that the view model takes beside it. A [nested model](view-models.md#nested-models-and-modes) uses its view model's services and never gets one for being nested; a capability another feature owns is a [port](#cross-feature-services-consumer-owned-ports).

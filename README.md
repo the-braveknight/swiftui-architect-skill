@@ -32,14 +32,14 @@ The trade-offs are real: more `Package.swift` files to maintain, some deliberate
 
 ## What the skill covers
 
-- The module map and dependency direction: feature packages (`XCore`, `XUI`, `XLive`, `XTests`) on shared `Core`, `CoreUI`, `DesignSystem` and `Networking` packages, and what goes in each.
+- The module map and dependency direction: feature packages (`XCore`, `XUI`, `XLive`, `XTests`) on `Shared`, `SharedUI`, `DesignSystem` and `Networking` packages, and what goes in each.
 - Domain-driven models that describe what the app shows, not what the API sends, with live services mapping API responses and errors into them.
 - Networking with Apple's swift-openapi-generator: a generated client wrapped in the app's own, with failures and cancellation classified once.
 - Service design and naming, following the Swift API Design Guidelines: a protocol per screen, reads as noun phrases, mocks for previews and tests, consumer-owned ports between features.
 - View models: per-resource loading state, several resources, pagination, resources keyed by what the user picks or types, nested models for parts of a screen such as a search within it, feature error types, cancellation.
 - The views a screen is made of: `XView`, `XStateView`, `XContentView`, sections and paging footers, and state views that read the data first, so a refresh doesn't redraw them.
 - App composition: the `XApp` initializer as the dependency-injection root, environment keys, `XScreen` composition views.
-- Routing: feature `XDestination` values, CoreUI's `CoreDestination` for the places several features open, an app-owned `Router`, one mapping file, registration at stack roots.
+- Routing: feature `XDestination` values, SharedUI's `SharedDestination` for the places several features open, an app-owned `Router`, one mapping file, registration at stack roots.
 - Localization, assets and fonts per module: String Catalogs with generated symbols, asset catalogs with generated symbols, fonts that DesignSystem registers.
 - Naming and folder conventions.
 
@@ -55,7 +55,7 @@ swiftui-architect-skill/
 ├── skills/swiftui-architect/
 │   ├── SKILL.md                 entry point: shape, rules, gotchas, workflows, which reference to read
 │   └── references/
-│       ├── modules.md           targets, folders, Package.swift, Core, CoreUI, DesignSystem, strings, tests
+│       ├── modules.md           targets, folders, Package.swift, Shared, SharedUI, DesignSystem, strings, tests
 │       ├── domain.md            domain models, errors, service protocols and naming, live services, mocks, ports
 │       ├── networking.md        swift-openapi-generator, the API client, errors and cancellation
 │       ├── view-models.md       loading state, several resources, pagination, keyed resources, nested models, tests

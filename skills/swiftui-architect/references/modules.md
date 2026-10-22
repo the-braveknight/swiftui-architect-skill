@@ -6,7 +6,7 @@ The app is built from local Swift packages: one per feature, plus a few shared p
 - Feature packages
 - Folder layout
 - Package.swift template
-- Core and CoreUI
+- Shared and SharedUI
 - DesignSystem
 - Networking and other infrastructure
 - Localization, assets and fonts
@@ -18,9 +18,9 @@ A feature is a vertical slice around one capability, and it owns that capability
 
 | Target | Contains | Imports |
 |---|---|---|
-| `XCore` | Domain models, `XError`, a service protocol and mock per screen, ports | `Core` |
-| `XUI` | View models, views, `XDestination`, `Localizable.xcstrings`, display mappings | `XCore`, `Core`, `CoreUI`, `DesignSystem` |
-| `XLive` | Live services, mapping API responses and errors to the domain, persistence | `XCore`, `Core`, `Networking` |
+| `XCore` | Domain models, `XError`, a service protocol and mock per screen, ports | `Shared` |
+| `XUI` | View models, views, `XDestination`, `Localizable.xcstrings`, display mappings | `XCore`, `Shared`, `SharedUI`, `DesignSystem` |
+| `XLive` | Live services, mapping API responses and errors to the domain, persistence | `XCore`, `Shared`, `Networking` |
 | `XTests` | View model tests and mapping tests (Swift Testing) | all of the above, plus `Networking` for response fixtures |
 
 - XCore has no SwiftUI and no infrastructure, so the domain stays testable and usable by any UI ([domain](domain.md)).
@@ -82,7 +82,7 @@ let package = Package(
         .library(name: "DiscoverLive", targets: ["DiscoverLive"]),
     ],
     dependencies: [
-        .package(path: "../Core"),
+        .package(path: "../Shared"),
         .package(path: "../DesignSystem"),
         .package(path: "../Networking"),
     ],
@@ -90,7 +90,7 @@ let package = Package(
         .target(
             name: "DiscoverCore",
             dependencies: [
-                .product(name: "Core", package: "Core")
+                .product(name: "Shared", package: "Shared")
             ],
             swiftSettings: swiftSettings
         ),
@@ -98,8 +98,8 @@ let package = Package(
             name: "DiscoverUI",
             dependencies: [
                 "DiscoverCore",
-                .product(name: "Core", package: "Core"),
-                .product(name: "CoreUI", package: "Core"),
+                .product(name: "Shared", package: "Shared"),
+                .product(name: "SharedUI", package: "Shared"),
                 .product(name: "DesignSystem", package: "DesignSystem"),
             ],
             resources: [
@@ -111,7 +111,7 @@ let package = Package(
             name: "DiscoverLive",
             dependencies: [
                 "DiscoverCore",
-                .product(name: "Core", package: "Core"),
+                .product(name: "Shared", package: "Shared"),
                 .product(name: "Networking", package: "Networking"),
             ],
             swiftSettings: swiftSettings
@@ -122,8 +122,8 @@ let package = Package(
                 "DiscoverCore",
                 "DiscoverUI",
                 "DiscoverLive",
-                .product(name: "Core", package: "Core"),
-                .product(name: "CoreUI", package: "Core"),
+                .product(name: "Shared", package: "Shared"),
+                .product(name: "SharedUI", package: "Shared"),
                 .product(name: "Networking", package: "Networking"),
             ],
             swiftSettings: swiftSettings
@@ -136,14 +136,14 @@ let package = Package(
 - Never add `.defaultIsolation(MainActor.self)` to a package. Domain models, errors and destinations stay nonisolated and their conformances aren't main-actor-isolated; UI types are marked `@MainActor` explicitly.
 - No `@unchecked Sendable`, `nonisolated(unsafe)` or `@preconcurrency` in feature packages: a type that would need one becomes a value type or an actor.
 
-## Core and CoreUI
+## Shared and SharedUI
 
 The shared package mirrors a feature's layers.
 
 | Target | Contains | Imports |
 |---|---|---|
-| `Core` | `Domain/`: the vocabulary several features and services share (`MovieSummary`, `Page<Item>`) | Foundation only |
-| `CoreUI` | `Components/`: views several features show, those that render Core types (`MovieSummaryCard`, `MovieSummaryRow`) and the shared screen states (`ContentUnavailableView.offline(retry:)`), with the copy they share. `Navigation/`: `CoreDestination`, the places several features open ([navigation](navigation.md#coredestination-coreui)) | `Core`, `DesignSystem` |
+| `Shared` | `Domain/`: the vocabulary several features and services share (`MovieSummary`, `Page<Item>`) | Foundation only |
+| `SharedUI` | `Components/`: views several features show, those that render Shared types (`MovieSummaryCard`, `MovieSummaryRow`) and the shared screen states (`ContentUnavailableView.offline(retry:)`), with the copy they share. `Navigation/`: `SharedDestination`, the places several features open ([navigation](navigation.md#shareddestination-sharedui)) | `Shared`, `DesignSystem` |
 
 ```swift
 /// One page of a paginated list, as a service returns it.
@@ -159,17 +159,17 @@ public struct Page<Item: Sendable>: Sendable {
 }
 ```
 
-Promotion rule: move a type into Core or CoreUI only when a second feature needs the same concept and both copies must change together. If two types merely look alike today, duplicate them; they will diverge (a Discover poster card with a rating overlay stays in Discover even though a plain card lives in CoreUI).
+Promotion rule: move a type into Shared or SharedUI only when a second feature needs the same concept and both copies must change together. If two types merely look alike today, duplicate them; they will diverge (a Discover poster card with a rating overlay stays in Discover even though a plain card lives in SharedUI).
 
-Never in Core or CoreUI:
+Never in Shared or SharedUI:
 - Models used by one feature (`Movie`, `Person`, `CastMember`, `WatchlistItem`)
 - Errors, service protocols or ports
-- Navigation types other than `CoreDestination` (`XDestination` belongs to features, `Destination` and `Router` to the app)
+- Navigation types other than `SharedDestination` (`XDestination` belongs to features, `Destination` and `Router` to the app)
 - Environment keys, app state, preferences
 - Generated API types or anything from infrastructure
 - "Utils" grab-bags; a helper lives next to the concept it serves
 
-Identifiers cross features as IDs (`MovieSummary.ID`), not as objects. Don't add a wrapper ID type unless the domain needs one. There is no shared Live or testing target: mapping an API type to a Core model (`MovieSummary+TMDB.swift`) and test fixtures are repeated in each feature that needs them.
+Identifiers cross features as IDs (`MovieSummary.ID`), not as objects. Don't add a wrapper ID type unless the domain needs one. There is no shared Live or testing target: mapping an API type to a Shared model (`MovieSummary+TMDB.swift`) and test fixtures are repeated in each feature that needs them.
 
 ## DesignSystem
 
@@ -178,7 +178,7 @@ One domain-free package, imported by every UI target, holding the visual languag
 - **Styles** for native controls, as conformances to SwiftUI's style protocols exposed as static members, so features keep using `Button`, `NavigationLink` and `Toggle` (`.buttonStyle(.content)`).
 - **Components** that take plain values and view builders, such as a rail or a remote image, and extensions that restyle native views rather than wrappers around them.
 
-It never knows a feature model, service, destination or screen, has no strings of its own, and decides no policy: an image session or cache comes from the app. A view that renders a domain type and is used by several features belongs in CoreUI, built from DesignSystem parts.
+It never knows a feature model, service, destination or screen, has no strings of its own, and decides no policy: an image session or cache comes from the app. A view that renders a domain type and is used by several features belongs in SharedUI, built from DesignSystem parts.
 
 ## Networking and other infrastructure
 
@@ -190,7 +190,7 @@ It never knows a feature model, service, destination or screen, has no strings o
 Each module owns the strings, images and colors it shows, and reaches them through symbols Xcode generates, so a missing key or asset is a build error, not a blank at runtime.
 
 **Strings**
-- Each XUI target has a String Catalog (`Resources/Localizable.xcstrings`) for everything its views show; the app has one for its own chrome (tabs, settings). CoreUI's catalog holds only copy every feature must say the same way, such as the shared screen states. XCore, XLive, Core and DesignSystem show no text. A string two features show is duplicated in each catalog.
+- Each XUI target has a String Catalog (`Resources/Localizable.xcstrings`) for everything its views show; the app has one for its own chrome (tabs, settings). SharedUI's catalog holds only copy every feature must say the same way, such as the shared screen states. XCore, XLive, Shared and DesignSystem show no text. A string two features show is duplicated in each catalog.
 - Add the key to the catalog first (`discover.navigation.title`), then use its generated symbol: `Text(.discoverNavigationTitle)`, `Button(.discoverActionRetry, action: retry)`, `.navigationTitle(.discoverNavigationTitle)`; a key with a placeholder generates a function (`.searchNoResultsMessage(query)`). Symbols are internal to their module and carry its bundle. A literal in a package would need `bundle: #bundle`, or it silently looks in the app's bundle.
 - A non-view type that carries user-facing text holds a `LocalizedStringResource`, never a `String`, so it resolves at display time in the right locale and bundle. Display mappings are XUI extensions on domain values (`DiscoverCategory.title`); models and view models hold no display strings.
 

@@ -17,7 +17,7 @@ A screen is a small family of views in its feature's XUI target: `XView`, the pu
 | File | Role |
 |---|---|
 | `XView` | Public entry point. Owns the view model as `@State` and puts it in the environment; applies what every state shares (title, search field, a bar of controls above every state, toolbars and the sheets they open); starts every load from `.task`, and `.task(id:)` for keyed resources; renders `XStateView` |
-| `XStateView` | Reads the view model from the environment; picks the mode when it's active, then the content, the error, progress or the empty state; passes the data to the content view as values; switches over the error and shows CoreUI's presets |
+| `XStateView` | Reads the view model from the environment; picks the mode when it's active, then the content, the error, progress or the empty state; passes the data to the content view as values; switches over the error and shows SharedUI's presets |
 | `XContentView` | Takes the loaded values and lays them out in its scroll container, one view per resource or section |
 | `XSearchStateView`, `XSearchContentView`, `XSearchNextPageFooter` | A [mode](#modes)'s own family, shaped like the screen's and reading the mode through the view model |
 | `XHeader`, `XRail`, `XRow`, `XCard`, `XBannersView`, `XSectionsView` | One section, resource or element each, taking only the values it reads |
@@ -99,7 +99,7 @@ struct DiscoverContentView: View {
 
 - `XView` never decides between states. It owns the view model, puts it in the environment as its outermost modifier, applies what every state shares, and starts every load: `.task` for the screen's, so the load outlives the progress view ([cancellation](view-models.md#errors-and-cancellation)), and `.task(id:)` for a [keyed resource](view-models.md#keyed-resources). It's the only view that injects the view model ([passing data](#passing-data-to-views)).
 - A control every state shares, such as filters over the results, goes on `XView` too. Inside `XStateView` or a content view it would be rebuilt whenever the state changes, such as while the results it filters reload.
-- `XStateView` only picks what to show, in a fixed order: the content whenever there is data, the error only when there's nothing to show, progress while the load runs, and otherwise the empty state where the design has one. While there's data it reads only the data, so a refresh starting or ending doesn't redraw it. It switches over the error itself and shows CoreUI's presets, so a feature has no error view of its own.
+- `XStateView` only picks what to show, in a fixed order: the content whenever there is data, the error only when there's nothing to show, progress while the load runs, and otherwise the empty state where the design has one. While there's data it reads only the data, so a refresh starting or ending doesn't redraw it. It switches over the error itself and shows SharedUI's presets, so a feature has no error view of its own.
 - `XContentView` takes the values `XStateView` passes down (`DiscoverContentView(shelves:)`), owns the scroll container and lays them out, one view per resource or section. A view inside it that acts, such as a paging footer, reads the view model from the environment, so the content view doesn't pass it along; the content view reads it only to act itself, such as a mode's `.refreshable`.
 - A title from loaded data goes with that data: in `XContentView` when the content is the thing it names (`.navigationTitle(movie.title)`), in `XView` when the thing loads beside the content, so it stays up in every state (`.navigationTitle(viewModel.genre?.name ?? "")`). A toolbar that only makes sense with content goes in `XContentView`.
 
@@ -111,9 +111,9 @@ struct DiscoverContentView: View {
 | What was opened doesn't exist, such as a 404 for one item | `ContentUnavailableView.notFound` | no |
 | Any other failure | `ContentUnavailableView.unavailable(retry:)` | yes |
 | An empty answer where the design has an empty state, such as an empty watchlist | `ContentUnavailableView` with the feature's own copy | no |
-| An empty answer the design shows the same way on several screens, such as no search results | A CoreUI preset (`ContentUnavailableView.noResults`) | no |
+| An empty answer the design shows the same way on several screens, such as no search results | A SharedUI preset (`ContentUnavailableView.noResults`) | no |
 
-- The presets are static members on `ContentUnavailableView` in CoreUI, with their copy, because every screen must say the same thing about the same failure. An empty state that belongs to one feature uses the feature's strings; one that several features show alike is a preset too.
+- The presets are static members on `ContentUnavailableView` in SharedUI, with their copy, because every screen must say the same thing about the same failure. An empty state that belongs to one feature uses the feature's strings; one that several features show alike is a preset too.
 - An empty answer is never an error. Where the design has no empty state, the screen shows nothing.
 - A secondary resource never takes over the screen. A failed next page or section shows a short inline message with a retry; one the screen can do without, such as suggestions, is simply left out.
 
@@ -282,11 +282,11 @@ struct GenreDetailSearchStateView: View {
 | What a screen presents | Its view model | A plain `var` the view binds (`isFilterPresented`) |
 | What a sheet edits before it's applied | Its view model | A plain `var` (`filterDraft`) that the action opening the sheet fills from the screen's state (`openFilter()`); the sheet binds it, so `SearchFilterView()` takes nothing ([presentations](navigation.md#sheets-covers-and-alerts)) |
 | Focus and visual mechanics: a measured size, whether a footer is on screen, gesture progress | The view | `@FocusState` or `@State private var`; never data, a presentation or an edit a test would check |
-| A reusable component's internal state: a carousel's page, a slider's drag, a synopsis expanded by "Read more" | The component, even one that reads the view model | `@State private var`; what the screen acts on comes in as a value or a binding (the range a slider picks). A DesignSystem or CoreUI component has no view model to hold it |
+| A reusable component's internal state: a carousel's page, a slider's drag, a synopsis expanded by "Read more" | The component, even one that reads the view model | `@State private var`; what the screen acts on comes in as a value or a binding (the range a slider picks). A DesignSystem or SharedUI component has no view model to hold it |
 
 - `XView` holds no `@State` beside its view model, and no view below it holds screen state. Anything a test, a deep link or another view could need lives in the view model, directly or in a nested model, so a screen's whole state is one type a test can drive.
 - A view reads the view model from the environment only when it reads state of its own, such as a resource's loading flag or error, or calls the view model, like a paging footer. A view that only passes data along takes the values instead.
-- Display views take values even though the view model is in reach, so a row never depends on one screen and can move to CoreUI when a second feature needs it.
+- Display views take values even though the view model is in reach, so a row never depends on one screen and can move to SharedUI when a second feature needs it.
 - `XView` injects once per screen, as its outermost modifier, so its toolbar items and the sheets it presents read the view model too. Nested models aren't injected separately. A pushed screen never sees the previous screen's view model, since destinations are registered at the stack root and each `XView` injects its own.
 - A view reading a view model that wasn't injected crashes at runtime rather than failing to build, so a preview of any view below `XView` injects one ([previews](#previews)).
 - Don't pass closures down through views for the view model's actions. A closure can't be compared, so a view that takes one is re-evaluated whenever its parent is, while a view reading the view model re-renders only for the properties it reads.
