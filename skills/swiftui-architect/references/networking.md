@@ -45,6 +45,8 @@ targets: [
 ]
 ```
 
+Use each package's current release; the versions above are minimums.
+
 ## Generating the API
 
 The build plugin, upstream's recommended setup, generates the code at build time from the two files in the target's source folder, so generated code is never committed. Xcode asks to trust the plugin once; CI skips plugin validation (`-skipPackagePluginValidation`).

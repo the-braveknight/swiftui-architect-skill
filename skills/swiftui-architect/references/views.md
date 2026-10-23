@@ -152,7 +152,6 @@ A [mode](view-models.md#modes), such as a search within a genre, replaces the sc
 public var body: some View {
     @Bindable var searchSession = viewModel.searchSession
     GenreDetailStateView()
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .navigationTitle(viewModel.genre?.name ?? "")
         .searchable(text: $searchSession.text, prompt: .genreDetailSearchPrompt)
         .onSubmit(of: .search) {
@@ -171,13 +170,7 @@ public var body: some View {
         .task(id: searchSession.query) {
             await searchSession.load()
         }
-        .task {
-            await viewModel.load()
-        }
-        .refreshable {
-            await viewModel.refresh()
-        }
-        .environment(viewModel)
+        // The frame, .task, .refreshable and .environment(viewModel), as in DiscoverView.
 }
 
 // GenreDetailStateView.swift
@@ -221,9 +214,6 @@ struct GenreDetailStateView: View {
 
 ## View structure rules
 
-- One `View` struct per section. No computed `some View` properties and no `@ViewBuilder` helper functions.
-- No wrapper struct around a single system view, such as a label around `Label`. Extract a struct only when it holds real layout or logic.
-- A section or frame two of a feature's screens show is one view. A frame around different content takes that content as view builders; the actions inside still come from each screen's view model.
 - Choosing between states belongs in `XStateView`, never in a `Group { if … }`, `switch` or overlay in `XView`'s body.
 - Never create views from non-view types: display mappings return `LocalizedStringResource` (`Department.title`), never `Text` or `Image`.
 - Use native controls with DesignSystem's styles (`NavigationLink` with `.buttonStyle(.content)`), and strings through the catalog's generated symbols ([modules](modules.md#localization-assets-and-fonts)).
@@ -245,13 +235,6 @@ Every public view has a preview built on mocks, so the feature is its own demo:
     }
 }
 
-#Preview("Arabic") {
-    NavigationStack {
-        DiscoverView(viewModel: DiscoverViewModel(service: .mock))
-    }
-    .environment(\.locale, Locale(identifier: "ar"))
-    .environment(\.layoutDirection, .rightToLeft)
-}
 ```
 
 A view below `XView` reads a view model from the environment and crashes at runtime without one, so its preview injects the view model `XView` would have:

@@ -217,13 +217,9 @@ public final class GenreDetailViewModel {
     /// Genre
     private(set) var genre: Genre?
 
-    /// Movies
+    /// Movies, paged as Discover's shelves are
     private(set) var movies: [MovieSummary] = []
-    private(set) var isLoadingMovies: Bool = true
-    private(set) var moviesError: GenreDetailError?
-    private(set) var nextMoviesPage: Int?
-    private(set) var isLoadingNextMoviesPage = false
-    private(set) var nextMoviesPageError: GenreDetailError?
+    // isLoadingMovies, moviesError, nextMoviesPage, isLoadingNextMoviesPage, nextMoviesPageError
 
     // load() guards on movies; refresh() loads the genre and the first page side by side.
 }
@@ -331,9 +327,7 @@ Name it for the one thing a user would recognize on the screen, as a plain noun 
 | What it holds | Noun | Examples |
 |---|---|---|
 | Input that starts and ends a stretch of work, and what it loads | `…Session` | `SearchSession` |
-| A fact about the item on screen that the user can change | the fact | `WatchlistMembership`, `MovieRating` |
-| Something that runs over time | what runs | `TrailerPlayback` |
-| Edits kept until they're saved | `…Draft` | `ReviewDraft` |
+| A fact about the item on screen that the user can change | the fact | `WatchlistMembership` |
 
 Never `…ViewModel` (screens own that), `…Manager`, `…Controller`, `…Handler`, `…Coordinator` or `…Helper`, `…State` or `…Store`.
 

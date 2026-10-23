@@ -53,15 +53,13 @@ NavigationLink(.movieDetailCastSeeAll, value: MovieDestination.cast(movieID: mov
 
 ## SharedDestination (SharedUI)
 
-The places several features open, such as a movie's details or signing in, are cased once, in `SharedUI/Navigation/SharedDestination.swift`:
+The places several features open, such as a movie's details, are cased once, in `SharedUI/Navigation/SharedDestination.swift`:
 
 ```swift
 /// Places several features open. The app maps each case to its screen once and registers this type in every stack.
 public enum SharedDestination: Hashable, Codable, Sendable {
     /// A movie's details.
     case movieDetail(id: MovieSummary.ID)
-    /// Signing in, which the watchlist needs.
-    case signIn
 }
 ```
 
@@ -105,7 +103,6 @@ enum Destination: Hashable {
     case movieCast(movieID: MovieSummary.ID)
     case genreDetail(id: Genre.ID)
     case personDetail(id: Person.ID)
-    case signIn
 }
 
 extension Destination {
@@ -113,7 +110,6 @@ extension Destination {
     init(_ destination: SharedDestination) {
         switch destination {
         case .movieDetail(let id): self = .movieDetail(id: id)
-        case .signIn: self = .signIn
         }
     }
 
@@ -145,8 +141,6 @@ struct DestinationView: View {
             GenreDetailScreen(genreID: id)
         case .personDetail(let id):
             PersonDetailScreen(personID: id)
-        case .signIn:
-            SignInScreen()
         }
     }
 }

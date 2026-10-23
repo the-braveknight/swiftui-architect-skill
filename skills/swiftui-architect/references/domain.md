@@ -191,4 +191,4 @@ struct WatchlistMembershipAdapter: WatchlistMembershipService {
 }
 ```
 
-The consumer ships a mock of its port too, so its previews and tests don't need the provider. When many features need the same capability and their ports start duplicating each other, the provider publishes a small interface target (`XInterface`) with the protocol and its models instead.
+The consumer ships a mock of its port too, so its previews and tests don't need the provider.

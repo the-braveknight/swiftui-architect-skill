@@ -1,6 +1,6 @@
 # Modules
 
-The app is built from local Swift packages: one per feature, plus a few shared packages every feature stands on. The compiler enforces the boundaries, since a module can use only what its package declares.
+The app is built from local Swift packages: one per feature, plus the shared package, DesignSystem and Networking, which every feature stands on. The compiler enforces the boundaries, since a module can use only what its package declares.
 
 ## Contents
 - Feature packages

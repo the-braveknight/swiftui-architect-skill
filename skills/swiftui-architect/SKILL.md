@@ -30,7 +30,7 @@ App target              composition root: services, screens, routing
 │     XLive     live services: API responses → domain models
 │     XTests    view model and mapping tests
 │
-└── Shared packages
+└── Packages under the features
       Shared        Shared: domain vocabulary several features use (Foundation only)
                     SharedUI: views several features show
                     SharedLive: API mappings to Shared models several features read
@@ -82,7 +82,7 @@ Hard rules:
 2. **Models speak the app's language.** Each is shaped for what a screen shows and can't hold an illogical value; the API's shape stops at the Live targets.
 3. **Services do the work; view models hold state.** A service returns view-ready domain values; a view model assigns them and manages loading, errors and paging.
 4. **Feature views stay plain and native.** They render a view model and push values with `NavigationLink(value:)`. No routers, navigation closures or service lookups.
-5. **Duplicate before you share.** Something moves to the shared package only when a second feature needs the same concept and both copies must change together. What one feature uses stays in it, however many of its screens use it.
+5. **Duplicate before sharing.** Something moves to the shared package only when a second feature needs the same concept and both copies must change together. What one feature uses stays in it, however many of its screens use it.
 6. **Every module builds, previews and tests on its own.** XCore ships a mock of each service, so XUI needs nothing else.
 7. **Native SwiftUI, nothing invented.** No navigation libraries, DI containers, wrapper views around stacks, or infrastructure the app doesn't need.
 8. **One screen per kind of content.** Things that load, page and search alike share a screen; when they differ, each gets its own, rather than one screen that switches on what it was given.
@@ -95,7 +95,7 @@ Hard rules:
 - **Views.** `XView` owns the view model as its only `@State`, puts it in the environment and starts the loads. `XStateView` shows the content whenever there is data, otherwise the error, progress or the empty state. `XContentView` lays out the values it's given. [views](references/views.md)
 - **Navigation.** A feature lists where its views go in its `XDestination`; the places several features open are `SharedDestination` cases. The app maps each case to a screen and registers each type at every stack root. [navigation](references/navigation.md)
 - **Composition.** `<AppName>App.init` builds the client and every service and injects them through environment keys; each `XScreen` reads them and builds its view model. [composition](references/composition.md)
-- **Concurrency.** Packages build in Swift 6 mode with no default actor isolation. View models are `@MainActor`, services `Sendable`, live service methods `@concurrent`, and stateful services and mocks actors.
+- **Concurrency.** Packages build in Swift 6 mode. View models are `@MainActor`, services `Sendable`, live service methods `@concurrent`, and stateful services and mocks actors.
 
 ## Gotchas
 
@@ -112,7 +112,7 @@ Hard rules:
 
 ## Workflows
 
-Copy the checklist for the task into your response and check items off as you go.
+Copy the checklist for the task into the response and check items off as they're done.
 
 **Add a feature**
 
@@ -170,7 +170,7 @@ Copy the checklist for the task into your response and check items off as you go
 
 ## References
 
-Read the reference for the part you're working on:
+Read the reference for the part at hand:
 
 | Reference | Read when |
 |---|---|

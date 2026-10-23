@@ -38,7 +38,7 @@ This repository is the `swiftui-architect` agent skill. Agents read `skills/swif
 - Detail lives in `references/`, one topic per file. Every reference is listed in the References table in `SKILL.md`, saying when to read it, and none is reachable only through another reference.
 - A reference over 100 lines starts with a `## Contents` list of its `##` sections.
 - Links between files use GitHub heading anchors; renaming a heading means updating every link to it.
-- Frontmatter holds only `name` and `description`, the open Agent Skills fields, so the skill also loads on claude.ai and through the API, which reject other keys. `name` matches the folder. `description` is under 1,024 characters, in the third person, says what the skill does and then when to use it, key use case first.
+- Frontmatter holds only `name` and `description`. claude.ai and the API accept only the open Agent Skills keys (`name`, `description`, `license`, `compatibility`, `metadata`, `allowed-tools`) and reject an upload with any other, such as Claude Code's `when_to_use` or `paths`. `name` matches the folder. `description` is under 1,024 characters, in the third person, says what the skill does and then when to use it, key use case first.
 
 ## Making a change
 
