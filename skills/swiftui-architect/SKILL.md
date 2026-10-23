@@ -101,6 +101,7 @@ Hard rules:
 
 - Register `navigationDestination` only at stack roots. Inside a feature screen it registers again when that screen appears twice in one stack, and SwiftUI reports a duplicate.
 - Start a screen's loads from `.task` on `XView`, never on its progress view, which goes away when the first data arrives and cancels the loads still running.
+- `.refreshable` gives every scroll view under it that isn't inside another one its own pull to refresh. Attach a bar that scrolls, such as a row of filter pills, after `.refreshable`, or the row pulls down with a spinner of its own.
 - A cancelled request must reach the view model as `CancellationError`. URLSession reports `URLError(.cancelled)`, so the client converts it; otherwise a screen left mid-load comes back showing an error.
 - Coming back to a screen runs its `.task` again. A screen with a paged list guards `load()` on that list (`guard shelves.isEmpty else { return }`) and refreshes through `refresh()`, or the loaded pages are lost.
 - A later page can repeat items from the last when the list shifted between requests. Append only the ids the list doesn't hold, or `ForEach` sees one id twice.
