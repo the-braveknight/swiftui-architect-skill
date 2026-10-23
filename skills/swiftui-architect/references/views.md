@@ -23,7 +23,7 @@ A screen is a small family of views in its feature's XUI target: `XView`, the pu
 | `Components/Cards/`, `Components/Rails/`, … | Views several of the feature's screens show, named for what they are ([inside a feature](modules.md#inside-a-feature)) |
 | `X…NextPageFooter` | Loads the next page of a paged resource while it's on screen |
 | `XToolbar` | A `ToolbarContent` struct |
-| `X+Title.swift` | Display mappings from XCore values to `LocalizedStringResource` |
+| `Model+Title.swift` | Display mappings from XCore values to `LocalizedStringResource` (`Department+Title.swift`) |
 
 Where each file goes: [folders](conventions.md#folders). A feature exports one public view per screen (`MovieDetailView`, `MovieCastView`) and its view models; everything else is internal. One type per file.
 
@@ -141,7 +141,7 @@ struct DiscoverShelvesNextPageFooter: View {
 
 - The presets live in SharedUI with their copy, because every screen must say the same thing about the same failure. A feature has no error view of its own.
 - Where the design has no empty state, an empty answer shows nothing.
-- A secondary resource never takes over the screen. A failed next page shows a short inline retry; a resource the screen can do without, such as the featured movies, is left out.
+- A secondary resource never takes over the screen. A failed next page shows a short inline retry; a resource the screen can do without, such as the featured movies, is left out; a [keyed section](view-models.md#keyed-resources) shows its own progress and error.
 
 ## Modes
 

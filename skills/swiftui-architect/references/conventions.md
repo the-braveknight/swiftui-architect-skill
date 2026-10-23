@@ -32,7 +32,7 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 | Screen views | `XView` (public), `XStateView`, `XContentView`; a mode's after `X` | `DiscoverView`, `DiscoverStateView`, `GenreDetailSearchStateView` |
 | Sections of one screen | `X` + what it is | `MovieDetailCastRail`, `DiscoverFeaturedView` |
 | Views several of a feature's screens show | the model they show and their form, filed in `Components/` by kind | `CastMemberCard`, `MovieSummaryGrid` |
-| Paging footer | `X` + resource + `NextPageFooter` | `DiscoverShelvesNextPageFooter` |
+| Paging footer | `X` + resource + `NextPageFooter`, leaving out the resource when `X` already names it | `DiscoverShelvesNextPageFooter` |
 | Toolbar | `XToolbar` (`ToolbarContent`) | `WatchlistToolbar` |
 | Feature geometry | `XLayout`, an enum in XUI the feature's views share | `MovieLayout` |
 | Destinations | `XDestination` in a feature, `SharedDestination` in SharedUI; cases name the place and carry IDs | `MovieDestination.cast(movieID:)`, `SharedDestination.movieDetail(id:)` |
@@ -41,7 +41,7 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 | App entry point | `<AppName>App` | `MoviesApp` |
 | Environment key | `xService` in `EnvironmentValues+XService.swift` | `\.discoverService` |
 | Mapping file | `Model+Source.swift` | `Movie+TMDB.swift`, `MovieError+TMDB.swift` |
-| Display mapping | a property returning `LocalizedStringResource` | `Department.title` |
+| Display mapping | a property returning `LocalizedStringResource`, in `Model+Title.swift` | `Department.title` |
 | Test fixture | `make…` | `makeMovie(id:title:)` |
 
 ## Folders

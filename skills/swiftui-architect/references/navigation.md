@@ -63,8 +63,8 @@ public enum SharedDestination: Hashable, Codable, Sendable {
 }
 ```
 
-- A place moves here once a second feature links to it. A place only one feature links to stays in its `XDestination`, even another feature's screen (`MovieDestination.person(id:)`).
-- Cases name the screen they open (`.movieDetail(id:)`), since the enum sits outside every feature. A feature's `XDestination` names places in its own words (`.cast(movieID:)`).
+- A place moves here once a second feature links to it, counting the feature whose screen it is. A place only one feature links to stays in its `XDestination`, even another feature's screen (`MovieDestination.person(id:)`).
+- Cases name the screen they open (`.movieDetail(id:)`), since the enum sits outside every feature. They carry a Shared type's id where one exists (`MovieSummary.ID`), and a plain `Int` otherwise, since SharedUI imports no feature. A feature's `XDestination` names places in its own words (`.cast(movieID:)`).
 - A SharedUI view that links, such as `MovieSummaryCard`, pushes `SharedDestination` itself, with no protocol or closures for its links.
 
 ## Router and TabDestination (app)
@@ -185,7 +185,7 @@ What a screen presents is state on its view model, a plain `var` its views bind,
 ```swift
 // SearchViewModel
 /// Whether the filter is open.
-var isFilterPresented = false
+var isFilterPresented: Bool = false
 /// The filter being edited while it's open, starting from the search's own each time it opens.
 var filterDraft = SearchFilter()
 
