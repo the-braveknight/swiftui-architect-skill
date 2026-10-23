@@ -114,7 +114,7 @@ An `XScreen` is a small app view that composes one screen: it reads services fro
 
 ### Tab-root screen
 
-Owns the tab's `NavigationStack`, bound to the Router, and registers every destination type that can appear in that stack, once, at its root.
+Owns the tab's `NavigationStack`, bound to the Router, and registers every destination type that can appear in that stack, once, at its root. A feature that several tabs show supplies a root view for each, and each tab has its own tab-root screen (`MoviesScreen` and `TVShowsScreen` both show Discover's views).
 
 ```swift
 /// The Discover tab: its navigation stack, the Discover feature at the root, and the screens it can push.

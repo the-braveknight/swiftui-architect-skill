@@ -4,9 +4,10 @@ The app is built from local Swift packages: one per feature, plus a few shared p
 
 ## Contents
 - Feature packages
+- Inside a feature
 - Folder layout
 - Package.swift template
-- Shared and SharedUI
+- Shared, SharedUI and SharedLive
 - DesignSystem
 - Networking and other infrastructure
 - Localization, assets and fonts
@@ -14,19 +15,34 @@ The app is built from local Swift packages: one per feature, plus a few shared p
 
 ## Feature packages
 
-A feature is a vertical slice around one capability, and it owns that capability's data contract. It may export several screens (Movie exports a movie's details screen and its cast screen); screens never define the boundary. Name the package after the capability, never after one of its screens: `Discover`, `Search`, `Watchlist`, `Movie`, `Person`, not `MovieDetail`. Its screens keep their own names (`MovieDetailView`, `MovieCastView`).
+A feature is a vertical slice around one capability, and it owns that capability's data contract. It owns every screen of the capability, including the root screens of the tabs that show it: Movie owns a movie's details screen and its cast screen, and a Discover feature whose Movies and TV tabs browse one catalog owns both tabs' roots and the screens they open. Screens and tabs never define the boundary. Name the package after the capability, never after a tab or one of its screens: `Discover`, `Search`, `Watchlist`, `Movie`, `Person`, not `MovieDetail` or `Home`.
 
 | Target | Contains | Imports |
 |---|---|---|
 | `XCore` | Domain models, `XError`, a service protocol and mock per screen, ports | `Shared` |
 | `XUI` | View models, views, `XDestination`, `Localizable.xcstrings`, display mappings | `XCore`, `Shared`, `SharedUI`, `DesignSystem` |
-| `XLive` | Live services, mapping API responses and errors to the domain, persistence | `XCore`, `Shared`, `Networking` |
+| `XLive` | Live services, mapping API responses and errors to the domain, persistence | `XCore`, `Shared`, `SharedLive`, `Networking` |
 | `XTests` | View model tests and mapping tests (Swift Testing) | all of the above, plus `Networking` for response fixtures |
 
 - XCore has no SwiftUI and no infrastructure, so the domain stays testable and usable by any UI ([domain](domain.md)).
 - XUI depends on XCore's protocols, never on XLive, so it builds, previews and tests on mocks alone.
-- XLive is the only feature target that sees the API.
+- XLive is the only feature target that sees the API. A mapping to a Shared model that several features read comes from SharedLive.
 - The app links all three library targets: it builds live services from XLive and shows views from XUI ([composition](composition.md)).
+
+## Inside a feature
+
+Names inside a feature say what a thing is, so a screen, model or view keeps its name whichever screens or tabs show it.
+
+| What | Named for | Example |
+|---|---|---|
+| A tab's root screen, with its view model, service, error and the models only it shows | Its tab | `MoviesView`, `MoviesViewModel`, `MoviesService` |
+| Any other screen | What it shows | `GenreDetailView`, `MovieCastView` |
+| A model, view or mapping several of the feature's screens use | What it is | `MovieCollection`, `PosterRail`, `CastMemberCard` |
+| What the whole feature owns | The feature | `DiscoverDestination`, `DiscoverLayout`, the `discover.` string keys |
+
+- A section two of the feature's screens show is one view in `Views/`, filed by kind (`Cards/`, `Rails/`), taking the values it shows. A frame several screens put around different content, such as a hero banner over a list of rails, is one view that takes that content as view builders; the actions inside still come from each screen's view model ([views](views.md#view-structure-rules)).
+- What only this feature uses stays in it, however many of its screens use it. It moves to Shared, SharedUI or SharedLive only when a second feature needs it ([promotion rule](#shared-sharedui-and-sharedlive)).
+- A name an imported module already declares takes a qualifier from the domain: `MovieCollection`, not `Collection` (Swift); `DiscoverLayout`, not `Layout` (SwiftUI). Unqualified, it hides the module's type everywhere in the feature, so code there that means the module's type stops building.
 
 ## Folder layout
 
@@ -48,14 +64,17 @@ Packages/Movie/
 │       ├── Resources/         Localizable.xcstrings
 │       ├── View Models/       MovieDetailViewModel.swift, MovieDetailViewModel+WatchlistMembership.swift,
 │       │                      MovieCastViewModel.swift
-│       └── Views/             MovieDetailView.swift, MovieDetailStateView.swift, MovieDetailContentView.swift, …
+│       └── Views/
+│           ├── MovieDetail/   MovieDetailView.swift, MovieDetailStateView.swift, MovieDetailContentView.swift, …
+│           ├── MovieCast/     MovieCastView.swift, MovieCastStateView.swift, MovieCastContentView.swift
+│           └── Cards/         CastMemberCard.swift, which both screens show
 └── Tests/MovieTests/
     ├── Live/                  MovieMappingTests.swift
     ├── ViewModels/            MovieDetailViewModelTests.swift, MovieCastViewModelTests.swift
     └── Fixtures.swift
 ```
 
-One type per file, named after the type.
+One type per file, named after the type. `Views/` has a folder per screen, and one per kind of view several screens share.
 
 ## Package.swift template
 
@@ -112,6 +131,7 @@ let package = Package(
             dependencies: [
                 "DiscoverCore",
                 .product(name: "Shared", package: "Shared"),
+                .product(name: "SharedLive", package: "Shared"),
                 .product(name: "Networking", package: "Networking"),
             ],
             swiftSettings: swiftSettings
@@ -136,7 +156,7 @@ let package = Package(
 - Never add `.defaultIsolation(MainActor.self)` to a package. Domain models, errors and destinations stay nonisolated and their conformances aren't main-actor-isolated; UI types are marked `@MainActor` explicitly.
 - No `@unchecked Sendable`, `nonisolated(unsafe)` or `@preconcurrency` in feature packages: a type that would need one becomes a value type or an actor.
 
-## Shared and SharedUI
+## Shared, SharedUI and SharedLive
 
 The shared package mirrors a feature's layers.
 
@@ -144,6 +164,7 @@ The shared package mirrors a feature's layers.
 |---|---|---|
 | `Shared` | `Domain/`: the vocabulary several features and services share (`MovieSummary`, `Page<Item>`) | Foundation only |
 | `SharedUI` | `Components/`: views several features show, those that render Shared types (`MovieSummaryCard`, `MovieSummaryRow`) and the shared screen states (`ContentUnavailableView.offline(retry:)`), with the copy they share. `Navigation/`: `SharedDestination`, the places several features open ([navigation](navigation.md#shareddestination-sharedui)) | `Shared`, `DesignSystem` |
+| `SharedLive` | `Mapping/`: an API type's mapping to a Shared model, when several features read the same response as the same model (`MovieSummary+TMDB.swift`), tested in `SharedLiveTests` | `Shared`, `Networking` |
 
 ```swift
 /// One page of a paginated list, as a service returns it.
@@ -159,17 +180,17 @@ public struct Page<Item: Sendable>: Sendable {
 }
 ```
 
-Promotion rule: move a type into Shared or SharedUI only when a second feature needs the same concept and both copies must change together. If two types merely look alike today, duplicate them; they will diverge (a Discover poster card with a rating overlay stays in Discover even though a plain card lives in SharedUI).
+Promotion rule: move a type into Shared or SharedUI, or a mapping into SharedLive, only when a second feature needs the same concept and both copies must change together. The rule holds both ways: what Shared, SharedUI or SharedLive holds that only one feature uses belongs in that feature. If two types merely look alike today, duplicate them; they will diverge (a Discover poster card with a rating overlay stays in Discover even though a plain card lives in SharedUI).
 
 Never in Shared or SharedUI:
-- Models used by one feature (`Movie`, `Person`, `CastMember`, `WatchlistItem`)
+- Models, views or mappings one feature uses, from however many of its screens (`Movie`, `CastMember`, `WatchlistItem`, `CastMemberCard`)
 - Errors, service protocols or ports
 - Navigation types other than `SharedDestination` (`XDestination` belongs to features, `Destination` and `Router` to the app)
 - Environment keys, app state, preferences
 - Generated API types or anything from infrastructure
 - "Utils" grab-bags; a helper lives next to the concept it serves
 
-Identifiers cross features as IDs (`MovieSummary.ID`), not as objects. Don't add a wrapper ID type unless the domain needs one. There is no shared Live or testing target: mapping an API type to a Shared model (`MovieSummary+TMDB.swift`) and test fixtures are repeated in each feature that needs them.
+Identifiers cross features as IDs (`MovieSummary.ID`), not as objects. Don't add a wrapper ID type unless the domain needs one. SharedLive holds only mappings: no services, models or errors, since each feature maps the client's errors to its own. There is no shared testing target: test fixtures are repeated in each feature that needs them.
 
 ## DesignSystem
 
@@ -183,7 +204,7 @@ It never knows a feature model, service, destination or screen, has no strings o
 ## Networking and other infrastructure
 
 - `Networking` generates the API's types and client with Apple's swift-openapi-generator and wraps them in the app's client ([networking](networking.md)). Persistence or analytics packages follow the same rules.
-- Infrastructure is imported by XLive targets, XTests and the app, never by XCore or XUI. Its types never appear in a feature's public API.
+- Infrastructure is imported by the Live targets (XLive and SharedLive), XTests and the app, never by XCore or XUI. Its types never appear in a feature's public API.
 
 ## Localization, assets and fonts
 

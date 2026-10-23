@@ -13,7 +13,7 @@ XCore holds a feature's domain: the models its screens show, the errors they can
 
 ## Domain models
 
-A domain model describes what the app wants to show, not what the API sends. The API's shape (optional everything, snake_case fields, image paths, date strings, envelopes, pagination metadata) stops at XLive.
+A domain model describes what the app wants to show, not what the API sends. The API's shape (optional everything, snake_case fields, image paths, date strings, envelopes, pagination metadata) stops at the Live targets, XLive and SharedLive.
 
 ```swift
 // What TMDB sends, generated in Networking: every field optional, a date as text, an image as a path.
@@ -46,7 +46,7 @@ public let content: Content
 public var id: HomeSection.ID { … }
 ```
 
-A model used by one feature lives in its XCore; one that several features share, and that must change for all of them together, lives in Shared ([modules](modules.md#shared-and-sharedui)).
+A model used by one feature lives in its XCore; one that several features share, and that must change for all of them together, lives in Shared ([modules](modules.md#shared-sharedui-and-sharedlive)).
 
 ## Errors
 
@@ -136,7 +136,7 @@ public struct TMDBMovieDetailService: MovieDetailService {
 ```
 
 - Methods are `@concurrent`, so requests and mapping run off the main actor of the view model that awaits them. Protocol requirements and mocks stay unannotated. For isolation and `Sendable` beyond this, use a Swift Concurrency skill ([related skills](../SKILL.md#related-skills)).
-- Mapping lives in `Model+Source.swift` extensions (`Movie+TMDB.swift`, `MovieError+TMDB.swift`). A model maps from its response in a failable initializer: a list item missing a required field is dropped, and a whole response that can't be read is `.unavailable`.
+- Mapping lives in `Model+Source.swift` extensions (`Movie+TMDB.swift`, `MovieError+TMDB.swift`). A model maps from its response in a failable initializer: a list item missing a required field is dropped, and a whole response that can't be read is `.unavailable`. A mapping to a Shared model that several features read, such as `MovieSummary+TMDB.swift`, lives once, in SharedLive.
 - The feature's error maps from the client's transport error in an initializer, such as a 404 to `.notFound`. `CancellationError` passes through untouched, because the client already rethrows a cancelled request as one ([networking](networking.md#errors-and-cancellation)).
 - A step that two live services share, such as reading extra artwork for their results, is an internal extension on the client in XLive, not one service conforming to two protocols.
 

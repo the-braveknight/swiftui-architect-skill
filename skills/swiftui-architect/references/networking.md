@@ -62,7 +62,7 @@ namingStrategy: idiomatic
 
 - `openapi.yaml` describes only what the app uses. Trim a large upstream spec by hand (keeping the original in `Reference/`), or narrow it with the config's `filter:`. Add an endpoint to the spec before using it.
 - `idiomatic` names generate Swift-style types and members (`releaseDate`, not `release_date`).
-- The generated types are `public` because XLive targets in other packages map them. That makes them reachable, not shared: they never appear in an XCore model, a service protocol or anything above XLive.
+- The generated types are `public` because Live targets in other packages (XLive, SharedLive) map them. That makes them reachable, not shared: they never appear in an XCore model, a service protocol or anything above the Live targets.
 
 ## The client
 

@@ -31,7 +31,7 @@ The same path works inside a feature (a movie's details → its cast screen) and
 
 ## XDestination (feature)
 
-One enum per feature in `XUI/Navigation/XDestination.swift`: everywhere its views can take the user, its own screens and other features' screens alike, in the feature's own vocabulary. The places several features open come from [`SharedDestination`](#shareddestination-sharedui) instead.
+One enum per feature in `XUI/Navigation/XDestination.swift`, however many tabs show it: everywhere its views can take the user, its own screens and other features' screens alike, in the feature's own vocabulary. The places several features open come from [`SharedDestination`](#shareddestination-sharedui) instead.
 
 ```swift
 /// Where the Movie feature's views can take the user, besides the places several features open (`SharedDestination`).

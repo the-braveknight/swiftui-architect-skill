@@ -32,7 +32,7 @@ The trade-offs are real: more `Package.swift` files to maintain, some deliberate
 
 ## What the skill covers
 
-- The module map and dependency direction: feature packages (`XCore`, `XUI`, `XLive`, `XTests`) on `Shared`, `SharedUI`, `DesignSystem` and `Networking` packages, and what goes in each.
+- The module map and dependency direction: feature packages (`XCore`, `XUI`, `XLive`, `XTests`), one per capability whichever tabs show it, on `Shared`, `SharedUI`, `SharedLive`, `DesignSystem` and `Networking` packages, and what goes in each.
 - Domain-driven models that describe what the app shows, not what the API sends, with live services mapping API responses and errors into them.
 - Networking with Apple's swift-openapi-generator: a generated client wrapped in the app's own, with failures and cancellation classified once.
 - Service design and naming, following the Swift API Design Guidelines: a protocol per screen, reads as noun phrases, mocks for previews and tests, consumer-owned ports between features.
@@ -41,7 +41,7 @@ The trade-offs are real: more `Package.swift` files to maintain, some deliberate
 - App composition: the `<AppName>App` initializer as the dependency-injection root, environment keys, `XScreen` composition views.
 - Routing: feature `XDestination` values, SharedUI's `SharedDestination` for the places several features open, an app-owned `Router`, one mapping file, registration at stack roots.
 - Localization, assets and fonts per module: String Catalogs with generated symbols, asset catalogs with generated symbols, fonts that DesignSystem registers.
-- Naming and folder conventions.
+- Naming and folder conventions, including what a feature's screens share and what spans the whole feature.
 
 Out of scope, and covered by other skills the agent loads alongside this one:
 - SwiftUI view code technique: Apple's `swiftui-specialist`, built into Xcode's coding assistant; [SwiftUI Expert](https://github.com/AvdLee/SwiftUI-Agent-Skill); [SwiftUI Pro](https://github.com/twostraws/swiftui-agent-skill)
@@ -55,7 +55,7 @@ swiftui-architect-skill/
 ├── skills/swiftui-architect/
 │   ├── SKILL.md                 entry point: shape, rules, gotchas, workflows, which reference to read
 │   └── references/
-│       ├── modules.md           targets, folders, Package.swift, Shared, SharedUI, DesignSystem, strings, tests
+│       ├── modules.md           targets, folders, Package.swift, Shared, SharedUI, SharedLive, DesignSystem, strings, tests
 │       ├── domain.md            domain models, errors, service protocols and naming, live services, mocks, ports
 │       ├── networking.md        swift-openapi-generator, the API client, errors and cancellation
 │       ├── view-models.md       loading state, several resources, pagination, keyed resources, nested models, tests

@@ -21,6 +21,7 @@ A screen is a small family of views in its feature's XUI target: `XView`, the pu
 | `XContentView` | Takes the loaded values and lays them out in its scroll container, one view per resource or section |
 | `XSearchStateView`, `XSearchContentView`, `XSearchNextPageFooter` | A [mode](#modes)'s own family, shaped like the screen's and reading the mode through the view model |
 | `XHeader`, `XRail`, `XRow`, `XCard`, `XBannersView`, `XSectionsView` | One section, resource or element each, taking only the values it reads |
+| `Views/Cards/`, `Views/Rails/`, … | Views several of the feature's screens show, named for what they are; they take the values they show, and view builders for content that differs between screens |
 | `X…NextPageFooter` | Loads the next page of a paged resource while it's on screen; reads the view model from the environment |
 | `XToolbar` | A `ToolbarContent` struct; an item that opens a screen pushes an `XDestination` value |
 | `Models/X+Title.swift` | Display mappings from XCore values to `LocalizedStringResource` |
@@ -286,7 +287,7 @@ struct GenreDetailSearchStateView: View {
 
 - `XView` holds no `@State` beside its view model, and no view below it holds screen state. Anything a test, a deep link or another view could need lives in the view model, directly or in a nested model, so a screen's whole state is one type a test can drive.
 - A view reads the view model from the environment only when it reads state of its own, such as a resource's loading flag or error, or calls the view model, like a paging footer. A view that only passes data along takes the values instead.
-- Display views take values even though the view model is in reach, so a row never depends on one screen and can move to SharedUI when a second feature needs it.
+- Display views take values even though the view model is in reach, so a row never depends on one screen: the feature's other screens can show it too, and it moves to SharedUI when a second feature needs it.
 - `XView` injects once per screen, as its outermost modifier, so its toolbar items and the sheets it presents read the view model too. Nested models aren't injected separately. A pushed screen never sees the previous screen's view model, since destinations are registered at the stack root and each `XView` injects its own.
 - A view reading a view model that wasn't injected crashes at runtime rather than failing to build, so a preview of any view below `XView` injects one ([previews](#previews)).
 - Don't pass closures down through views for the view model's actions. A closure can't be compared, so a view that takes one is re-evaluated whenever its parent is, while a view reading the view model re-renders only for the properties it reads.
@@ -296,6 +297,7 @@ struct GenreDetailSearchStateView: View {
 
 - One `View` struct per section. No computed `some View` properties and no `@ViewBuilder` helper functions.
 - No wrapper struct around a single system view, such as a label around `Label` or an icon view around one `Image`. Extract a struct only when it holds real layout or logic.
+- A section or frame two of a feature's screens show is one view, not a copy per screen. A frame around different content, such as a banner over rails, takes that content as view builders; the actions inside still come from each screen's view model.
 - Choosing between a screen's states, a mode included, belongs in `XStateView`, not in a `Group { if … }`, `switch` or overlay in `XView`'s body.
 - Toolbars are `ToolbarContent` structs in XUI (`WatchlistToolbar`).
 - Never create views from non-view types. View models expose domain values; display mappings are XUI extensions returning `LocalizedStringResource` (`DiscoverCategory.title`), never `Text` or `Image`.
