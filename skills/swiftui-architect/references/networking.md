@@ -1,6 +1,6 @@
 # Networking
 
-One package talks to the API. It generates the API's types and client from an OpenAPI document with Apple's [swift-openapi-generator](https://github.com/apple/swift-openapi-generator), wraps the generated client in the app's own client, and classifies every failure once. Only XLive targets, XTests and the app import it.
+One package talks to the API. It generates the API's types and client from an OpenAPI document with Apple's [swift-openapi-generator](https://github.com/apple/swift-openapi-generator), wraps the generated client in the app's own client, and classifies every failure once. Only the Live targets, XTests and the app import it.
 
 ## Contents
 - The package
@@ -45,8 +45,6 @@ targets: [
 ]
 ```
 
-Like every package, it has no default actor isolation: generated code doesn't build under MainActor default isolation.
-
 ## Generating the API
 
 The build plugin, upstream's recommended setup, generates the code at build time from the two files in the target's source folder, so generated code is never committed. Xcode asks to trust the plugin once; CI skips plugin validation (`-skipPackagePluginValidation`).
@@ -62,7 +60,7 @@ namingStrategy: idiomatic
 
 - `openapi.yaml` describes only what the app uses. Trim a large upstream spec by hand (keeping the original in `Reference/`), or narrow it with the config's `filter:`. Add an endpoint to the spec before using it.
 - `idiomatic` names generate Swift-style types and members (`releaseDate`, not `release_date`).
-- The generated types are `public` because Live targets in other packages (XLive, SharedLive) map them. That makes them reachable, not shared: they never appear in an XCore model, a service protocol or anything above the Live targets.
+- The generated types are `public` because the Live targets in other packages map them. That makes them reachable, not shared: they never appear in an XCore model, a service protocol or anything above the Live targets.
 
 ## The client
 
@@ -83,7 +81,7 @@ public struct TMDBClient: Sendable {
 }
 ```
 
-- Methods keep the spec's operation names (`movie-details` → `movieDetails(id:)`), the standard OpenAPI naming, so the client reads like the spec it wraps. Swift naming practice starts at the domain: services and their methods ([domain](domain.md#naming-services-and-their-methods)).
+- Methods keep the spec's operation names (`movie-details` → `movieDetails(id:)`), so the client reads like the spec it wraps. Swift naming starts at the domain ([domain](domain.md#naming-services-and-their-methods)).
 - Each method switches over every documented output plus `.undocumented`, with no `default`, so a response newly added to the spec is a compile error where it must be handled.
 - Unwrap envelopes here (`{ "data": … }`), so XLive maps the payload itself.
 - The app builds the client with a URL session; tests build it over a stub transport.
@@ -107,7 +105,7 @@ public enum TMDBError: Error, Equatable {
 ```
 
 - Failures are classified once, in the client, so live services see only `TMDBError` and `CancellationError`, never `URLError` or the runtime's errors.
-- Cancellation must arrive as `CancellationError`: URLSession reports a cancelled task as `URLError(.cancelled)`, and a request can fail some other way once its task is cancelled. Left as failures, a footer scrolled away mid-load would come back showing a retry, and a screen left mid-load would come back showing an error.
+- Cancellation must arrive as `CancellationError`: URLSession reports a cancelled task as `URLError(.cancelled)`, and a request can fail some other way once its task is cancelled. Left as failures, a screen left mid-load would come back showing an error.
 - Only a lost connection is `.offline`. A timeout doesn't prove the device is offline.
 - The generated runtime wraps failures in `ClientError`; classify what it wraps.
 

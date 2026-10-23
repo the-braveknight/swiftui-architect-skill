@@ -11,7 +11,7 @@
   "plugins": [
     {
       "name": "swiftui-architect",
-      "description": "Architects modular SwiftUI apps as feature-module Swift packages, one per capability, on Shared, SharedUI, SharedLive, DesignSystem and Networking packages, with domain-driven models and services, view models for loading and pagination, and an app target that composes screens, injects services and routes native SwiftUI navigation.",
+      "description": "Architects modular SwiftUI apps as feature-module Swift packages, one per capability, over a shared package (Shared, SharedUI, SharedLive), DesignSystem and Networking, with domain-driven models and services, view models for loading and pagination, and an app target that composes screens, injects services and routes native SwiftUI navigation.",
       "repository": "https://github.com/the-braveknight/swiftui-architect-skill",
       "version": "2.0.0",
       "author": {

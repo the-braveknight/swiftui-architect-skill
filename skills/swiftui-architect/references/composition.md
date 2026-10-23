@@ -1,13 +1,13 @@
 # Composition
 
-The app target is the composition root. It is the only module that imports every feature, so it builds every service, wires features together, owns navigation state, and builds every screen.
+The app target is the composition root. It is the only module that imports every feature, so it builds every service, wires features together, owns navigation state and builds every screen.
 
 ## Contents
 - App target layout
 - `<AppName>App.swift`
 - Environment keys
 - ContentView
-- XScreen: tab-root screens and pushed screens
+- XScreen: tab and pushed
 
 ## App target layout
 
@@ -21,11 +21,11 @@ MoviesApp/
 └── Screens/                        one XScreen per screen
 ```
 
-The app target may use MainActor default isolation, since it only composes SwiftUI. Packages never do ([modules](modules.md#packageswift-template)).
+The app target may use MainActor default isolation, since it only composes SwiftUI; packages never do ([modules](modules.md#packageswift-template)).
 
 ## `<AppName>App.swift`
 
-Build the client and every service and adapter in `init()`. Store them as `let` properties typed as the feature protocols, and inject them on the `Scene` so every window and every screen sees the same instances. Use no DI container and no singletons.
+Build the client and every service and adapter in `init()`, store them as `let` properties typed as the feature protocols, and inject them on the `Scene`, so every window and screen sees the same instances. No DI container and no singletons.
 
 ```swift
 @main
@@ -33,7 +33,6 @@ struct MoviesApp: App {
     @State private var router = Router()
     private let discoverService: any DiscoverService
     private let movieDetailService: any MovieDetailService
-    private let movieCastService: any MovieCastService
     private let watchlistService: any WatchlistService
     private let watchlistMembershipService: any WatchlistMembershipService
 
@@ -44,7 +43,6 @@ struct MoviesApp: App {
 
             discoverService = TMDBDiscoverService(client: client)
             movieDetailService = TMDBMovieDetailService(client: client)
-            movieCastService = TMDBMovieCastService(client: client)
             self.watchlistService = watchlistService
             watchlistMembershipService = WatchlistMembershipAdapter(watchlist: watchlistService)
         } catch {
@@ -59,32 +57,31 @@ struct MoviesApp: App {
         }
         .environment(\.discoverService, discoverService)
         .environment(\.movieDetailService, movieDetailService)
-        .environment(\.movieCastService, movieCastService)
         .environment(\.watchlistService, watchlistService)
         .environment(\.watchlistMembershipService, watchlistMembershipService)
     }
 }
 ```
 
-- Live or mock is the app's decision (configuration, launch arguments for UI tests). Features never decide.
+- Live or mock is the app's decision, through configuration or launch arguments for UI tests. Features never decide.
 - One service instance per protocol for the app's lifetime; views never create services.
-- App-wide policies (URL sessions, caches, tint, color scheme) are applied here, not in features or DesignSystem.
+- App-wide policies (URL sessions, caches, tint) are applied here, not in features or DesignSystem.
 
 ## Environment keys
 
-One key per service protocol, each in its own file in `Extensions/Environment/`, named `EnvironmentValues+XService.swift`. The default is the protocol's mock, so previews and screens work without setup.
+One key per service protocol, each in `Extensions/Environment/EnvironmentValues+XService.swift`. The default is the protocol's mock, so previews work without setup:
 
 ```swift
-import DiscoverCore
+import MovieCore
 import SwiftUI
 
 extension EnvironmentValues {
-    @Entry var discoverService: any DiscoverService = .mock
+    @Entry var movieDetailService: any MovieDetailService = .mock
 }
 ```
 
-- Only app screens read these keys. Feature views never read services from the environment: `XView` receives its view model from the screen, and the views below it read that view model from the environment.
-- The app always injects real instances, so a default only matters in previews. A stateless struct mock is a stable default; `.mock` on an actor mock returns a fresh instance on each read, so a preview that needs a mock's state to persist injects one stored instance.
+- Only app screens read these keys. Feature views never read services: `XView` receives its view model from the screen.
+- `.mock` on an actor mock returns a fresh instance on each read, so a preview that needs a mock's state to persist injects one stored instance.
 
 ## ContentView
 
@@ -98,6 +95,9 @@ struct ContentView: View {
             Tab(.appTabDiscover, systemImage: "sparkles", value: .discover) {
                 DiscoverScreen()
             }
+            Tab(.appTabWatchlist, systemImage: "bookmark", value: .watchlist) {
+                WatchlistScreen()
+            }
             Tab(.appTabSearch, systemImage: "magnifyingglass", value: .search, role: .search) {
                 SearchScreen()
             }
@@ -106,18 +106,16 @@ struct ContentView: View {
 }
 ```
 
-Each tab's title and icon are written here, in its `Tab`, with no extension mapping `TabDestination` to them.
+Each tab's title and icon are written here, in its `Tab`.
 
-## XScreen
+## XScreen: tab and pushed
 
-An `XScreen` is a small app view that composes one screen: it reads services from the environment, builds the feature's view model, and passes it to the feature's public view. There are two kinds.
+An `XScreen` is a small app view that composes one screen: it reads services from the environment, builds the feature's view model, and passes it to the feature's public view. It's named after that view (`MovieDetailView` → `MovieDetailScreen`), and builds the view model inline, passing every service its [nested models](view-models.md#nested-models-and-modes) use too.
 
-### Tab-root screen
-
-Owns the tab's `NavigationStack`, bound to the Router, and registers every destination type that can appear in that stack, once, at its root. A feature that several tabs show supplies a root view for each, and each tab has its own tab-root screen (`MoviesScreen` and `TVShowsScreen` both show Discover's views).
+A **tab XScreen** shows a tab's root screen. It owns the tab's `NavigationStack`, bound to the Router, and registers every destination type that can appear in that stack, once, at its root ([registering destinations](navigation.md#registering-destinations)). A feature that several tabs show supplies a root screen for each tab, and each gets its own tab XScreen.
 
 ```swift
-/// The Discover tab: its navigation stack, the Discover feature at the root, and the screens it can push.
+/// The Discover tab: its navigation stack, Discover at the root, and the screens it can push.
 struct DiscoverScreen: View {
     @Environment(\.discoverService) private var discoverService
     @Environment(Router.self) private var router
@@ -129,10 +127,10 @@ struct DiscoverScreen: View {
                 .navigationDestination(for: SharedDestination.self) { destination in
                     DestinationView(destination: Destination(destination))
                 }
-                .navigationDestination(for: MovieDestination.self) { destination in
+                .navigationDestination(for: DiscoverDestination.self) { destination in
                     DestinationView(destination: Destination(destination))
                 }
-                .navigationDestination(for: PersonDestination.self) { destination in
+                .navigationDestination(for: MovieDestination.self) { destination in
                     DestinationView(destination: Destination(destination))
                 }
         }
@@ -140,9 +138,7 @@ struct DiscoverScreen: View {
 }
 ```
 
-### Pushed screen
-
-Takes only identifiers, never models, so the stack stays small, `Codable` and restorable. Owns no stack.
+A **pushed XScreen** takes only identifiers, never models, so the stack stays small, `Codable` and restorable. It owns no stack.
 
 ```swift
 /// A movie, pushed onto whichever stack opened it.
@@ -167,7 +163,4 @@ struct MovieDetailScreen: View {
 }
 ```
 
-- One `XScreen` per screen, named after the feature view it shows.
-- Building the view model inline is fine: the feature view stores it in `@State`, so only the first instance is kept. Every `body` pass builds one that is thrown away, so view model initializers do assignments only.
-- A screen's [nested models](view-models.md#nested-models-and-modes), such as a mode's `SearchSession` or `WatchlistMembership`, come with its view model: `XScreen` passes the view model every service they use.
-- Every screen has a preview that injects `.mock` services; tab-root screens also inject `Router()`.
+Every XScreen has a preview that injects `.mock` services; a tab XScreen also injects `Router()`.
