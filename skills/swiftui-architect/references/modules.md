@@ -41,7 +41,7 @@ Names inside a feature say what a thing is, so a screen, model or view keeps its
 | What the whole feature owns | The feature | `MovieDestination`, `MovieLayout`, the `movie.` string keys |
 
 - A feature that several tabs show owns each tab's root screen. If Discover split into Movies and TV tabs, it would own `MoviesView` and `TVShowsView`, and the screens both open.
-- A section two of the feature's screens show is one view in `Views/`, filed by kind (`Cards/`, `Rails/`): the movie's details and its cast screen both show `CastMemberCard`. A view that shows a model is named for the model and its form (`CastMemberCard`, `MovieSummaryGrid`), and keeps that name if it moves to SharedUI. A frame several screens put around different content takes that content as view builders.
+- A section two of the feature's screens show is one view in `Components/`, filed by kind (`Cards/`, `Rails/`): the movie's details and its cast screen both show `CastMemberCard`. A view that shows a model is named for the model and its form (`CastMemberCard`, `MovieSummaryGrid`), and keeps that name if it moves to SharedUI. A frame several screens put around different content takes that content as view builders.
 - A name an imported module already declares takes a qualifier from the domain: `MovieCollection`, not `Collection` (Swift); `MovieLayout`, not `Layout` (SwiftUI). Unqualified, it hides the module's type everywhere in the feature.
 
 ## Folder layout
@@ -52,27 +52,29 @@ Packages/Movie/
 ├── Sources/
 │   ├── MovieCore/
 │   │   ├── Models/            Movie.swift, CastMember.swift, MovieError.swift
-│   │   └── Services/          MovieDetailService.swift, MockMovieDetailService.swift,
-│   │                          MovieCastService.swift, MockMovieCastService.swift,
-│   │                          WatchlistMembershipService.swift, MockWatchlistMembershipService.swift
+│   │   └── Services/
+│   │       ├── MovieDetailService/          MovieDetailService.swift, MockMovieDetailService.swift
+│   │       ├── MovieCastService/            MovieCastService.swift, MockMovieCastService.swift
+│   │       └── WatchlistMembershipService/  WatchlistMembershipService.swift, MockWatchlistMembershipService.swift
 │   ├── MovieLive/
 │   │   ├── Mapping/           Movie+TMDB.swift, CastMember+TMDB.swift, MovieError+TMDB.swift
 │   │   └── Services/          TMDBMovieDetailService.swift, TMDBMovieCastService.swift
 │   └── MovieUI/
-│       ├── Models/            display mappings
+│       ├── MovieDetail/       MovieDetailViewModel.swift, MovieDetailViewModel+WatchlistMembership.swift,
+│       │                      MovieDetailView.swift, MovieDetailStateView.swift, MovieDetailContentView.swift, …
+│       ├── MovieCast/         MovieCastViewModel.swift, MovieCastView.swift, MovieCastStateView.swift,
+│       │                      MovieCastContentView.swift
+│       ├── Components/        MovieLayout.swift
+│       │   └── Cards/         CastMemberCard.swift
 │       ├── Navigation/        MovieDestination.swift
-│       ├── Resources/         Localizable.xcstrings
-│       ├── View Models/       MovieDetailViewModel.swift, MovieDetailViewModel+WatchlistMembership.swift,
-│       │                      MovieCastViewModel.swift
-│       └── Views/
-│           ├── MovieDetail/   MovieDetailView.swift, MovieDetailStateView.swift, MovieDetailContentView.swift, …
-│           ├── MovieCast/     MovieCastView.swift, MovieCastStateView.swift, MovieCastContentView.swift
-│           └── Cards/         CastMemberCard.swift
+│       └── Resources/         Localizable.xcstrings
 └── Tests/MovieTests/
     ├── Live/                  MovieMappingTests.swift
     ├── ViewModels/            MovieDetailViewModelTests.swift, MovieCastViewModelTests.swift
     └── Fixtures.swift
 ```
+
+Where each file goes: [folders](conventions.md#folders).
 
 ## Package.swift template
 

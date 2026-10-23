@@ -20,12 +20,12 @@ A screen is a small family of views in its feature's XUI target: `XView`, the pu
 | `XContentView` | Lays out the loaded values it's given in its scroll container, one view per resource or section |
 | `XSearchStateView`, `XSearchContentView`, … | A [mode](#modes)'s own family, shaped like the screen's |
 | `XHeader`, `XRail`, `XRow`, `XCard`, `X…View` | One section of this screen, taking only the values it shows |
-| `Views/Cards/`, `Views/Rails/`, … | Views several of the feature's screens show, named for what they are ([inside a feature](modules.md#inside-a-feature)) |
+| `Components/Cards/`, `Components/Rails/`, … | Views several of the feature's screens show, named for what they are ([inside a feature](modules.md#inside-a-feature)) |
 | `X…NextPageFooter` | Loads the next page of a paged resource while it's on screen |
 | `XToolbar` | A `ToolbarContent` struct |
-| `Models/X+Title.swift` | Display mappings from XCore values to `LocalizedStringResource` |
+| `X+Title.swift` | Display mappings from XCore values to `LocalizedStringResource` |
 
-A feature exports one public view per screen (`MovieDetailView`, `MovieCastView`) and its view models; everything else is internal. One type per file.
+Where each file goes: [folders](conventions.md#folders). A feature exports one public view per screen (`MovieDetailView`, `MovieCastView`) and its view models; everything else is internal. One type per file.
 
 ## XView, XStateView and XContentView
 

@@ -134,8 +134,8 @@ Copy the checklist for the task into your response and check items off as you go
 
 ```
 - [ ] XCore: the screen's service protocol and mock; XLive: its live service
-- [ ] XUI: view model + views; a case in XDestination, pushed with NavigationLink(value:)
-- [ ] XUI: a section another of the feature's screens already shows becomes one view both use, named for what it is
+- [ ] XUI: the screen's folder with its view model and views; a case in XDestination, pushed with NavigationLink(value:)
+- [ ] XUI: a section another of the feature's screens already shows becomes one view in Components/ both use, named for what it is
 - [ ] App: environment key, the service built in <AppName>App.init and injected
 - [ ] App: XScreen, Destination case and mapping, DestinationView case
 - [ ] If a stack that didn't show this feature can now reach it, register XDestination there

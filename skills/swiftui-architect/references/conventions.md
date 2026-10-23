@@ -31,7 +31,7 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 | Nested model | declared inside its view model; a plain noun for what it holds, never `…ViewModel` | `MovieDetailViewModel.WatchlistMembership`, `GenreDetailViewModel.SearchSession` |
 | Screen views | `XView` (public), `XStateView`, `XContentView`; a mode's after `X` | `DiscoverView`, `DiscoverStateView`, `GenreDetailSearchStateView` |
 | Sections of one screen | `X` + what it is | `MovieDetailCastRail`, `DiscoverFeaturedView` |
-| Views several of a feature's screens show | the model they show and their form, filed in `Views/` by kind | `CastMemberCard`, `MovieSummaryGrid` |
+| Views several of a feature's screens show | the model they show and their form, filed in `Components/` by kind | `CastMemberCard`, `MovieSummaryGrid` |
 | Paging footer | `X` + resource + `NextPageFooter` | `DiscoverShelvesNextPageFooter` |
 | Toolbar | `XToolbar` (`ToolbarContent`) | `WatchlistToolbar` |
 | Feature geometry | `XLayout`, an enum in XUI the feature's views share | `MovieLayout` |
@@ -48,8 +48,8 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 
 | Target | Folders |
 |---|---|
-| XCore | `Models/`, `Services/` |
-| XUI | `Navigation/`, `Models/` (display mappings), `View Models/`, `Views/` (a folder per screen, and one per kind of shared view: `Cards/`, `Rails/`), `Resources/` |
+| XCore | `Models/`; `Services/`, with a folder per service protocol holding it and its mock (`Services/MovieDetailService/`) |
+| XUI | a folder per screen: its view model and nested models, views, toolbar, paging footers and display mappings, with a subfolder per mode or set of sections (`GenreDetail/Search/`, `MovieDetail/Sections/`); `Components/`: the views, display mappings and `XLayout` several screens use, filed by kind (`Cards/`, `Rails/`); `Navigation/`; `Resources/` |
 | XLive | `Mapping/`, `Services/`, and `Persistence/` when it stores data |
 | XTests | `ViewModels/`, `Live/`, `Fixtures.swift` |
 | Shared | `Domain/`; SharedUI: `Components/`, `Navigation/`, `Resources/`; SharedLive: `Mapping/` |
