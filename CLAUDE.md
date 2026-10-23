@@ -5,7 +5,7 @@ This repository is the `swiftui-architect` agent skill. Agents read `skills/swif
 ## What the skill is for
 
 - It decides where code lives, who owns it, and the shape of the pieces that hold a modular SwiftUI app together: modules and their dependency direction, domain models and errors, services and the networking client, view models, the views a screen is made of, app composition, navigation and naming.
-- It states shapes and rules. How to write the code inside a shape (view bodies, modifiers, layout, isolation, task groups) belongs to the SwiftUI and Swift Concurrency skills listed under Related skills in `SKILL.md`.
+- It states shapes and rules. How to write the code inside a shape (view bodies, modifiers, layout, isolation, task groups) belongs to the SwiftUI, Swift Concurrency and Swift Testing skills listed under Related skills in `SKILL.md`.
 - Out of scope: visual design, accessibility, and anything that belongs to one app built with the skill.
 
 ## What a change must respect

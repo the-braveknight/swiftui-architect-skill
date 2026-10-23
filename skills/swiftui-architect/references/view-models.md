@@ -375,7 +375,7 @@ extension GenreDetailViewModel {
 
 ## Testing view models
 
-Swift Testing, `@MainActor` suites, `@testable import XUI`, and a private actor stub of the service in each test file. Tests that interleave two loads use a stub that holds a request until the test releases it.
+Swift Testing, `@MainActor` suites, `@testable import XUI`, and a private actor stub of the service in each test file. Tests that interleave two loads use a stub that holds a request until the test releases it. How to write the tests themselves is a Swift Testing skill's subject ([related skills](../SKILL.md#related-skills)).
 
 Test the rules a bug would break on this screen, not the shape every view model shares:
 - What a load publishes, and what it asks the service for.

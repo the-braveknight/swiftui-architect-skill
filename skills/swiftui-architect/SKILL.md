@@ -5,7 +5,7 @@ description: Architects modular SwiftUI apps as one Swift package per feature ca
 
 # SwiftUI Architect
 
-Decides where code lives, who owns it, and the shape of the pieces that hold a modular SwiftUI app together. For how to write the SwiftUI or concurrency code inside those shapes, use the skills in [Related skills](#related-skills).
+Decides where code lives, who owns it, and the shape of the pieces that hold a modular SwiftUI app together. For how to write the SwiftUI, concurrency or test code inside those shapes, use the skills in [Related skills](#related-skills).
 
 `X` stands for a feature (`Movie`) or one of its screens (`MovieCast` → `MovieCastService`, `MovieCastViewModel`, `MovieCastView`, `MovieCastScreen`). A *screen* is one navigable page: its feature exports the view, and the app composes it in an `XScreen`.
 
@@ -192,5 +192,6 @@ This skill decides where code lives and what shape it takes. Load these, when in
 |---|---|
 | View bodies, state and data flow, modifiers, lists, navigation and presentation APIs, previews | A SwiftUI skill: `swiftui-specialist` (Apple's, built into Xcode's coding assistant), `swiftui-expert-skill` (https://github.com/AvdLee/SwiftUI-Agent-Skill) or `swiftui-pro` (https://github.com/twostraws/swiftui-agent-skill) |
 | Service and client methods, view model loads, task groups, cancellation, actors, `Sendable`, test stubs | A Swift Concurrency skill: `swift-concurrency` (https://github.com/AvdLee/Swift-Concurrency-Agent-Skill) or `swift-concurrency-pro` (https://github.com/twostraws/Swift-Concurrency-Agent-Skill) |
+| View model and mapping tests: suites, `#expect` and `#require`, parameterized tests, traits, async tests | A Swift Testing skill: `swift-testing-expert` (https://github.com/AvdLee/Swift-Testing-Agent-Skill) |
 
 Where this skill states a shape (a view model's loads, `XView`'s `.task`, a live service's `@concurrent` methods), follow it, and use those skills for everything inside it.
