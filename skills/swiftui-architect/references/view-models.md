@@ -55,7 +55,7 @@ public final class MovieCastViewModel {
 - `@MainActor @Observable public final class`, one per screen: a view pushed onto a stack, or a tab's root. Never one for a part of a screen ([nested models](#nested-models-and-modes)).
 - `public init` takes IDs and services and only assigns: the app builds a view model on every `body` pass and the view keeps the first, so `init` starts no tasks, subscriptions or I/O.
 - State is `private(set)`. Actions are internal imperative verbs the views call: `load()`, `refresh()`, `loadNextShelvesPage()`, `toggle(_:)`. Three kinds of state are plain `var`s instead: input a view binds (a search field's `text`), what the screen presents (`isFilterPresented`), and what a sheet edits before it's applied (`filterDraft`) ([presentations](navigation.md#sheets-covers-and-alerts)).
-- It stores what the service returns as it is: no data processing, pushing or routing, views, display strings or other features.
+- It stores what the service returns as it is: no data processing, pushing or routing, views, display strings or other features. Appending a page skips what the list already holds, the one step that looks across calls ([pagination](#pagination)).
 - `load()` is safe to call again, for a retry or the view reappearing, with no `loadIfNeeded()` variant or "already loaded" flag. A screen with a paged list is the one exception ([coming back to a paged list](#coming-back-to-a-paged-list)).
 
 ## One resource: data, activity and error
@@ -174,7 +174,9 @@ func loadNextShelvesPage() async {
         guard nextShelvesPage == requestedPage else {
             return
         }
-        self.shelves.append(contentsOf: page.items)
+        // The list may have shifted since the last page, so it can repeat a shelf already loaded.
+        let loaded = Set(shelves.map(\.id))
+        self.shelves.append(contentsOf: page.items.filter { !loaded.contains($0.id) })
         self.nextShelvesPage = page.nextPage
         self.nextShelvesPageError = nil
     } catch is CancellationError {
@@ -190,7 +192,7 @@ func loadNextShelvesPage() async {
 - Loading the first page replaces the list, sets `next…Page` and clears `next…PageError`.
 - A later page appends, and is dropped when the list no longer needs that page next: a refresh started it over, or a duplicate call already appended it.
 - No in-flight guard: the footer's task restarts as the footer scrolls out and back in, and the restarted call must be able to load.
-- No de-duplication across pages and no merging helpers on models; the service decides what a page holds.
+- A later page skips the items whose ids the list already holds. With offset paging, an item added or moved between requests shifts the next page, which then repeats items from the last, and a list can't show one id twice. The service decides what a page holds; the view model only drops repeats, with no merging helpers on models.
 
 ### Coming back to a paged list
 
@@ -375,7 +377,7 @@ Swift Testing, `@MainActor` suites, `@testable import XUI`, and a private actor 
 Test the rules a bug would break on this screen, not the shape every view model shares:
 - What a load publishes, and what it asks the service for.
 - The screen's own failure rule, such as Discover still showing its shelves when the featured movies fail.
-- Paging: a next page appends, and loading again keeps the pages.
+- Paging: a next page appends what the list doesn't hold yet, and loading again keeps the pages.
 - Stale results: a page that arrives after a refresh, or a key's results after a new key, is dropped, and a restarted footer still loads its page.
 - A key or a mode's rules: a new key starts the data over and shows it as loading.
 

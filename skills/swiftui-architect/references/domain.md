@@ -63,7 +63,7 @@ public enum MovieError: Error, Equatable {
 
 ## Service protocols
 
-XCore declares one service protocol per screen, holding only what that screen loads, with one ready-made method per resource. The service maps, aggregates and de-duplicates, so a view model only assigns what it returns.
+XCore declares one service protocol per screen, holding only what that screen loads, with one ready-made method per resource. The service maps, aggregates and de-duplicates what one call returns, so a view model only assigns it; a list paged across calls is the view model's to keep free of repeats ([pagination](view-models.md#pagination)).
 
 ```swift
 /// What a movie's details show: the movie and its cast.

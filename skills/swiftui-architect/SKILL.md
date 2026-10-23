@@ -103,6 +103,7 @@ Hard rules:
 - Start a screen's loads from `.task` on `XView`, never on its progress view, which goes away when the first data arrives and cancels the loads still running.
 - A cancelled request must reach the view model as `CancellationError`. URLSession reports `URLError(.cancelled)`, so the client converts it; otherwise a screen left mid-load comes back showing an error.
 - Coming back to a screen runs its `.task` again. A screen with a paged list guards `load()` on that list (`guard shelves.isEmpty else { return }`) and refreshes through `refresh()`, or the loaded pages are lost.
+- A later page can repeat items from the last when the list shifted between requests. Append only the ids the list doesn't hold, or `ForEach` sees one id twice.
 - A response can arrive after its key changed, such as a department or search words. A load whose key is no longer current drops its result and leaves `isLoading…` to the current key's load.
 - `XScreen` builds a view model on every `body` pass and `XView` keeps the first, so a view model's `init` only assigns.
 - A view that reads a view model the environment doesn't have crashes at runtime, so a preview of any view below `XView` injects one.
