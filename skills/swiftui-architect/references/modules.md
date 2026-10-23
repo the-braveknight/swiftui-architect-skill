@@ -38,11 +38,11 @@ Names inside a feature say what a thing is, so a screen, model or view keeps its
 | A tab's root screen, with its view model, service, error and the models only it shows | Its tab | `DiscoverView`, `DiscoverViewModel`, `DiscoverService`, `DiscoverShelf` |
 | Any other screen | What it shows | `GenreDetailView`, `MovieCastView` |
 | A view, model or mapping several of the feature's screens use | What it is | `CastMemberCard`, `MovieSummaryGrid` |
-| What the whole feature owns | The feature | `MovieDestination`, `MovieLayout`, the `movie.` string keys |
+| What the whole feature owns | The feature | `MovieDestination`, `MovieError`, the `movie.` string keys |
 
 - A feature that several tabs show owns each tab's root screen. If Discover split into Movies and TV tabs, it would own `MoviesView` and `TVShowsView`, and the screens both open.
 - A section two of the feature's screens show is one view in `Components/`, filed by kind (`Cards/`, `Rails/`): the movie's details and its cast screen both show `CastMemberCard`. A view that shows a model is named for the model and its form (`CastMemberCard`, `MovieSummaryGrid`), and keeps that name if it moves to SharedUI. A frame several screens put around different content takes that content as view builders.
-- A name an imported module already declares takes a qualifier from the domain: `MovieCollection`, not `Collection` (Swift); `MovieLayout`, not `Layout` (SwiftUI). Unqualified, it hides the module's type everywhere in the feature.
+- A name an imported module already declares takes a qualifier from the domain: `MovieCollection`, not `Collection`. Unqualified, it hides the module's type everywhere in the feature.
 
 ## Folder layout
 
@@ -64,7 +64,7 @@ Packages/Movie/
 │       │                      MovieDetailView.swift, MovieDetailStateView.swift, MovieDetailContentView.swift, …
 │       ├── MovieCast/         MovieCastViewModel.swift, MovieCastView.swift, MovieCastStateView.swift,
 │       │                      MovieCastContentView.swift
-│       ├── Components/        MovieLayout.swift
+│       ├── Components/
 │       │   └── Cards/         CastMemberCard.swift
 │       ├── Navigation/        MovieDestination.swift
 │       └── Resources/         Localizable.xcstrings

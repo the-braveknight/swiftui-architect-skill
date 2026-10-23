@@ -27,14 +27,13 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 | API client and its error | the API's name + `Client` / `Error`; client methods keep the spec's operation names | `TMDBClient.movieDetails(id:)`, `TMDBError` |
 | View model | `XViewModel`, one per screen | `MovieCastViewModel` |
 | View model actions | imperative verbs; `refresh()` beside `load()` on a screen with a paged list | `load()`, `refresh()`, `loadNextShelvesPage()`, `select(_:)` |
-| View model state | per resource: the data, `isLoading…`, `…Error`; paged: `next…Page`, `isLoadingNext…Page`, `next…PageError`; keyed: the key (`selectedDepartment`); bound input (`text`), what's presented (`isFilterPresented`), a draft (`filterDraft`) ([view models](view-models.md#one-resource-data-activity-and-error)) | `shelves`, `isLoadingShelves`, `shelvesError`, `nextShelvesPage` |
+| View model state | per resource: the data, `isLoading…`, `…Error`; paged: `next…Page`, `isLoadingNext…Page`, `next…PageError`; keyed: the key (`selectedDepartment`); bound input (`text`), what's presented (`isFilterPresented`), a draft (`filterDraft`), a change in progress (`isUpdating`) ([view models](view-models.md#one-resource-data-activity-and-error)) | `shelves`, `isLoadingShelves`, `shelvesError`, `nextShelvesPage` |
 | Nested model | declared inside its view model; a plain noun for what it holds, never `…ViewModel` | `MovieDetailViewModel.WatchlistMembership`, `GenreDetailViewModel.SearchSession` |
 | Screen views | `XView` (public), `XStateView`, `XContentView`; a mode's after `X` | `DiscoverView`, `DiscoverStateView`, `GenreDetailSearchStateView` |
 | Sections of one screen | `X` + what it is | `MovieDetailCastRail`, `DiscoverFeaturedView` |
 | Views several of a feature's screens show | the model they show and their form, filed in `Components/` by kind | `CastMemberCard`, `MovieSummaryGrid` |
 | Paging footer | `X` + resource + `NextPageFooter`, leaving out the resource when `X` already names it | `DiscoverShelvesNextPageFooter` |
 | Toolbar | `XToolbar` (`ToolbarContent`) | `WatchlistToolbar` |
-| Feature geometry | `XLayout`, an enum in XUI the feature's views share | `MovieLayout` |
 | Destinations | `XDestination` in a feature, `SharedDestination` in SharedUI; cases name the place and carry IDs | `MovieDestination.cast(movieID:)`, `SharedDestination.movieDetail(id:)` |
 | App navigation | `Router`, `TabDestination`, `Destination`, `DestinationView`; a `Destination` case is its app screen's name without `Screen` | `.movieCast(movieID:)` |
 | App screen | `XScreen` | `MovieDetailScreen` |
@@ -49,7 +48,7 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 | Target | Folders |
 |---|---|
 | XCore | `Models/`; `Services/`, with a folder per service protocol holding it and its mock (`Services/MovieDetailService/`) |
-| XUI | a folder per screen: its view model and nested models, views, toolbar, paging footers and display mappings, with a subfolder per mode or set of sections (`GenreDetail/Search/`, `MovieDetail/Sections/`); `Components/`: the views, display mappings and `XLayout` several screens use, filed by kind (`Cards/`, `Rails/`); `Navigation/`; `Resources/` |
+| XUI | a folder per screen: its view model and nested models, views, toolbar, paging footers and display mappings, with a subfolder per mode or set of sections (`GenreDetail/Search/`, `MovieDetail/Sections/`); `Components/`: the views and display mappings several screens use, filed by kind (`Cards/`, `Rails/`); `Navigation/`; `Resources/` |
 | XLive | `Mapping/`, `Services/`, and `Persistence/` when it stores data |
 | XTests | `ViewModels/`, `Live/`, `Fixtures.swift` |
 | Shared | `Domain/`; SharedUI: `Components/`, `Navigation/`, `Resources/`; SharedLive: `Mapping/` |

@@ -307,7 +307,9 @@ extension MovieDetailViewModel {
     @MainActor
     @Observable
     final class WatchlistMembership {
-        private(set) var isInWatchlist: Bool = false
+        /// Whether the movie is in the watchlist; `nil` until it loads.
+        private(set) var isInWatchlist: Bool?
+        /// Whether a toggle is in progress, so the button can't send another.
         private(set) var isUpdating: Bool = false
 
         init(movieID: MovieSummary.ID, service: any WatchlistMembershipService) { … }
