@@ -226,6 +226,6 @@ Each feature package builds, previews and tests without the app. Test what a bug
 | The API's quirks in mapping: dropped incomplete items, duplicates, paging metadata | `XTests/Live` and `SharedLiveTests`, with hand-built generated types |
 | Requests, decoding, error classification and cancellation | `NetworkingTests`, with a stub transport |
 | `Destination` mappings that aren't one-to-one, and adapters | app tests |
-| Visual states: loading, empty, error, right-to-left | previews |
+| Visual states: loading, empty, error | previews |
 
 Test data comes from `make…` factories (`makeMovie(id:title:)`) in each test target's `Fixtures.swift`. Run the feature's scheme (`Movie-Package`) after every change to it, and build the app after changing anything public.

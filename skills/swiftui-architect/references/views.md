@@ -234,7 +234,6 @@ Every public view has a preview built on mocks, so the feature is its own demo:
         DiscoverView(viewModel: DiscoverViewModel(service: .mock(.failure(.offline))))
     }
 }
-
 ```
 
 A view below `XView` reads a view model from the environment and crashes at runtime without one, so its preview injects the view model `XView` would have:
@@ -245,7 +244,7 @@ A view below `XView` reads a view model from the environment and crashes at runt
         .sheet(isPresented: .constant(true)) {
             SearchFilterView()
         }
-        .environment(SearchViewModel(service: .mock))
+        .environment(SearchViewModel(service: .mock, recentSearchesService: .mock))
 }
 ```
 

@@ -272,7 +272,7 @@ func loadCredits() async {
 ```
 
 - Changing the key is synchronous: it empties the data, clears its error and paging, and sets `isLoading…` when a load follows. The old key's data never shows under the new one.
-- A control that picks the key binds it through the action, so the reset always runs: `Picker(selection: Binding(get: { viewModel.selectedDepartment }, set: { viewModel.select($0) }))`.
+- A control that picks the key sets it through `select(_:)`, never the key itself, so the reset always runs.
 - `XView` loads from `.task(id: viewModel.selectedDepartment)`, the first load included; `load()` loads the rest of the screen. SwiftUI cancels the old key's load, but a response can arrive before its cancellation, so a load whose key no longer matches drops its result.
 - A keyed resource beside the thing a screen shows, such as the credits under a person's details, is a section of the content, with the control that picks its key, its own progress and its own error. The state view follows the person, so a new key never blanks the screen.
 - A keyed paged list, such as search results, guards its load on the list like a [screen's](#coming-back-to-a-paged-list), and a new key empties the list, so the new key's load gets through.
