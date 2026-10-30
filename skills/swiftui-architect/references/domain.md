@@ -19,7 +19,7 @@ A domain model describes what the app shows, not what the API sends. The API's s
 // What TMDB sends, generated in Networking: every field optional, a date as text, an image as a path.
 // Components.Schemas.MovieDetails(id:title:releaseDate:voteAverage:posterPath:genres:)
 
-// What the Movie feature shows, in MovieCore:
+// What the Catalog feature shows, in CatalogCore:
 public struct Movie: Identifiable, Equatable, Sendable {
     public let id: Int
     public let title: String
@@ -51,7 +51,7 @@ public var id: Source { source }
 Every feature has its own error enum, cased by what its screens show, or one per screen when their failures differ: Discover's feed can't be "not found", but a genre opened by its id can (`DiscoverError` and `GenreDetailError`). Errors are never shared between features.
 
 ```swift
-public enum MovieError: Error, Equatable {
+public enum CatalogError: Error, Equatable {
     case offline
     case notFound
     case unavailable
@@ -68,16 +68,16 @@ XCore declares one service protocol per screen, holding only what that screen lo
 ```swift
 /// What a movie's details show: the movie and its cast.
 public protocol MovieDetailService: Sendable {
-    /// - Throws: `MovieError`. Cancellation propagates as `CancellationError`.
+    /// - Throws: `CatalogError`. Cancellation propagates as `CancellationError`.
     func movie(id: MovieSummary.ID) async throws -> Movie
 
-    /// - Throws: `MovieError`. Cancellation propagates as `CancellationError`.
+    /// - Throws: `CatalogError`. Cancellation propagates as `CancellationError`.
     func cast(movieID: MovieSummary.ID) async throws -> [CastMember]
 }
 ```
 
 - Methods return domain values ready to show. A paged list returns `Page<Item>` from Shared; a screen that pages one thing's list has [a method for each](view-models.md#a-thing-and-its-paged-list). Never wrap a page in a feature type to carry more: a count the screen shows is a read of its own.
-- Methods use untyped `throws` and name the error in the doc comment. Cancellation must reach the view model as `CancellationError`, which `throws(MovieError)` couldn't carry.
+- Methods use untyped `throws` and name the error in the doc comment. Cancellation must reach the view model as `CancellationError`, which `throws(CatalogError)` couldn't carry.
 - Protocols refine `Sendable`, so `any MovieDetailService` crosses into the environment and a main-actor view model.
 - Nothing else sits between a view model and its sources: no repository, use case, interactor or manager. A live service calls the client itself.
 - A concern with a source of its own, such as recent searches, is a separate service the view model takes beside the screen's (`RecentSearchesService`). A capability another feature owns is a [port](#cross-feature-services-consumer-owned-ports).
@@ -115,11 +115,11 @@ public struct TMDBMovieDetailService: MovieDetailService {
         do {
             let response = try await client.movieDetails(id: id)
             guard let movie = Movie(response) else {
-                throw MovieError.unavailable
+                throw CatalogError.unavailable
             }
             return movie
         } catch let error as TMDBError {
-            throw MovieError(error)
+            throw CatalogError(error)
         }
     }
 
@@ -128,7 +128,7 @@ public struct TMDBMovieDetailService: MovieDetailService {
 ```
 
 - Methods are `@concurrent`, so requests and mapping run off the main actor. Protocol requirements and mocks stay unannotated.
-- Mapping lives in `Model+Source.swift` extensions (`Movie+TMDB.swift`, `MovieError+TMDB.swift`). A model maps from its response in a failable initializer: a list item missing a required field is dropped, and a whole response that can't be read is `.unavailable`. A mapping to a Shared model that several features read lives once, in SharedLive ([modules](modules.md#shared-sharedui-and-sharedlive)).
+- Mapping lives in `Model+Source.swift` extensions (`Movie+TMDB.swift`, `CatalogError+TMDB.swift`). A model maps from its response in a failable initializer: a list item missing a required field is dropped, and a whole response that can't be read is `.unavailable`. A mapping to a Shared model that several features read lives once, in SharedLive ([modules](modules.md#shared-sharedui-and-sharedlive)).
 - The feature's error maps from the client's error in an initializer, such as a 404 to `.notFound`. `CancellationError` passes through untouched ([networking](networking.md#errors-and-cancellation)).
 - A client step that two of a feature's live services share, such as reading extra artwork, is an internal extension on the client in XLive.
 - A client step that several features share, such as discovering movies by genre for Discover and for Search's filter, is a public extension in SharedLive's `Services/` (`TMDBClient+DiscoverMovies.swift`). It takes Shared values, returns a Shared model, and throws the client's error for each feature to map to its own.
@@ -142,7 +142,7 @@ public struct MockMovieDetailService: MovieDetailService {
     /// What the mock answers: sample data, or a failure to preview an error state.
     public enum Scenario: Sendable {
         case sample
-        case failure(MovieError)
+        case failure(CatalogError)
     }
 
     private let scenario: Scenario
@@ -175,7 +175,7 @@ extension MovieDetailService where Self == MockMovieDetailService {
 When feature A needs a capability that feature B owns, A declares a port in its own XCore, named for its own need. The app implements it with an adapter over B, so neither feature imports the other.
 
 ```swift
-// MovieCore: named for the Movie feature's need, not after Watchlist.
+// CatalogCore: named for the Catalog feature's need, not after Watchlist.
 public protocol WatchlistMembershipService: Sendable {
     func isInWatchlist(movieID: MovieSummary.ID) async throws -> Bool
     func addToWatchlist(_ movie: MovieSummary) async throws

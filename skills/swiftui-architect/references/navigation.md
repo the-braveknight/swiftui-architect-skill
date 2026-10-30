@@ -18,16 +18,16 @@ Native SwiftUI navigation only: `NavigationStack(path:)`, `NavigationLink(value:
 ## The model
 
 ```
-Feature view ──── NavigationLink(value: MovieDestination.cast(movieID: 550))
+Feature view ──── NavigationLink(value: CatalogDestination.cast(movieID: 550))
                         │  appended to the tab's NavigationPath
                         ▼
-Tab XScreen ───── .navigationDestination(for: MovieDestination.self)
+Tab XScreen ───── .navigationDestination(for: CatalogDestination.self)
                         │  Destination(destination)  → .movieCast(movieID: 550)
                         ▼
 DestinationView ─ MovieCastScreen(movieID: 550) ── reads services, builds the view model
 ```
 
-The same path works inside a feature (a movie's details → its cast) and across features (Movie → Person). The feature never knows which.
+The same path works inside a feature (a movie's details → its cast) and across features (a genre's movies in Discover → a movie's details in Catalog). The feature never knows which.
 
 - Feature views push values with `NavigationLink(value:)`, and never receive navigation closures, a router or a path. The one thing the app passes in is the screen an `XView` presents ([presenting a screen](#presenting-a-screen)).
 - View models never push or route: they hold what the screen presents, and its views act on it. A screen that closes once an action succeeds, such as a form that saves, calls `dismiss()` from its view when the view model's state says the action is done.
@@ -37,17 +37,18 @@ The same path works inside a feature (a movie's details → its cast) and across
 One enum per feature in `XUI/Navigation/XDestination.swift`, however many tabs show it: everywhere its views can take the user, its own screens and other features' alike, in the feature's own words.
 
 ```swift
-/// Where the Movie feature's views can take the user, besides the places several features open (`SharedDestination`).
-public enum MovieDestination: Hashable, Codable, Sendable {
+/// Where the Catalog feature's views can take the user, besides the places several features open (`SharedDestination`).
+public enum CatalogDestination: Hashable, Codable, Sendable {
     /// Everyone credited in a movie.
     case cast(movieID: MovieSummary.ID)
-    /// The person behind a cast credit. Movie doesn't import Person, so the id is a plain `Int`.
-    case person(id: Int)
+    /// The person behind a credit.
+    case person(id: Person.ID)
 }
 
-NavigationLink(.movieDetailCastSeeAll, value: MovieDestination.cast(movieID: movieID))
+NavigationLink(.catalogMovieDetailCastSeeAll, value: CatalogDestination.cast(movieID: movieID))
 ```
 
+- A case may open another feature's screen and is still named in this feature's words: Watchlist's `.signIn` opens Account's screen ([presenting a screen](#presenting-a-screen)). It carries a plain `Int` when the id's type belongs to the other feature, since features don't import each other.
 - Cases carry identifiers, never models or data to display; the pushed screen loads what it shows. `Codable` keeps stacks restorable and deep-linkable.
 - Name cases for the place, not the action (`.person(id:)`, not `.showPerson`).
 - A feature whose every place is shared has no `XDestination`.
@@ -64,7 +65,7 @@ public enum SharedDestination: Hashable, Codable, Sendable {
 }
 ```
 
-- A place moves here once two features link to it. The feature that owns the screen counts only when its own views link to it. A place only one feature links to stays in that feature's `XDestination`, even when the screen belongs to another feature: only Movie links to a person (`MovieDestination.person(id:)`).
+- A place moves here once two features link to it. The feature that owns the screen counts only when its own views link to it. A place only one feature links to stays in that feature's `XDestination`, even when the screen belongs to another feature: only Watchlist links to signing in (`WatchlistDestination.signIn`).
 - Cases name the screen they open (`.movieDetail(id:)`), since the enum sits outside every feature; a feature's `XDestination` names places in its own words instead (`.cast(movieID:)`).
 - A case carries a Shared type's id where one exists (`MovieSummary.ID`), and a plain `Int` otherwise, since SharedUI imports no feature.
 - A SharedUI view that links, such as `MovieSummaryCard`, pushes `SharedDestination` itself, with no protocol or closures for its links.
@@ -122,7 +123,7 @@ extension Destination {
         }
     }
 
-    init(_ destination: MovieDestination) {
+    init(_ destination: CatalogDestination) {
         switch destination {
         case .cast(let movieID): self = .movieCast(movieID: movieID)
         case .person(let id): self = .personDetail(id: id)
@@ -164,7 +165,7 @@ A feature can link to a place before its screen is built: `DestinationView` show
 Every tab XScreen registers, at its stack root, `SharedDestination` and each `XDestination` type that can appear in its stack ([tab XScreen](composition.md#xscreen-tab-and-pushed)):
 
 ```swift
-.navigationDestination(for: MovieDestination.self) { destination in
+.navigationDestination(for: CatalogDestination.self) { destination in
     DestinationView(destination: Destination(destination))
 }
 ```
@@ -277,24 +278,25 @@ Feature previews wrap the view in a `NavigationStack`. To click through a featur
 #Preview {
     NavigationStack {
         MovieDetailView(viewModel: …)   // built on .mock services
-            .navigationDestination(for: MovieDestination.self) { destination in
-                MoviePreviewDestinationView(destination: destination)
+            .navigationDestination(for: CatalogDestination.self) { destination in
+                CatalogPreviewDestinationView(destination: destination)
             }
     }
 }
 
-/// Builds the Movie feature's own screens on mock services for previews. The app builds the real ones.
-private struct MoviePreviewDestinationView: View {
-    let destination: MovieDestination
+/// Builds the Catalog feature's own screens on mock services for previews. The app builds the real ones.
+private struct CatalogPreviewDestinationView: View {
+    let destination: CatalogDestination
 
     var body: some View {
         switch destination {
         case .cast(let movieID):
             MovieCastView(viewModel: …)
         case .person(let id):
-            // Another feature's screen: only the app can build it.
-            Text(verbatim: "Person \(id)")
+            PersonDetailView(viewModel: …)
         }
     }
 }
 ```
+
+A place that opens another feature's screen shows a placeholder in the builder (`Text(verbatim:)`), since only the app can build that screen.

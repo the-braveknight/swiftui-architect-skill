@@ -26,7 +26,7 @@ public final class MovieCastViewModel {
     /// Cast
     private(set) var cast: [CastMember] = []
     private(set) var isLoadingCast: Bool = true
-    private(set) var castError: MovieError?
+    private(set) var castError: CatalogError?
 
     public init(movieID: MovieSummary.ID, service: any MovieCastService) {
         self.movieID = movieID
@@ -42,7 +42,7 @@ public final class MovieCastViewModel {
             castError = nil
         } catch is CancellationError {
 
-        } catch let error as MovieError {
+        } catch let error as CatalogError {
             castError = error
         } catch {
             castError = .unavailable

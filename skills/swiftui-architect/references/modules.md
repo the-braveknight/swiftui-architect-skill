@@ -3,6 +3,7 @@
 The app is built from local Swift packages: one per feature, plus the shared package, DesignSystem and Networking, which every feature stands on. The compiler enforces the boundaries, since a module can use only what its package declares.
 
 ## Contents
+- Defining features
 - Feature packages
 - Inside a feature
 - Folder layout
@@ -15,9 +16,32 @@ The app is built from local Swift packages: one per feature, plus the shared pac
 - Checking the boundaries
 - Moving an app into packages
 
+## Defining features
+
+A feature is a capability the user would name: finding something to watch (Discover), looking up a movie and the people in it (Catalog), searching (Search), keeping a watchlist (Watchlist), signing in (Account). It owns that capability's models, services and every screen of it, however many there are. A capability with one screen, such as signing in, is still a feature.
+
+- Name it for what the user does there, never for a screen, a tab or a model other features show: `Catalog`, not `MovieDetail`, `Home` or `Movie`.
+- Service protocols and view models are per screen inside a feature's targets; a screen never gets a package.
+
+Decide a boundary by change and meaning:
+- **One feature** when one kind of change touches both parts. A movie's cast and a person's credits are the same credits seen from either side, so a change to credits touches both screens.
+- **Separate features** when each part changes for its own reasons: Discover changes with what the app recommends, Search with how queries and filters work.
+- **Separate types** when a noun means something else in each part. To Catalog a movie's genres are labels on its details (`genres: [String]`); to Discover a genre is a place with its own paged movies (`Genre`).
+
+Then check what a split costs. Between features cross only ids, through destinations; narrow questions, through [ports](domain.md#cross-feature-services-consumer-owned-ports), as Catalog asks Watchlist whether a movie is kept; and the shared vocabulary, through [the shared package](#shared-sharedui-and-sharedlive). A split that needs more than that, such as one side's own types or a port for most of what the other does, is one feature.
+
+- A screen that shows several features' data belongs to the feature whose capability it serves, and asks the others through ports: a movie's details show whether the movie is kept.
+- Merge two features when most changes touch both, or when their ports keep growing. Split one when its parts share no types, change for different reasons and could stand alone, such as a `Home` package holding everything the first tab shows.
+
+Avoid:
+- A package per screen (`MovieDetail`, `MovieCast`). It splits one model across packages, so features import each other or the shared package grows.
+- A package per tab (`Home`), or per model other features show (`Movie`, `Person`, `Genre`). Every screen shows several such models, so their packages would import each other, which features never do.
+- A package per layer (`Models`, `Services`, `Views`) that every feature shares.
+- Moving a model to the shared package to avoid a port ([the promotion rule](#shared-sharedui-and-sharedlive)).
+
 ## Feature packages
 
-A feature is a vertical slice around one capability, and it owns that capability's data contract and every screen of it: Movie owns a movie's details and its cast. Screens and tabs never define the boundary. Name the package after the capability, never after a tab or a screen: `Discover`, `Movie`, `Search`, `Watchlist`, not `MovieDetail` or `Home`.
+Each feature is one package with four targets:
 
 | Target | Contains | Imports |
 |---|---|---|
@@ -40,9 +64,9 @@ Names inside a feature say what a thing is, so a screen, model or view keeps its
 | A tab's root screen, with its view model, service, error and the models only it shows | Its tab | `DiscoverView`, `DiscoverViewModel`, `DiscoverService`, `DiscoverShelf` |
 | Any other screen | What it shows | `GenreDetailView`, `MovieCastView` |
 | A view, model or mapping several of the feature's screens use | What it is | `CastMemberCard`, `MovieSummaryGrid` |
-| What the whole feature owns | The feature | `MovieDestination`, `MovieError`, the `movie.` string keys |
+| What the whole feature owns | The feature | `CatalogDestination`, `CatalogError`, the `catalog.` string keys |
 
-- A feature that several tabs show owns each tab's root screen. If Discover split into Movies and TV tabs, it would own `MoviesView` and `TVShowsView`, and the screens both open.
+- A feature that several tabs show owns each tab's root screen. If Discover split into Movies and TV tabs, it would own `MoviesView` and `TVShowsView`.
 - A section that two of the feature's screens show is one view in `Components/`, filed by kind (`Cards/`, `Rails/`). The movie's details and its cast screen both show `CastMemberCard`.
 - A view that shows a model is named for the model and its form (`CastMemberCard`, `MovieSummaryGrid`), and keeps that name if it moves to SharedUI.
 - A frame that several screens put around different content takes that content as `@ContentBuilder` closures.
@@ -51,30 +75,35 @@ Names inside a feature say what a thing is, so a screen, model or view keeps its
 ## Folder layout
 
 ```
-Packages/Movie/
+Packages/Catalog/
 ├── Package.swift
 ├── Sources/
-│   ├── MovieCore/
-│   │   ├── Models/            Movie.swift, CastMember.swift, MovieError.swift
+│   ├── CatalogCore/
+│   │   ├── Models/            Movie.swift, CastMember.swift, Person.swift, Credit.swift, Department.swift,
+│   │   │                      CatalogError.swift
 │   │   └── Services/
 │   │       ├── MovieDetailService/          MovieDetailService.swift, MockMovieDetailService.swift
 │   │       ├── MovieCastService/            MovieCastService.swift, MockMovieCastService.swift
+│   │       ├── PersonDetailService/         PersonDetailService.swift, MockPersonDetailService.swift
 │   │       └── WatchlistMembershipService/  WatchlistMembershipService.swift, MockWatchlistMembershipService.swift
-│   ├── MovieLive/
-│   │   ├── Mapping/           Movie+TMDB.swift, CastMember+TMDB.swift, MovieError+TMDB.swift
-│   │   └── Services/          TMDBMovieDetailService.swift, TMDBMovieCastService.swift
-│   └── MovieUI/
+│   ├── CatalogLive/
+│   │   ├── Mapping/           Movie+TMDB.swift, CastMember+TMDB.swift, Person+TMDB.swift, Credit+TMDB.swift,
+│   │   │                      CatalogError+TMDB.swift
+│   │   └── Services/          TMDBMovieDetailService.swift, TMDBMovieCastService.swift, TMDBPersonDetailService.swift
+│   └── CatalogUI/
 │       ├── MovieDetail/       MovieDetailViewModel.swift, MovieDetailViewModel+WatchlistMembership.swift,
 │       │                      MovieDetailView.swift, MovieDetailPhaseView.swift, MovieDetailContentView.swift, …
 │       ├── MovieCast/         MovieCastViewModel.swift, MovieCastView.swift, MovieCastPhaseView.swift,
 │       │                      MovieCastContentView.swift
+│       ├── PersonDetail/      PersonDetailViewModel.swift, PersonDetailView.swift, PersonDetailPhaseView.swift, …
 │       ├── Components/
 │       │   └── Cards/         CastMemberCard.swift
-│       ├── Navigation/        MovieDestination.swift
+│       ├── Navigation/        CatalogDestination.swift
 │       └── Resources/         Localizable.xcstrings
-└── Tests/MovieTests/
-    ├── Live/                  MovieMappingTests.swift
-    ├── ViewModels/            MovieDetailViewModelTests.swift, MovieCastViewModelTests.swift
+└── Tests/CatalogTests/
+    ├── Live/                  CatalogMappingTests.swift
+    ├── ViewModels/            MovieDetailViewModelTests.swift, MovieCastViewModelTests.swift,
+    │                          PersonDetailViewModelTests.swift
     └── Fixtures.swift
 ```
 
@@ -94,15 +123,15 @@ let swiftSettings: [SwiftSetting] = [
 ]
 
 let package = Package(
-    name: "Movie",
+    name: "Catalog",
     defaultLocalization: "en",
     platforms: [
         .iOS(.v26)
     ],
     products: [
-        .library(name: "MovieCore", targets: ["MovieCore"]),
-        .library(name: "MovieUI", targets: ["MovieUI"]),
-        .library(name: "MovieLive", targets: ["MovieLive"]),
+        .library(name: "CatalogCore", targets: ["CatalogCore"]),
+        .library(name: "CatalogUI", targets: ["CatalogUI"]),
+        .library(name: "CatalogLive", targets: ["CatalogLive"]),
     ],
     dependencies: [
         .package(path: "../Shared"),
@@ -111,16 +140,16 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "MovieCore",
+            name: "CatalogCore",
             dependencies: [
                 .product(name: "Shared", package: "Shared")
             ],
             swiftSettings: swiftSettings
         ),
         .target(
-            name: "MovieUI",
+            name: "CatalogUI",
             dependencies: [
-                "MovieCore",
+                "CatalogCore",
                 .product(name: "Shared", package: "Shared"),
                 .product(name: "SharedUI", package: "Shared"),
                 .product(name: "DesignSystem", package: "DesignSystem"),
@@ -131,9 +160,9 @@ let package = Package(
             swiftSettings: swiftSettings
         ),
         .target(
-            name: "MovieLive",
+            name: "CatalogLive",
             dependencies: [
-                "MovieCore",
+                "CatalogCore",
                 .product(name: "Shared", package: "Shared"),
                 .product(name: "SharedLive", package: "Shared"),
                 .product(name: "Networking", package: "Networking"),
@@ -141,11 +170,11 @@ let package = Package(
             swiftSettings: swiftSettings
         ),
         .testTarget(
-            name: "MovieTests",
+            name: "CatalogTests",
             dependencies: [
-                "MovieCore",
-                "MovieUI",
-                "MovieLive",
+                "CatalogCore",
+                "CatalogUI",
+                "CatalogLive",
                 .product(name: "Shared", package: "Shared"),
                 .product(name: "SharedUI", package: "Shared"),
                 .product(name: "Networking", package: "Networking"),
@@ -219,7 +248,7 @@ They import no feature. What they need from one, such as the signed-in account's
 Each module owns the strings, images and colors it shows, and reaches them through symbols Xcode generates, so a missing key or asset is a build error, not a blank at runtime.
 
 - **Strings.** Each XUI target has a String Catalog (`Resources/Localizable.xcstrings`) for everything its views show; the app has one for its own chrome. SharedUI's catalog holds only copy every feature must say the same way, such as the shared screen states. A string two features show is duplicated in each catalog.
-- Add the key first (`movie.cast.title`), then use its generated symbol: `Text(.movieCastTitle)`, `Button(.movieActionRetry, action: retry)`; a key with a placeholder generates a function. Symbols carry their module's bundle. A string literal in a package would need `bundle: #bundle`, or it silently looks in the app's bundle.
+- Add the key first (`catalog.movieCast.title`), then use its generated symbol: `Text(.catalogMovieCastTitle)`, `Button(.catalogActionRetry, action: retry)`; a key with a placeholder generates a function. Symbols carry their module's bundle. A string literal in a package would need `bundle: #bundle`, or it silently looks in the app's bundle.
 - A non-view type that carries user-facing text holds a `LocalizedStringResource`, never a `String`. Display mappings are XUI extensions on domain values (`Department.title`); models and view models hold no display strings.
 - **Images and colors.** A feature's artwork lives in its XUI target, shared icons and colors in DesignSystem, the app icon in the app. Use the generated symbols (`Image(.emptyWatchlist)`), never `Image("name")`.
 - **Custom fonts** ship in DesignSystem, which registers them itself, once, since a package has no Info.plist.
@@ -237,7 +266,7 @@ Each feature package builds, previews and tests without the app. Test what a bug
 | `Destination` mappings that aren't one-to-one, and adapters | app tests |
 | Visual states: loading, empty, error | previews |
 
-Test data comes from `make…` factories (`makeMovie(id:title:)`) in each test target's `Fixtures.swift`. Run the feature's scheme (`Movie-Package`) after every change to it, and build the app after changing anything public.
+Test data comes from `make…` factories (`makeMovie(id:title:)`) in each test target's `Fixtures.swift`. Run the feature's scheme (`Catalog-Package`) after every change to it, and build the app after changing anything public.
 
 ## Checking the boundaries
 

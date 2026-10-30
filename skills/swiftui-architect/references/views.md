@@ -134,7 +134,7 @@ public var body: some View {
     @Bindable var searchSession = viewModel.searchSession
     GenreDetailPhaseView()
         .navigationTitle(viewModel.genre?.name ?? "")
-        .searchable(text: $searchSession.text, prompt: .genreDetailSearchPrompt)
+        .searchable(text: $searchSession.text, prompt: .discoverGenreDetailSearchPrompt)
         .onSubmit(of: .search) {
             searchSession.apply()
         }

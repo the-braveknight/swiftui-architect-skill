@@ -32,6 +32,7 @@ The trade-offs are real: more `Package.swift` files to maintain, some deliberate
 
 ## What the skill covers
 
+- Defining features: a feature is a capability, never a screen, a tab or a model other features show, with tests for where a boundary goes, when to split or merge, and the packages to avoid.
 - The module map and dependency direction: feature packages (`XCore`, `XUI`, `XLive`, `XTests`), one per capability whichever tabs show it, over a shared package (`Shared`, `SharedUI`, `SharedLive`), `DesignSystem` and `Networking`, and what goes in each.
 - Domain-driven models that describe what the app shows, not what the API sends, with live services mapping API responses and errors into them.
 - Networking: one package with the API's types and the app's client over them, generated with Apple's swift-openapi-generator when the API has an OpenAPI document, with failures and cancellation classified once.
@@ -57,7 +58,7 @@ swiftui-architect-skill/
 ├── skills/swiftui-architect/
 │   ├── SKILL.md                 entry point: shape, rules, gotchas, workflows, which reference to read
 │   └── references/
-│       ├── modules.md           targets, naming inside a feature, folders, Package.swift, the shared package, DesignSystem, strings, tests, boundary checks, moving an app into packages
+│       ├── modules.md           defining features, targets, naming inside a feature, folders, Package.swift, the shared package, DesignSystem, strings, tests, boundary checks, moving an app into packages
 │       ├── domain.md            domain models, errors, service protocols and naming, live services, mocks, ports
 │       ├── networking.md        the Networking package, the API client, errors and cancellation
 │       ├── view-models.md       loading state, several resources, pagination, keyed resources, filtering, nested models, tests

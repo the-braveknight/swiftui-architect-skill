@@ -7,7 +7,7 @@ description: Architects modular SwiftUI apps as one Swift package per feature, s
 
 Decides where code lives, who owns it, and the shape of the pieces that hold a modular SwiftUI app together. For how to write the SwiftUI, concurrency or test code inside those shapes, use the skills in [Related skills](#related-skills).
 
-`X` stands for a feature (`Movie`) or one of its screens (`MovieCast` → `MovieCastService`, `MovieCastViewModel`, `MovieCastView`, `MovieCastScreen`). A *screen* is one navigable page: its feature exports the view, and the app composes it in an `XScreen`.
+`X` stands for a feature (`Catalog`) or one of its screens (`MovieCast` → `MovieCastService`, `MovieCastViewModel`, `MovieCastView`, `MovieCastScreen`). A *screen* is one navigable page: its feature exports the view, and the app composes it in an `XScreen`.
 
 An app built another way keeps its structure until the user asks to change it. A change there follows the app's own conventions, and takes a shape from this skill only where the app has none ([moving an app into packages](references/modules.md#moving-an-app-into-packages)).
 
@@ -16,8 +16,7 @@ The examples are one small movie browser on the TMDB API:
 | Feature | Screens |
 |---|---|
 | Discover | The Discover tab: featured movies over paged shelves. A genre's movies, with a search in the genre |
-| Movie | A movie's details, with a watchlist button, and its cast |
-| Person | A person's details and credits, by department |
+| Catalog | A movie's details, with a watchlist button, and its cast. A person's details and credits, by department |
 | Search | The Search tab, with a filter sheet |
 | Watchlist | The Watchlist tab, with a search through it and a confirmation before removing a movie |
 | Account | Signing in, shown over the Watchlist tab |
@@ -27,7 +26,7 @@ The examples are one small movie browser on the TMDB API:
 ```
 App target              composition root: services, screens, routing
 │
-├── Feature packages    one per capability, never per tab (Discover, Movie, Search, …)
+├── Feature packages    one per capability (Discover, Catalog, Search, …)
 │     XCore     domain models, errors, a service protocol and mock per screen
 │     XUI       view models, views, XDestination, strings
 │     XLive     live services: API responses → domain models
@@ -77,7 +76,7 @@ Hard rules:
 
 ## Principles
 
-1. **Features own their screens; the app composes and routes them.**
+1. **Features are capabilities; the app composes and routes them.** A feature is never a screen, a tab or a model other features show ([defining features](references/modules.md#defining-features)).
 2. **Models speak the app's language.** Each is shaped for what a screen shows and can't hold an illogical value; the API's shape stops at the Live targets.
 3. **Services do the work; view models hold state.** A service returns view-ready domain values; a view model assigns them and tracks loading, errors and paging. Nothing sits between a view model and its sources: no repositories, use cases or managers.
 4. **Feature views stay plain.** They render a view model, push values with `NavigationLink(value:)`, and take from the app only the screens they present: no routers, navigation closures or service lookups.
@@ -110,7 +109,7 @@ Copy the checklist for the task into the response and check items off as they're
 **Add a feature**
 
 ```
-- [ ] Check the capability is new: a screen showing what an existing feature owns joins that feature (Add a screen)
+- [ ] Check the capability is new with the boundary tests (modules.md#defining-features): a screen showing what an existing feature owns joins that feature (Add a screen)
 - [ ] Create Packages/X, named for the capability, with XCore, XUI, XLive, XTests (template in modules.md)
 - [ ] XCore: domain models, XError, and per screen a service protocol and its mock + `.mock`
 - [ ] Networking: a client method for each endpoint the feature calls, in openapi.yaml first when the client is generated
@@ -140,7 +139,7 @@ Copy the checklist for the task into the response and check items off as they're
 **Modularize an existing app**
 
 ```
-- [ ] Map the app: its capabilities (a feature each), their screens, and what two features already share
+- [ ] Map the app: its capabilities (a feature each, by the boundary tests in modules.md#defining-features), their screens, and what two features already share
 - [ ] Networking, then DesignSystem, then the shared package; build the app after each
 - [ ] One feature at a time, the one using the fewest others first, as in Add a feature; its reach into other features becomes destinations and ports
 - [ ] As screens leave the app target, their services move into <AppName>App.init and their navigation into Router, Destination and DestinationView
@@ -153,12 +152,12 @@ Copy the checklist for the task into the response and check items off as they're
 - Through what a screen already shows → XViewModel keeps the matches of the field's `text`; nothing new loads ([filtering](references/view-models.md#filtering-loaded-values)).
 - On the server, within one screen → a mode: a `SearchSession` nested in XViewModel ([modes](references/view-models.md#modes)).
 
-**Link one feature to another** (Movie opens Person)
+**Link one feature to another** (Watchlist opens sign-in)
 
 ```
 - [ ] If the place is a `SharedDestination`, push it and stop here. If another feature's XDestination already has it, move that case to `SharedDestination`, with its mapping, and push that
-- [ ] Source feature: a case in its XDestination in its own words (`.person(id:)`), pushed with NavigationLink(value:), or presented by its XView when the design shows it over the screen (navigation.md#presenting-a-screen)
-- [ ] If the source needs data the target owns (is this movie in the watchlist?), a port in the source's XCore with a mock, implemented by an app adapter
+- [ ] Source feature: a case in its XDestination in its own words (`.signIn`), pushed with NavigationLink(value:), or presented by its XView when the design shows it over the screen (navigation.md#presenting-a-screen)
+- [ ] If the source needs data another feature owns (Catalog asks Watchlist whether a movie is kept), a port in the source's XCore with a mock, implemented by an app adapter
 - [ ] App: map the new case in Destination.init(_: SourceDestination) to the target's screen; for a presented case, the source's XScreen passes DestinationView to its XView
 - [ ] App: register the target's XDestination in every stack that can reach it, usually every tab
 - [ ] Build both features' schemes and the app; fix and repeat until they pass
@@ -168,7 +167,7 @@ Copy the checklist for the task into the response and check items off as they're
 
 ```
 - [ ] Run the boundary checks (modules.md#checking-the-boundaries)
-- [ ] Each feature is one capability owning all its screens; the shared package holds nothing only one feature uses
+- [ ] Each feature passes the boundary tests (modules.md#defining-features) and owns all its screens; the shared package holds nothing only one feature uses
 - [ ] Each screen: one view model, built by its XScreen, over its own service protocol and ports
 - [ ] Report each finding with its file, the rule it breaks and the fix; change code only when the user asks
 ```
@@ -186,7 +185,7 @@ Read the reference for the part at hand:
 
 | Reference | Read when |
 |---|---|
-| [references/modules.md](references/modules.md) | Creating a package or its `Package.swift`; placing and naming what a feature's screens share; a feature, the shared package or DesignSystem; strings, assets and fonts; tests; boundary checks; an app built another way |
+| [references/modules.md](references/modules.md) | Deciding what a feature is and where its boundary goes; creating a package or its `Package.swift`; placing and naming what a feature's screens share; a feature, the shared package or DesignSystem; strings, assets and fonts; tests; boundary checks; an app built another way |
 | [references/domain.md](references/domain.md) | Domain models, errors, service protocols, live services, mocks and ports, and their names; state several features share |
 | [references/networking.md](references/networking.md) | Adding an endpoint; the API client and its errors |
 | [references/view-models.md](references/view-models.md) | A view model: loading, several resources, paging, keyed resources, filtering, nested models and modes, tests |

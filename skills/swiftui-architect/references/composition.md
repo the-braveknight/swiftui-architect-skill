@@ -72,7 +72,7 @@ struct MoviesApp: App {
 One key per service protocol, each in `Extensions/Environment/EnvironmentValues+XService.swift`. The default is the protocol's mock, so previews work without setup:
 
 ```swift
-import MovieCore
+import CatalogCore
 import SwiftUI
 
 extension EnvironmentValues {
@@ -130,7 +130,7 @@ struct DiscoverScreen: View {
                 .navigationDestination(for: DiscoverDestination.self) { destination in
                     DestinationView(destination: Destination(destination))
                 }
-                .navigationDestination(for: MovieDestination.self) { destination in
+                .navigationDestination(for: CatalogDestination.self) { destination in
                     DestinationView(destination: Destination(destination))
                 }
         }

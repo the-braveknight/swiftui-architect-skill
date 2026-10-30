@@ -14,6 +14,7 @@ This repository is the `swiftui-architect` agent skill. Agents read `skills/swif
 - State the rule, then a short reason when the reason guides judgment in cases the rule doesn't cover.
 - Each rule lives in one reference. `SKILL.md` carries at most one line for it (a principle, a brief, a gotcha or a workflow step), other references link to it instead of restating it, and `conventions.md` holds only the names it uses.
 - Examples come from the one small app in `SKILL.md`'s table, a movie browser on the TMDB API, and each idea is shown on the screen that shows it best:
+  - a feature's boundary: Catalog, which owns a movie's details and cast and a person's details and credits
   - one resource: the cast screen
   - several resources and paging: Discover
   - a thing and its paged list, and a mode: a genre's movies
