@@ -41,8 +41,8 @@ Names inside a feature say what a thing is, so a screen, model or view keeps its
 | What the whole feature owns | The feature | `MovieDestination`, `MovieError`, the `movie.` string keys |
 
 - A feature that several tabs show owns each tab's root screen. If Discover split into Movies and TV tabs, it would own `MoviesView` and `TVShowsView`, and the screens both open.
-- A section two of the feature's screens show is one view in `Components/`, filed by kind (`Cards/`, `Rails/`): the movie's details and its cast screen both show `CastMemberCard`. A view that shows a model is named for the model and its form (`CastMemberCard`, `MovieSummaryGrid`), and keeps that name if it moves to SharedUI. A frame several screens put around different content takes that content as view builders.
-- A name an imported module already declares takes a qualifier from the domain: `MovieCollection`, not `Collection`. Unqualified, it hides the module's type everywhere in the feature.
+- A section two of the feature's screens show is one view in `Components/`, filed by kind (`Cards/`, `Rails/`): the movie's details and its cast screen both show `CastMemberCard`. A view that shows a model is named for the model and its form (`CastMemberCard`, `MovieSummaryGrid`), and keeps that name if it moves to SharedUI. A frame several screens put around different content takes that content as `@ContentBuilder` closures.
+- A name an imported module already declares takes a qualifier from the domain: `MovieCollection`, not `Collection`. Unqualified, it hides the module's type in its own module and is ambiguous in every module that imports both, `@ContentBuilder` content included, so one in Shared, SharedUI or DesignSystem reaches every feature.
 
 ## Folder layout
 
@@ -197,9 +197,9 @@ Identifiers cross features as IDs (`MovieSummary.ID`), not as objects. Test fixt
 One domain-free package, imported by every UI target, holding the visual language:
 - **Tokens** under one namespace, by role: `DesignSystem.Colors.Text.primary`, `DesignSystem.Spacing.space5`.
 - **Styles** for native controls, as conformances to SwiftUI's style protocols exposed as static members, so features keep using `Button` and `NavigationLink` (`.buttonStyle(.content)`).
-- **Components** that take plain values and view builders, such as a rail or a remote image.
+- **Components** that take plain values and `@ContentBuilder` closures, such as a rail or a remote image.
 
-It never knows a feature model, service, destination or screen, has no strings of its own, and decides no policy: an image cache comes from the app. A view that renders a domain type belongs in a feature, or in SharedUI when several features show it.
+It never knows a feature model, service, destination or screen, has no strings of its own, and decides no policy. Its remote image is `AsyncImage`, which caches by the server's headers, with no cache or loader of its own; the app chooses the session ([composition](composition.md#appnameappswift)). A view that renders a domain type belongs in a feature, or in SharedUI when several features show it.
 
 ## Networking and other infrastructure
 

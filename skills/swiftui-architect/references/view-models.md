@@ -10,6 +10,7 @@ A view model loads what one screen shows and exposes it as state. Services do th
 - Pagination
 - A thing and its paged list
 - Keyed resources
+- Filtering loaded values
 - Nested models and modes
 - Testing view models
 
@@ -54,8 +55,8 @@ public final class MovieCastViewModel {
 
 - `@MainActor @Observable public final class`, one per screen: a view pushed onto a stack, or a tab's root. Never one for a part of a screen ([nested models](#nested-models-and-modes)).
 - `public init` takes IDs and services and only assigns: the app builds a view model on every `body` pass and the view keeps the first, so `init` starts no tasks, subscriptions or I/O.
-- State is `private(set)`. Actions are internal imperative verbs the views call: `load()`, `refresh()`, `loadNextShelvesPage()`, `toggle(_:)`. Three kinds of state are plain `var`s instead: input a view binds (a search field's `text`), what the screen presents (`isFilterPresented`), and what a sheet edits before it's applied (`filterDraft`) ([presentations](navigation.md#sheets-covers-and-alerts)).
-- It stores what the service returns as it is: no data processing, pushing or routing, views, display strings or other features. Appending a page skips what the list already holds, the one step that looks across calls ([pagination](#pagination)).
+- State is `private(set)`. Actions are internal imperative verbs the views call: `load()`, `refresh()`, `loadNextShelvesPage()`, `toggle(_:)`. Three kinds of state are plain `var`s instead: input a view binds (a search field's `text`), what the screen presents (`isFilterPresented`) or the value a presentation is about (`itemToRemove`), and what a sheet edits before it's applied (`filterDraft`) ([presentations](navigation.md#sheets-covers-and-alerts)).
+- It stores what the service returns as it is: no data processing, pushing or routing, views, display strings or other features. Two steps look at what it already holds: appending a page skips what the list has ([pagination](#pagination)), and a search through loaded values keeps the ones that match ([filtering](#filtering-loaded-values)).
 - `load()` is safe to call again, for a retry or the view reappearing, with no `loadIfNeeded()` variant or "already loaded" flag. A screen with a paged list is the one exception ([coming back to a paged list](#coming-back-to-a-paged-list)).
 
 ## One resource: data, activity and error
@@ -278,6 +279,36 @@ func loadCredits() async {
 - A keyed paged list, such as search results, guards its load on the list like a [screen's](#coming-back-to-a-paged-list), and a new key empties the list, so the new key's load gets through.
 - Typed text is input, not a key: a plain `var` the field binds. `XView` applies it to the key after a pause in typing (`.task(id: viewModel.text)` with a short sleep), and at once on submit or when the field is cleared.
 
+## Filtering loaded values
+
+Searching what a screen already shows, such as titles in the watchlist, narrows the values it has loaded, and nothing loads. The view model keeps the field's text and the values that match it, and works the matches out again whenever either changes:
+
+```swift
+/// The movies kept to watch later, with a search through their titles.
+@MainActor
+@Observable
+public final class WatchlistViewModel {
+    /// Items
+    private(set) var items: [WatchlistItem] = [] {
+        didSet { updateMatchingItems() }
+    }
+    // isLoadingItems, itemsError
+
+    /// The words in the search field.
+    var text = "" {
+        didSet { updateMatchingItems() }
+    }
+    /// The items whose movie's title contains the words; all of them while there are none.
+    private(set) var matchingItems: [WatchlistItem] = []
+
+    private func updateMatchingItems() { … }
+}
+```
+
+- Never work the matches out in a view's `body` or in the collection given to `ForEach`. `body` runs again for changes that have nothing to do with the text or the values, and filters again each time.
+- The matches follow each keystroke, with no pause and no `.task(id:)`, because nothing loads.
+- The state view shows the content with the matches, and `ContentUnavailableView.noResults` while there are values but none match ([views](views.md#xview-xstateview-and-xcontentview)).
+
 ## Nested models and modes
 
 A part of a screen whose state changes on its own, such as a watchlist button or a search within the screen, gets a nested `@Observable` model: a type declared inside the screen's view model, made in its `init` with the services the view model was given, and owned by it as a `let`.
@@ -338,7 +369,7 @@ Never `…ViewModel` (screens own that), `…Manager`, `…Controller`, `…Hand
 
 ### Modes
 
-A mode replaces a screen's content with its own while it's active, driven by its own input: typically a server search scoped to one screen, such as a genre's movies. Search across the app is its own screen instead, and searching what a screen already shows filters the loaded values in its content view.
+A mode replaces a screen's content with its own while it's active, driven by its own input: typically a server search scoped to one screen, such as a genre's movies. Search across the app is its own screen instead, and searching what a screen already shows [filters the loaded values](#filtering-loaded-values).
 
 A mode is a nested model made with the screen's service. Its text is input bound to the search field, its key is that text once applied, and its results are a keyed, paged resource:
 
@@ -383,5 +414,6 @@ Test the rules a bug would break on this screen, not the shape every view model 
 - Paging: a next page appends what the list doesn't hold yet, and loading again keeps the pages.
 - Stale results: a page that arrives after a refresh, or a key's results after a new key, is dropped, and a restarted footer still loads its page.
 - A key or a mode's rules: a new key starts the data over and shows it as loading.
+- A filter: what a text matches, and the matches after the values change.
 
 Skip what the shape guarantees everywhere: starting values, the fallback error, a retry clearing an error, and cancellation alone, which the stale-result tests already cover. Test a nested model on its own, made the way its view model makes it.

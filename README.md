@@ -36,10 +36,10 @@ The trade-offs are real: more `Package.swift` files to maintain, some deliberate
 - Domain-driven models that describe what the app shows, not what the API sends, with live services mapping API responses and errors into them.
 - Networking with Apple's swift-openapi-generator: a generated client wrapped in the app's own, with failures and cancellation classified once.
 - Service design and naming, following the Swift API Design Guidelines: a protocol per screen, reads as noun phrases, mocks for previews and tests, consumer-owned ports between features.
-- View models: per-resource loading state, several resources, pagination, resources keyed by what the user picks or types, nested models for parts of a screen such as a search within it, feature error types, cancellation, and which tests are worth writing.
+- View models: per-resource loading state, several resources, pagination, resources keyed by what the user picks or types, a search through what's already loaded, nested models for parts of a screen such as a search within it, feature error types, cancellation, and which tests are worth writing.
 - The views a screen is made of: `XView`, `XStateView`, `XContentView`, sections and paging footers, and state views that read the data first, so a refresh doesn't redraw them.
 - App composition: the `<AppName>App` initializer as the dependency-injection root, environment keys, tab and pushed `XScreen` views.
-- Routing: feature `XDestination` values, SharedUI's `SharedDestination` for the places several features open, an app-owned `Router`, one mapping file, registration at stack roots.
+- Routing: feature `XDestination` values, SharedUI's `SharedDestination` for the places several features open, an app-owned `Router`, one mapping file, registration at stack roots, and presentations held as view model state, down to the value an alert or sheet is about.
 - Localization, assets and fonts per module: String Catalogs with generated symbols, asset catalogs with generated symbols, fonts that DesignSystem registers.
 - Naming and folder conventions, including what a feature's screens share and what spans the whole feature.
 

@@ -200,6 +200,24 @@ func openFilter() {
 - `XView` presents what any state can open, such as a toolbar's filter; a sheet only the content opens is presented there.
 - A presented view that needs a title or a close button owns an unmanaged `NavigationStack`.
 
+A presentation about one value, such as the watchlist item a row asks to remove, is that value as an optional. It shows while the value is set, its actions receive the value, and dismissing it sets the value back to `nil`:
+
+```swift
+// WatchlistViewModel
+/// The item a row asked to remove, while the confirmation is up.
+var itemToRemove: WatchlistItem?
+
+// WatchlistContentView, where each row's swipe action sets `itemToRemove`
+.confirmationDialog(.watchlistRemoveTitle, item: $viewModel.itemToRemove) { item in
+    Button(.watchlistActionRemove, role: .destructive) {
+        Task { await viewModel.remove(item) }
+    }
+}
+```
+
+- Present it with `sheet(item:)`, `alert(_:item:)` or `confirmationDialog(_:item:)`, never with a `Bool` beside the value, which could disagree with it.
+- A screen with several sheets holds one optional `Identifiable` enum of them (`presentedSheet`) behind one `sheet(item:)`, never a `Bool` each, so only one is ever up.
+
 ## Previews
 
 Feature previews wrap the view in a `NavigationStack`. To click through a feature's own screens, register its destinations on the preview root with a private builder that uses mocks:

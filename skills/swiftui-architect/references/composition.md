@@ -66,6 +66,7 @@ struct MoviesApp: App {
 - Live or mock is the app's decision, through configuration or launch arguments for UI tests. Features never decide.
 - One service instance per protocol for the app's lifetime; views never create services.
 - App-wide policies (URL sessions, caches, tint) are applied here, not in features or DesignSystem.
+- Images load through `AsyncImage`, on the shared session by default. A session of the app's own, such as one with a larger `URLCache`, goes on `ContentView` inside the `WindowGroup` with `.asyncImageURLSession(_:)`, which modifies views, not scenes.
 
 ## Environment keys
 

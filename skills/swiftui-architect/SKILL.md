@@ -17,7 +17,7 @@ The examples are one small movie browser on the TMDB API:
 | Movie | A movie's details, with a watchlist button, and its cast |
 | Person | A person's details and credits, by department |
 | Search | The Search tab, with a filter sheet |
-| Watchlist | The Watchlist tab, stored on the device |
+| Watchlist | The Watchlist tab, stored on the device, with a search through it and a confirmation before removing a movie |
 
 ## The shape
 
@@ -74,7 +74,7 @@ Hard rules:
 | Building the client and services, injecting them | App: `<AppName>App.init`, through the environment |
 | Building a screen: reading services, creating its view model | App: one `XScreen` per screen |
 | Navigation state, and which screen each destination shows | App: `Router`, `Destination`, `DestinationView` |
-| What a screen presents, and what a sheet edits before it's applied | The screen's view model, as plain `var`s its views bind |
+| What a screen presents or the value it's about, and what a sheet edits before it's applied | The screen's view model, as plain `var`s its views bind |
 
 ## Principles
 
@@ -110,7 +110,8 @@ Hard rules:
 - A view that reads a view model the environment doesn't have crashes at runtime, so a preview of any view below `XView` injects one.
 - A string literal in a package looks in the app's bundle; use the catalog's generated symbols.
 - Never set `.defaultIsolation(MainActor.self)` in a package: generated OpenAPI code doesn't build under it, and domain types must stay nonisolated.
-- A type named like one the SDK declares (`Collection`, `Category`, `Layout`, `Section`) hides it everywhere in its feature. Give it a qualifier from the domain (`MovieCollection`).
+- A type named like one the SDK declares (`Collection`, `Category`, `Layout`, `Section`) hides it in its own module and is ambiguous in every module that imports both, `@ContentBuilder` content included. Give it a qualifier from the domain (`MovieCollection`).
+- A presentation about one value, such as the item a row asks to remove, is that value as an optional (`itemToRemove`) shown with `sheet(item:)`, `alert(_:item:)` or `confirmationDialog(_:item:)`, never a `Bool` beside it.
 
 ## Workflows
 
@@ -147,7 +148,7 @@ Copy the checklist for the task into the response and check items off as they're
 **Add search**: pick the case that fits.
 
 - Search across the app (a Search tab) → its own screen, usually its own feature.
-- Searching what a screen already shows → filter the loaded values in XContentView; no new resource or service.
+- Searching what a screen already shows → XViewModel keeps the field's `text` and the values that match it, updated when either changes, never filtered in `body`; no new resource or service ([filtering](references/view-models.md#filtering-loaded-values)).
 - Searching the server within one screen's scope → a mode: a `SearchSession` nested in XViewModel, picked in XStateView's first branch ([modes](references/view-models.md#modes)).
 
 **Link one feature to another** (Movie opens Person)

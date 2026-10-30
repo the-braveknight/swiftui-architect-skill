@@ -20,6 +20,7 @@ This repository is the `swiftui-architect` agent skill. Agents read `skills/swif
   - a keyed resource: a person's credits by department
   - a nested model and a port: the movie's watchlist button
   - a presentation and a draft: Search's filter
+  - a filter over loaded values, and a presentation about one value: the Watchlist tab
 
   Reuse these screens, and add one only when none of them can show a new idea. Never bring in names, endpoints, components or screens from the apps the skill is used on; write the rule they illustrate instead.
 - Code shows a shape the skill prescribes, such as a view model's state and loads, `XView`'s modifiers or a destination enum. It isn't an implementation to copy: no helper functions, error classifiers, test stubs or component internals. Elide the rest with `…`.
