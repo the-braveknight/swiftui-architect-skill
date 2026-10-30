@@ -29,7 +29,7 @@ DestinationView ─ MovieCastScreen(movieID: 550) ── reads services, builds 
 The same path works inside a feature (a movie's details → its cast) and across features (Movie → Person). The feature never knows which.
 
 - Feature views push values with `NavigationLink(value:)`, and never receive navigation closures, a router or a path.
-- View models never navigate.
+- View models never navigate. A screen that closes once an action succeeds, such as a form that saves, calls `dismiss()` from its view when the view model's state says the action is done.
 
 ## XDestination (feature)
 

@@ -19,10 +19,11 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 | A model's id | `let id` of its real type, which `Identifiable` names `X.ID` | `Movie.ID` |
 | A name an imported module declares | a qualifier from the domain | `MovieCollection`, not `Collection` |
 | Feature error | `XError`; one per screen when their failures differ | `MovieError.notFound`, `GenreDetailError` |
-| Service protocol (XCore) | `XService`, one per screen; another for each concern with a source of its own | `DiscoverService`, `MovieCastService`, `RecentSearchesService` |
+| Service protocol (XCore) | `XService`, one per screen; another for each concern with a source of its own; never a `…Repository`, `…UseCase` or `…Manager` | `DiscoverService`, `MovieCastService`, `RecentSearchesService` |
 | Service implementation (XLive) | its source + the protocol's name | `TMDBDiscoverService`, `SwiftDataWatchlistService` |
+| Stored record (XLive) | the model it holds + `Record` | `WatchlistItemRecord` |
 | Mock (XCore) | `Mock` + the protocol's name, exposed as `.mock`, and `.mock(_:)` for a scenario | `MockDiscoverService`, `.mock(.failure(.offline))` |
-| Consumer-owned port, and its app adapter | named for the consumer's need; the adapter adds `Adapter` | `WatchlistMembershipService`, `WatchlistMembershipAdapter` |
+| Consumer-owned port, and its app adapter | named for the consumer's need; an adapter is the protocol's name with `Adapter` for `Service` | `WatchlistMembershipService`, `WatchlistMembershipAdapter` |
 | Service reads and changes | noun phrases for what reads return; imperative verbs for changes | `movie(id:)`, `shelves(page:)`; `addToWatchlist(_:)` |
 | API client and its error | the API's name + `Client` / `Error`; client methods keep the spec's operation names | `TMDBClient.movieDetails(id:)`, `TMDBError` |
 | View model | `XViewModel`, one per screen | `MovieCastViewModel` |
@@ -39,7 +40,7 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 | App screen | `XScreen` | `MovieDetailScreen` |
 | App entry point | `<AppName>App` | `MoviesApp` |
 | Environment key | `xService` in `EnvironmentValues+XService.swift` | `\.discoverService` |
-| Mapping file | `Model+Source.swift` | `Movie+TMDB.swift`, `MovieError+TMDB.swift` |
+| Mapping file | `Model+Source.swift` | `Movie+TMDB.swift`, `MovieError+TMDB.swift`, `WatchlistItem+SwiftData.swift` |
 | Display mapping | a property returning `LocalizedStringResource`, in `Model+Title.swift` | `Department.title` |
 | Test fixture | `make…` | `makeMovie(id:title:)` |
 

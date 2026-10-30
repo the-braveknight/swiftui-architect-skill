@@ -81,8 +81,7 @@ Each error property has its own type, usually the feature's `XError` ([domain](d
 
 Cancellation is never a failure. The networking client turns a cancelled request into `CancellationError` ([networking](networking.md#errors-and-cancellation)), and `XView` runs `load()` from `.task`, which cancels it when the view disappears and runs it again when it reappears ([views](views.md#xview-xstateview-and-xcontentview)). The second run is a silent refresh that keeps the data on screen.
 
-- A retry button starts `Task { await viewModel.load() }`, keeping its main-actor start, since `load()` begins by setting state. The task isn't cancelled with the view, which is harmless because `load()` can run again.
-- Overlapping loads, such as a retry during a refresh, ask for the same data, so the last to finish wins.
+Overlapping loads, such as a retry during a refresh, ask for the same data, so the last to finish wins, with no guard against a second load.
 
 How tasks and isolation work is a Swift Concurrency skill's subject ([related skills](../SKILL.md#related-skills)).
 
@@ -230,7 +229,7 @@ public final class GenreDetailViewModel {
 
 - The thing leaves the list out, so nothing holds two copies of it. Don't page a value that contains the list, or pair a page with the thing in a wrapper type or tuple.
 - Load the list after the thing only when the thing decides whether there is one; otherwise load both side by side.
-- The state view follows the list, and the thing titles the screen from `XView`, so the title stays up in every state.
+- When the thing only titles the screen, as a genre does, the state view follows the list, and the title goes on `XView`, so it stays up in every state. When the thing shows content of its own above the list, the state view follows the thing, and the list is a section of the content with its own progress, error and paging footer, like a [keyed section](#keyed-resources).
 
 ## Keyed resources
 

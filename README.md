@@ -33,9 +33,9 @@ The trade-offs are real: more `Package.swift` files to maintain, some deliberate
 ## What the skill covers
 
 - The module map and dependency direction: feature packages (`XCore`, `XUI`, `XLive`, `XTests`), one per capability whichever tabs show it, over a shared package (`Shared`, `SharedUI`, `SharedLive`), `DesignSystem` and `Networking`, and what goes in each.
-- Domain-driven models that describe what the app shows, not what the API sends, with live services mapping API responses and errors into them.
+- Domain-driven models that describe what the app shows, not what the API sends or the device stores, with live services mapping API responses, stored records and errors into them.
 - Networking with Apple's swift-openapi-generator: a generated client wrapped in the app's own, with failures and cancellation classified once.
-- Service design and naming, following the Swift API Design Guidelines: a protocol per screen, reads as noun phrases, mocks for previews and tests, consumer-owned ports between features.
+- Service design and naming, following the Swift API Design Guidelines: a protocol per screen with no repository or use case layers, reads as noun phrases, mocks for previews and tests, consumer-owned ports between features, and one owner for state several features share, such as a signed-in account.
 - View models: per-resource loading state, several resources, pagination, resources keyed by what the user picks or types, a search through what's already loaded, nested models for parts of a screen such as a search within it, feature error types, cancellation, and which tests are worth writing.
 - The views a screen is made of: `XView`, `XStateView`, `XContentView`, sections and paging footers, and state views that read the data first, so a refresh doesn't redraw them.
 - App composition: the `<AppName>App` initializer as the dependency-injection root, environment keys, tab and pushed `XScreen` views.
@@ -57,9 +57,9 @@ swiftui-architect-skill/
 │   ├── SKILL.md                 entry point: shape, rules, gotchas, workflows, which reference to read
 │   └── references/
 │       ├── modules.md           targets, naming inside a feature, folders, Package.swift, the shared package, DesignSystem, strings, tests
-│       ├── domain.md            domain models, errors, service protocols and naming, live services, mocks, ports
+│       ├── domain.md            domain models, errors, service protocols and naming, live services, stored records, mocks, ports
 │       ├── networking.md        swift-openapi-generator, the API client, errors and cancellation
-│       ├── view-models.md       loading state, several resources, pagination, keyed resources, nested models, tests
+│       ├── view-models.md       loading state, several resources, pagination, keyed resources, filtering, nested models, tests
 │       ├── views.md             XView, XStateView, XContentView, paging footer, passing data
 │       ├── composition.md       <AppName>App.swift, dependency injection, environment keys, XScreen
 │       ├── navigation.md        XDestination, Router, Destination, registration, push or present

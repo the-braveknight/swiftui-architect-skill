@@ -181,6 +181,8 @@ public struct Page<Item: Sendable>: Sendable {
 }
 ```
 
+`nextPage` has the type the API pages by: an `Int` for TMDB's numbered pages, a `String` for an API that pages by cursor.
+
 **The promotion rule.** A type moves into Shared or SharedUI, and a mapping into SharedLive, only when a second feature needs the same concept and both copies must change together. It holds both ways: whatever is shared but used by one feature, from however many of its screens, belongs in that feature. Two types that merely look alike are duplicated; they will diverge.
 
 Never in the shared package:
@@ -195,15 +197,17 @@ Identifiers cross features as IDs (`MovieSummary.ID`), not as objects. Test fixt
 ## DesignSystem
 
 One domain-free package, imported by every UI target, holding the visual language:
-- **Tokens** under one namespace, by role: `DesignSystem.Colors.Text.primary`, `DesignSystem.Spacing.space5`.
-- **Styles** for native controls, as conformances to SwiftUI's style protocols exposed as static members, so features keep using `Button` and `NavigationLink` (`.buttonStyle(.content)`).
+- **Tokens** for color, spacing and type under one namespace (`DesignSystem.Colors`, `DesignSystem.Spacing`), named as the design names them.
+- **Styles** for native controls, as conformances to SwiftUI's style protocols exposed as static members, so features keep using `Button` and `NavigationLink` and only pick a style.
 - **Components** that take plain values and `@ContentBuilder` closures, such as a rail or a remote image.
 
 It never knows a feature model, service, destination or screen, has no strings of its own, and decides no policy. Its remote image is `AsyncImage`, which caches by the server's headers, with no cache or loader of its own; the app chooses the session ([composition](composition.md#appnameappswift)). A view that renders a domain type belongs in a feature, or in SharedUI when several features show it.
 
 ## Networking and other infrastructure
 
-`Networking` generates the API's types and client and wraps them in the app's client ([networking](networking.md)). It and any persistence or analytics package are imported by the Live targets, XTests and the app, never by XCore or XUI, and their types never appear in a feature's public API.
+`Networking` generates the API's types and client and wraps them in the app's client ([networking](networking.md)). It and any persistence or analytics package are imported by the Live targets, XTests and the app, never by XCore or XUI, and their types never appear in a feature's public API. A feature's own storage, such as SwiftData, likewise stays in its XLive ([stored records](domain.md#live-services)).
+
+They import no feature. What they need from one, such as the signed-in account's current token for an auth header, the app passes in as a closure when it builds their clients.
 
 ## Localization, assets and fonts
 
@@ -213,7 +217,7 @@ Each module owns the strings, images and colors it shows, and reaches them throu
 - Add the key first (`movie.cast.title`), then use its generated symbol: `Text(.movieCastTitle)`, `Button(.movieActionRetry, action: retry)`; a key with a placeholder generates a function. Symbols carry their module's bundle. A string literal in a package would need `bundle: #bundle`, or it silently looks in the app's bundle.
 - A non-view type that carries user-facing text holds a `LocalizedStringResource`, never a `String`. Display mappings are XUI extensions on domain values (`Department.title`); models and view models hold no display strings.
 - **Images and colors.** A feature's artwork lives in its XUI target, shared icons and colors in DesignSystem, the app icon in the app. Use the generated symbols (`Image(.emptyWatchlist)`), never `Image("name")`.
-- **Fonts** ship in DesignSystem, which registers them itself, once, since a package has no Info.plist.
+- **Custom fonts** ship in DesignSystem, which registers them itself, once, since a package has no Info.plist.
 - The app sets `LOCALIZATION_PREFERS_STRING_CATALOGS`, `STRING_CATALOG_GENERATE_SYMBOLS`, `SWIFT_EMIT_LOC_STRINGS` and `ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS`; each package with resources declares `defaultLocalization`.
 
 ## Testing

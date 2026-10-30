@@ -85,7 +85,7 @@ public struct TMDBClient: Sendable {
 
 - Methods keep the spec's operation names (`movie-details` → `movieDetails(id:)`), so the client reads like the spec it wraps. Swift naming starts at the domain ([domain](domain.md#naming-services-and-their-methods)).
 - Each method switches over every documented output plus `.undocumented`, with no `default`, so a response newly added to the spec is a compile error where it must be handled.
-- Unwrap envelopes here (`{ "data": … }`), so XLive maps the payload itself.
+- An API that wraps every payload in an envelope (`{ "data": … }`) is unwrapped here, so XLive maps the payload itself.
 - The app builds the client with a URL session; tests build it over a stub transport.
 - Middleware is for what every request needs and the API requires, such as an auth header or a language parameter. Add none the app doesn't need (logging, retries).
 

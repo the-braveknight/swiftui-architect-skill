@@ -1,6 +1,6 @@
 ---
 name: swiftui-architect
-description: Architects modular SwiftUI apps as one Swift package per feature capability (XCore, XUI, XLive, XTests) over a shared package (Shared, SharedUI, SharedLive), DesignSystem and Networking, with an app target that composes screens, injects services and routes navigation. Use when adding a feature or screen to a SwiftUI app, creating or restructuring its Swift packages, designing its domain models, services or view models (loading, errors, pagination, search), wiring navigation or dependency injection between features, deciding where a type belongs or what to name it, or reviewing such a codebase, even when the user doesn't name the architecture.
+description: Architects modular SwiftUI apps as one Swift package per feature capability (XCore, XUI, XLive, XTests) over a shared package (Shared, SharedUI, SharedLive), DesignSystem and Networking, with an app target that composes screens, injects services and routes navigation. Use when adding a feature or screen to a SwiftUI app, drawing its module boundaries, creating or restructuring its Swift packages, designing its domain models, services or view models (loading, errors, pagination, search), wiring navigation or dependency injection between features, deciding where a type belongs or what to name it, or reviewing such a codebase, even when the user doesn't name the architecture.
 ---
 
 # SwiftUI Architect
@@ -27,7 +27,7 @@ App target              composition root: services, screens, routing
 ├── Feature packages    one per capability, never per tab (Discover, Movie, Search, …)
 │     XCore     domain models, errors, a service protocol and mock per screen
 │     XUI       view models, views, XDestination, strings
-│     XLive     live services: API responses → domain models
+│     XLive     live services: API responses and stored records → domain models
 │     XTests    view model and mapping tests
 │
 └── Packages under the features
@@ -57,8 +57,8 @@ Shared, DesignSystem, Networking ──► Apple frameworks and their own depend
 
 Hard rules:
 - A feature never imports another feature. Navigation between features goes through the app; a feature that needs another's data declares a port the app implements.
-- XCore never imports SwiftUI or Networking. Domain models describe what the app shows, not what the API returns.
-- Generated API types never leave the Live targets (XLive, SharedLive). Live services map them to domain models, and transport errors to the feature's errors.
+- XCore never imports SwiftUI, SwiftData or Networking.
+- Generated API types never leave the Live targets (XLive, SharedLive), and stored records (SwiftData `@Model`s) never leave XLive, so no view uses `@Query`. Live services map them to domain models, and transport errors to the feature's errors.
 - DesignSystem knows no domain: no feature models, services or destinations.
 - The app is the only module that sees every feature, so it is the only place features meet.
 
@@ -67,9 +67,10 @@ Hard rules:
 | Concern | Owner |
 |---|---|
 | Domain models, errors, a service protocol and mock per screen | Feature: `XCore` |
-| Live services, mapping API responses and errors to the domain | Feature: `XLive` |
+| Live services, mapping API responses, stored records and errors to the domain | Feature: `XLive` |
 | View models, views, strings, where its views can go (`XDestination`) | Feature: `XUI` |
 | What several features use: models, views, API mappings, the places they open (`SharedDestination`) | `Shared`, `SharedUI`, `SharedLive` |
+| State several features read or change, such as the watchlist or a signed-in account | The one feature that owns it; the others reach it through ports |
 | The generated API, the client over it, error classification | `Networking` |
 | Building the client and services, injecting them | App: `<AppName>App.init`, through the environment |
 | Building a screen: reading services, creating its view model | App: one `XScreen` per screen |
@@ -80,7 +81,7 @@ Hard rules:
 
 1. **Features own their screens; the app composes and routes them.** A feature never builds or shows another feature's screen.
 2. **Models speak the app's language.** Each is shaped for what a screen shows and can't hold an illogical value; the API's shape stops at the Live targets.
-3. **Services do the work; view models hold state.** A service returns view-ready domain values; a view model assigns them and manages loading, errors and paging.
+3. **Services do the work; view models hold state.** A service returns view-ready domain values; a view model assigns them and manages loading, errors and paging. Nothing else sits between a view and its sources: no repositories, use cases or managers.
 4. **Feature views stay plain and native.** They render a view model and push values with `NavigationLink(value:)`. No routers, navigation closures or service lookups.
 5. **Duplicate before sharing.** Something moves to the shared package only when a second feature needs the same concept and both copies must change together. What one feature uses stays in it, however many of its screens use it.
 6. **Every module builds, previews and tests on its own.** XCore ships a mock of each service, so XUI needs nothing else.
@@ -89,8 +90,8 @@ Hard rules:
 
 ## The shapes in brief
 
-- **Models and errors.** Domain models are `Equatable`, `Sendable` values shaped for what screens show (`Movie`, and `MovieSummary` for a list). Each feature has its own error enum, cased by what its screens show (`offline`, `notFound`, `unavailable`); an empty answer is never an error. [domain](references/domain.md)
-- **Services.** A protocol per screen in XCore returns view-ready domain values (`Page<Item>` for a paged list) and throws the feature's error. XLive implements it over the networking client; XCore ships its mock (`.mock`). [domain](references/domain.md)
+- **Models and errors.** Domain models are `Equatable`, `Sendable` values (`Movie`, and `MovieSummary` for a list). Each feature has its own error enum, cased by what its screens show (`offline`, `notFound`, `unavailable`); an empty answer is never an error. [domain](references/domain.md)
+- **Services.** A protocol per screen in XCore returns view-ready domain values (`Page<Item>` for a paged list) and throws the feature's error. XLive implements it over the networking client or a store; XCore ships its mock (`.mock`). [domain](references/domain.md)
 - **View models.** `@MainActor @Observable public final class XViewModel`, one per screen, built by the app with IDs and services. Each resource has its data, `isLoading…` and `…Error`; a paged one adds `next…Page`, `isLoadingNext…Page` and `next…PageError`. A part only some views read, with its own input or loading, is a nested `@Observable` model, never a `…ViewModel`. [view models](references/view-models.md)
 - **Views.** `XView` owns the view model as its only `@State`, puts it in the environment and starts the loads. `XStateView` shows the content whenever there is data, otherwise the error, progress or the empty state. `XContentView` lays out the values it's given. [views](references/views.md)
 - **Navigation.** A feature lists where its views go in its `XDestination`; the places several features open are `SharedDestination` cases. The app maps each case to a screen and registers each type at every stack root. [navigation](references/navigation.md)
@@ -100,18 +101,10 @@ Hard rules:
 ## Gotchas
 
 - Register `navigationDestination` only at stack roots. Inside a feature screen it registers again when that screen appears twice in one stack, and SwiftUI reports a duplicate.
-- Start a screen's loads from `.task` on `XView`, never on its progress view, which goes away when the first data arrives and cancels the loads still running.
-- `.refreshable` gives every scroll view under it that isn't inside another one its own pull to refresh. Attach a bar that scrolls, such as a row of filter pills, after `.refreshable`, or the row pulls down with a spinner of its own.
-- A cancelled request must reach the view model as `CancellationError`. URLSession reports `URLError(.cancelled)`, so the client converts it; otherwise a screen left mid-load comes back showing an error.
-- Coming back to a screen runs its `.task` again. A screen with a paged list guards `load()` on that list (`guard shelves.isEmpty else { return }`) and refreshes through `refresh()`, or the loaded pages are lost.
-- A later page can repeat items from the last when the list shifted between requests. Append only the ids the list doesn't hold, or `ForEach` sees one id twice.
-- A response can arrive after its key changed, such as a department or search words. A load whose key is no longer current drops its result and leaves `isLoading…` to the current key's load.
 - `XScreen` builds a view model on every `body` pass and `XView` keeps the first, so a view model's `init` only assigns.
-- A view that reads a view model the environment doesn't have crashes at runtime, so a preview of any view below `XView` injects one.
 - A string literal in a package looks in the app's bundle; use the catalog's generated symbols.
 - Never set `.defaultIsolation(MainActor.self)` in a package: generated OpenAPI code doesn't build under it, and domain types must stay nonisolated.
 - A type named like one the SDK declares (`Collection`, `Category`, `Layout`, `Section`) hides it in its own module and is ambiguous in every module that imports both, `@ContentBuilder` content included. Give it a qualifier from the domain (`MovieCollection`).
-- A presentation about one value, such as the item a row asks to remove, is that value as an optional (`itemToRemove`) shown with `sheet(item:)`, `alert(_:item:)` or `confirmationDialog(_:item:)`, never a `Bool` beside it.
 
 ## Workflows
 
@@ -120,10 +113,11 @@ Copy the checklist for the task into the response and check items off as they're
 **Add a feature**
 
 ```
+- [ ] Check the capability is new: a screen showing what an existing feature owns joins that feature (Add a screen)
 - [ ] Create Packages/X, named for the capability, with XCore, XUI, XLive, XTests (template in modules.md)
 - [ ] XCore: domain models, XError, and per screen a service protocol and its mock + `.mock`
-- [ ] Networking: add the endpoints to openapi.yaml and a client method for each
-- [ ] XLive: a live service per protocol, mapping responses to the domain and TMDBError to XError
+- [ ] Networking: add each endpoint the feature calls to openapi.yaml, with a client method
+- [ ] XLive: a live service per protocol, mapping responses or stored records to the domain and the client's error to XError
 - [ ] XUI: XViewModel, XView, XStateView, XContentView, XDestination, Localizable.xcstrings; push places another feature already links to as `SharedDestination`
 - [ ] XTests: the screen's own rules, with actor stubs, and mapping tests for the API's quirks (view-models.md#testing-view-models)
 - [ ] App: add the package to the Xcode project and link XCore, XUI and XLive to the app target
@@ -168,7 +162,7 @@ Copy the checklist for the task into the response and check items off as they're
 2. A second feature needs the same concept and both must change together? A model → Shared. A view → SharedUI. A mapping from an API type to a Shared model → SharedLive.
 3. Only looks alike? Duplicate it.
 4. Purely visual and domain-free? DesignSystem.
-5. Talks to the API? Networking, mapped in the Live targets.
+5. Talks to the API or a store? Networking for the API, XLive's `Persistence/` for stored records, both mapped to domain models in the Live targets.
 6. Wires two features together? The app.
 
 ## References
@@ -178,12 +172,12 @@ Read the reference for the part at hand:
 | Reference | Read when |
 |---|---|
 | [references/modules.md](references/modules.md) | Creating a package or its `Package.swift`; naming and placing what a feature's screens share; choosing between a feature, the shared package and DesignSystem; strings, assets and fonts; what to test where |
-| [references/domain.md](references/domain.md) | Designing domain models, errors, service protocols, live services, mocks or ports between features, and naming them |
+| [references/domain.md](references/domain.md) | Designing domain models, errors, service protocols, live services, stored records, mocks or ports between features, and naming them; state several features share |
 | [references/networking.md](references/networking.md) | Adding an endpoint, or changing the API client or how it reports failures |
-| [references/view-models.md](references/view-models.md) | Writing a view model: loading state, several resources, pagination, keyed resources, nested models and modes, and its tests |
+| [references/view-models.md](references/view-models.md) | Writing a view model: loading state, several resources, pagination, keyed resources, filtering what's loaded, nested models and modes, and its tests |
 | [references/views.md](references/views.md) | Writing a screen's views: the `XView` family, error and empty states, paging footers, modes, passing data, previews |
 | [references/composition.md](references/composition.md) | Wiring the app target: `<AppName>App`, environment keys, `ContentView`, `XScreen` |
-| [references/navigation.md](references/navigation.md) | Adding a destination, linking features, navigating in code, or presenting a sheet |
+| [references/navigation.md](references/navigation.md) | Adding a destination, linking features, navigating in code, or presenting a sheet or an alert |
 | [references/conventions.md](references/conventions.md) | Naming a type, file or folder |
 
 ## Related skills

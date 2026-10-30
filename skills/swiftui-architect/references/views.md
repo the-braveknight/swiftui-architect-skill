@@ -21,7 +21,7 @@ A screen is a small family of views in its feature's XUI target: `XView`, the pu
 | `XSearchStateView`, `XSearchContentView`, … | A [mode](#modes)'s own family, shaped like the screen's |
 | `XHeader`, `XRail`, `XRow`, `XCard`, `X…View` | One section of this screen, taking only the values it shows |
 | `Components/Cards/`, `Components/Rails/`, … | Views several of the feature's screens show, named for what they are ([inside a feature](modules.md#inside-a-feature)) |
-| `X…NextPageFooter` | Loads the next page of a paged resource while it's on screen |
+| `X…NextPageFooter` | Loads the next page of a paged resource while it's on screen, offers a retry when that fails, and draws nothing after the last page |
 | `XToolbar` | A `ToolbarContent` struct |
 | `Model+Title.swift` | Display mappings from XCore values to `LocalizedStringResource` (`Department+Title.swift`) |
 
@@ -88,7 +88,7 @@ struct DiscoverContentView: View {
 
     var body: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: DesignSystem.Spacing.space7) {
+            LazyVStack(alignment: .leading) {
                 if !featured.isEmpty {
                     DiscoverFeaturedView(movies: featured)
                 }
@@ -100,32 +100,12 @@ struct DiscoverContentView: View {
         }
     }
 }
-
-// DiscoverShelvesNextPageFooter.swift
-/// Loads the next page while the end of the shelves is on screen, or offers a retry after a failure. Draws nothing
-/// once the last page has loaded.
-struct DiscoverShelvesNextPageFooter: View {
-    @Environment(DiscoverViewModel.self) private var viewModel
-
-    var body: some View {
-        if viewModel.nextShelvesPageError != nil, !viewModel.isLoadingNextShelvesPage {
-            Button(.discoverActionRetry, action: retry)
-                .buttonStyle(.filled)
-        } else if let nextPage = viewModel.nextShelvesPage {
-            // Shows progress and loads while it's on screen, asking again after each page in case it's still in view.
-            DiscoverShelvesNextPageLoader(nextPage: nextPage)
-        }
-    }
-
-    private func retry() {
-        Task { await viewModel.loadNextShelvesPage() }
-    }
-}
 ```
 
 - `XView` never decides between states. It starts the screen's loads with `.task`, and `.task(id:)` for a [keyed resource](view-models.md#keyed-resources). Never start them on the progress view: it goes away when the first data arrives, and cancelling its task cancels the loads still running.
-- What every state shares goes on `XView`, such as a control over the results. Inside `XStateView` or a content view it would be rebuilt whenever the state changes. A bar of controls (`.safeAreaBar`) is attached after `.refreshable`: every scroll view under `.refreshable` that isn't inside another one gets its own pull to refresh, a bar's sideways row included.
+- What every state shares goes on `XView`, such as a control over the results. Inside `XStateView` or a content view it would be rebuilt whenever the state changes.
 - `XStateView` checks in a fixed order: the content whenever there is data, the error only when there's nothing to show, progress while the load runs, then the empty state where the design has one. While there's data it reads only the data, so a refresh doesn't redraw it. It follows the resource the content can't do without and passes the others along.
+- A screen that loads nothing, such as a form, has no `XStateView`: `XView` renders `XContentView`.
 - A screen with a [filter](view-models.md#filtering-loaded-values) shows the content while something matches, then `ContentUnavailableView.noResults` while there's data but nothing matches, ahead of the error and progress.
 - `XContentView` takes values, owns the scroll container and lays out one view per resource or section. What acts inside it, such as the paging footer or a row's swipe action, reads the view model from the environment.
 - A title from loaded data goes with that data: in `XContentView` when the content is the thing it names (`.navigationTitle(movie.title)`), in `XView` when the thing loads beside the content, so it stays up in every state (`.navigationTitle(viewModel.genre?.name ?? "")`).
@@ -158,16 +138,8 @@ public var body: some View {
         .onSubmit(of: .search) {
             searchSession.apply()
         }
-        // Searches once typing pauses, and shows the genre again as soon as the field is cleared.
-        .task(id: searchSession.text) {
-            if !searchSession.text.isEmpty {
-                try? await Task.sleep(for: .milliseconds(400))
-                guard !Task.isCancelled else {
-                    return
-                }
-            }
-            searchSession.apply()
-        }
+        // Applies the words once typing pauses, and at once when the field is cleared.
+        .task(id: searchSession.text) { … }
         .task(id: searchSession.query) {
             await searchSession.load()
         }
@@ -194,7 +166,7 @@ struct GenreDetailStateView: View {
 ```
 
 - The search field lives on `XView`, so it stays up while the screen loads, fails or searches.
-- The state view reads only `isActive`, which changes when words are applied, not on each keystroke, so typing redraws nothing below `XView`.
+- The state view reads only `isActive`, which changes when words are applied ([typed text](view-models.md#keyed-resources)), not on each keystroke, so typing redraws nothing below `XView`.
 - The mode's family mirrors the screen's: a state view checking its results in the same order (ending in `ContentUnavailableView.noResults`), a content view with its own `.refreshable`, and its own paging footer.
 - The mode sits beside the content, never inside `XContentView`, which exists only once the screen's own data has loaded.
 
@@ -206,7 +178,7 @@ struct GenreDetailStateView: View {
 | `XView` | Owns the view model for the screen's lifetime, binds its input, presents what its toolbar opens | `@State private var viewModel`, `.environment(viewModel)` outermost, `.sheet(isPresented: $viewModel.isFilterPresented)` |
 | Views that decide from state or act: state views, footers, toolbars | The view model, from the environment | `@Environment(GenreDetailViewModel.self) private var viewModel`; a nested model through it |
 | Content and display views: sections, rows, cards | The values they show, never the view model | `DiscoverContentView(featured:shelves:)`, `movie: MovieSummary` |
-| Focus and visual mechanics: a measured size, whether a footer is on screen, a carousel's page | The view itself | `@FocusState` or `@State private var` |
+| Focus and visual mechanics: a measured size, a scroll position, whether a row is on screen | The view itself | `@FocusState` or `@State private var` |
 
 - Screen state lives in the view model, directly or in a nested model: what's presented, what a sheet edits, selections. `XView` holds no `@State` beside its view model, so a test can drive the whole screen through one type.
 - Display views take values even though the view model is in reach, so the feature's other screens can show them too, and SharedUI can take one when a second feature needs it.
@@ -217,7 +189,7 @@ struct GenreDetailStateView: View {
 
 - Choosing between states belongs in `XStateView`, never in a `Group { if … }`, `switch` or overlay in `XView`'s body.
 - Never create views from non-view types: display mappings return `LocalizedStringResource` (`Department.title`), never `Text` or `Image`.
-- Use native controls with DesignSystem's styles (`NavigationLink` with `.buttonStyle(.content)`), and strings through the catalog's generated symbols ([modules](modules.md#localization-assets-and-fonts)).
+- Use native controls (`Button`, `NavigationLink`) with DesignSystem's styles, and strings through the catalog's generated symbols ([modules](modules.md#localization-assets-and-fonts)).
 
 ## Previews
 

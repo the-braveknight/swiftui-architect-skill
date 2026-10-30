@@ -28,18 +28,18 @@ This repository is the `swiftui-architect` agent skill. Agents read `skills/swif
 - No invented states: an empty answer is never an error, and a screen shows only the states its design has.
 - Testing guidance names the tests a bug would break, never a test for what every instance of a shape repeats.
 - Describe the current design only. Never mention old names, renames, migrations or history.
-- One term per concept, as `references/conventions.md` names it: feature, screen, a tab's root screen, tab XScreen, pushed XScreen, resource, keyed resource, mode, nested model, place, the shared package, the Live targets, `XDestination`, `SharedDestination`, `Destination`. Names follow the Swift API Design Guidelines and that file's naming table.
+- One term per concept, as `references/conventions.md` names it: feature, screen, a tab's root screen, tab XScreen, pushed XScreen, resource, keyed resource, mode, nested model, port, stored record, place, the shared package, the Live targets, `XDestination`, `SharedDestination`, `Destination`. Names follow the Swift API Design Guidelines and that file's naming table.
 - A new rule mustn't contradict an existing one. When it replaces one, change every place the old rule appears.
 - Voice: plain declarative sentences in the present tense, lists over paragraphs, no "you", no all-caps emphasis, no hedging.
 
 ## How the skill is structured
 
-- `SKILL.md` is the entry point and stays under 500 lines and about 5,000 tokens. After compaction Claude Code re-attaches only the first 5,000 tokens of an invoked skill, so the most important content comes first. Its sections are: the example app, the shape, dependency direction, who owns what, principles, the shapes in brief, gotchas, workflows, references and related skills.
-- Gotchas stay in `SKILL.md`, where every invocation reads them. Each one is a mistake an agent actually makes.
+- `SKILL.md` is the entry point and stays under 500 lines and well under 5,000 tokens. After compaction Claude Code re-attaches the first 5,000 tokens of each invoked skill, within 25,000 tokens shared by every skill invoked, so the most important content comes first. Its sections are: the example app, the shape, dependency direction, who owns what, principles, the shapes in brief, gotchas, workflows, references and related skills.
+- `SKILL.md` holds only what every task needs. Its gotchas are mistakes any task can make, in modules, naming, composition or navigation, each one an agent actually makes. A mistake only one shape invites, such as in paging or a keyed load, is stated once, in that shape's reference.
 - Detail lives in `references/`, one topic per file. Every reference is listed in the References table in `SKILL.md`, saying when to read it, and none is reachable only through another reference.
 - A reference over 100 lines starts with a `## Contents` list of its `##` sections.
 - Links between files use GitHub heading anchors; renaming a heading means updating every link to it.
-- Frontmatter holds only `name` and `description`. claude.ai and the API accept only the open Agent Skills keys (`name`, `description`, `license`, `compatibility`, `metadata`, `allowed-tools`) and reject an upload with any other, such as Claude Code's `when_to_use` or `paths`. `name` matches the folder. `description` is under 1,024 characters, in the third person, says what the skill does and then when to use it, key use case first.
+- Frontmatter holds only `name` and `description`. claude.ai and the API accept only the open Agent Skills keys (`name`, `description`, `license`, `compatibility`, `metadata`, `allowed-tools`) and reject an upload with any other, such as Claude Code's `when_to_use` or `paths`. `name` matches the folder. `description` is under 1,024 characters, in the third person, says what the skill does and then when to use it, key use case first: the skill listing costs context on every turn, and when it runs out of room it keeps only the names of the skills used least.
 
 ## Making a change
 
