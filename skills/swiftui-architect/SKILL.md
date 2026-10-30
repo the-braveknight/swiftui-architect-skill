@@ -93,7 +93,7 @@ Hard rules:
 - **Models and errors.** Domain models are `Equatable`, `Sendable` values (`Movie`, and `MovieSummary` for a list). Each feature has its own error enum, cased by what its screens show (`offline`, `notFound`, `unavailable`); an empty answer is never an error. [domain](references/domain.md)
 - **Services.** A protocol per screen in XCore returns view-ready domain values (`Page<Item>` for a paged list) and throws the feature's error. XLive implements it over the networking client or a store; XCore ships its mock (`.mock`). [domain](references/domain.md)
 - **View models.** `@MainActor @Observable public final class XViewModel`, one per screen, built by the app with IDs and services. Each resource has its data, `isLoading…` and `…Error`; a paged one adds `next…Page`, `isLoadingNext…Page` and `next…PageError`. A part only some views read, with its own input or loading, is a nested `@Observable` model, never a `…ViewModel`. [view models](references/view-models.md)
-- **Views.** `XView` owns the view model as its only `@State`, puts it in the environment and starts the loads. `XStateView` shows the content whenever there is data, otherwise the error, progress or the empty state. `XContentView` lays out the values it's given. [views](references/views.md)
+- **Views.** `XView` owns the view model as its only `@State`, puts it in the environment and starts the loads. `XPhaseView` shows the content whenever there is data, otherwise the error, progress or the empty state. `XContentView` lays out the values it's given. [views](references/views.md)
 - **Navigation.** A feature lists where its views go in its `XDestination`; the places several features open are `SharedDestination` cases. The app maps each case to a screen and registers each type at every stack root. [navigation](references/navigation.md)
 - **Composition.** `<AppName>App.init` builds the client and every service and injects them through environment keys; each `XScreen` reads them and builds its view model. [composition](references/composition.md)
 - **Concurrency.** Packages build in Swift 6 mode. View models are `@MainActor`, services `Sendable`, live service methods `@concurrent`, and stateful services and mocks actors.
@@ -118,7 +118,7 @@ Copy the checklist for the task into the response and check items off as they're
 - [ ] XCore: domain models, XError, and per screen a service protocol and its mock + `.mock`
 - [ ] Networking: add each endpoint the feature calls to openapi.yaml, with a client method
 - [ ] XLive: a live service per protocol, mapping responses to the domain and the client's error to XError
-- [ ] XUI: XViewModel, XView, XStateView, XContentView, XDestination, Localizable.xcstrings; push places another feature already links to as `SharedDestination`
+- [ ] XUI: XViewModel, XView, XPhaseView, XContentView, XDestination, Localizable.xcstrings; push places another feature already links to as `SharedDestination`
 - [ ] XTests: the screen's own rules, with actor stubs, and mapping tests (view-models.md#testing-view-models)
 - [ ] App: add the package to the Xcode project and link XCore, XUI and XLive to the app target
 - [ ] App: for each service protocol, an environment key, the service built in <AppName>App.init and injected on the Scene
@@ -143,7 +143,7 @@ Copy the checklist for the task into the response and check items off as they're
 
 - Search across the app (a Search tab) → its own screen, usually its own feature.
 - Searching what a screen already shows → XViewModel keeps the field's `text` and the values that match it, updated when either changes, never filtered in `body`; no new resource or service ([filtering](references/view-models.md#filtering-loaded-values)).
-- Searching the server within one screen's scope → a mode: a `SearchSession` nested in XViewModel, picked in XStateView's first branch ([modes](references/view-models.md#modes)).
+- Searching the server within one screen's scope → a mode: a `SearchSession` nested in XViewModel, picked in XPhaseView's first branch ([modes](references/view-models.md#modes)).
 
 **Link one feature to another** (Movie opens Person)
 

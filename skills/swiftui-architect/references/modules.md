@@ -61,8 +61,8 @@ Packages/Movie/
 │   │   └── Services/          TMDBMovieDetailService.swift, TMDBMovieCastService.swift
 │   └── MovieUI/
 │       ├── MovieDetail/       MovieDetailViewModel.swift, MovieDetailViewModel+WatchlistMembership.swift,
-│       │                      MovieDetailView.swift, MovieDetailStateView.swift, MovieDetailContentView.swift, …
-│       ├── MovieCast/         MovieCastViewModel.swift, MovieCastView.swift, MovieCastStateView.swift,
+│       │                      MovieDetailView.swift, MovieDetailPhaseView.swift, MovieDetailContentView.swift, …
+│       ├── MovieCast/         MovieCastViewModel.swift, MovieCastView.swift, MovieCastPhaseView.swift,
 │       │                      MovieCastContentView.swift
 │       ├── Components/
 │       │   └── Cards/         CastMemberCard.swift

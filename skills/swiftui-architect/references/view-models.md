@@ -79,7 +79,7 @@ Each error property has its own type, usually the feature's `XError` ([domain](d
 2. `let error as XError`: record it.
 3. Anything else: the fallback case of that property's type (`.unavailable`).
 
-Cancellation is never a failure. The networking client turns a cancelled request into `CancellationError` ([networking](networking.md#errors-and-cancellation)), and `XView` runs `load()` from `.task`, which cancels it when the view disappears and runs it again when it reappears ([views](views.md#xview-xstateview-and-xcontentview)). The second run is a silent refresh that keeps the data on screen.
+Cancellation is never a failure. The networking client turns a cancelled request into `CancellationError` ([networking](networking.md#errors-and-cancellation)), and `XView` runs `load()` from `.task`, which cancels it when the view disappears and runs it again when it reappears ([views](views.md#xview-xphaseview-and-xcontentview)). The second run is a silent refresh that keeps the data on screen.
 
 Overlapping loads, such as a retry during a refresh, ask for the same data, so the last to finish wins, with no guard against a second load.
 
@@ -87,7 +87,7 @@ How tasks and isolation work is a Swift Concurrency skill's subject ([related sk
 
 ## Several resources
 
-When a screen loads more than one resource, each gets its own properties and load method. The state view follows the resource the content can't do without; the others show when they arrive and are left out when they fail. Discover shows featured movies over a paged list of shelves, and follows the shelves:
+When a screen loads more than one resource, each gets its own properties and load method. The phase view follows the resource the content can't do without; the others show when they arrive and are left out when they fail. Discover shows featured movies over a paged list of shelves, and follows the shelves:
 
 ```swift
 public protocol DiscoverService: Sendable {
@@ -147,7 +147,7 @@ public final class DiscoverViewModel {
 ```
 
 - Independent loads run side by side in a discarding task group. A resource that depends on another, such as a list picked from the loaded movie, loads after it.
-- When a rule spans several resources, such as a screen that shows nothing until two of them load, add computed `isLoading` and `error` for the state view. Never store them: two loads would write one value.
+- When a rule spans several resources, such as a screen that shows nothing until two of them load, add computed `isLoading` and `error` for the phase view. Never store them: two loads would write one value.
 
 ## Pagination
 
@@ -226,7 +226,7 @@ public final class GenreDetailViewModel {
 
 - The thing leaves the list out, so nothing holds two copies of it. Don't page a value that contains the list, or pair a page with the thing in a wrapper type or tuple.
 - Load the list after the thing only when the thing decides whether there is one; otherwise load both side by side.
-- When the thing only titles the screen, as a genre does, the state view follows the list, and the title goes on `XView`, so it stays up in every state. When the thing shows content of its own above the list, the state view follows the thing, and the list is a section of the content with its own progress, error and paging footer, like a [keyed section](#keyed-resources).
+- When the thing only titles the screen, as a genre does, the phase view follows the list, and the title goes on `XView`, so it stays up in every state. When the thing shows content of its own above the list, the phase view follows the thing, and the list is a section of the content with its own progress, error and paging footer, like a [keyed section](#keyed-resources).
 
 ## Keyed resources
 
@@ -271,7 +271,7 @@ func loadCredits() async {
 - Changing the key is synchronous: it empties the data, clears its error and paging, and sets `isLoading…` when a load follows. The old key's data never shows under the new one.
 - A control that picks the key sets it through `select(_:)`, never the key itself, so the reset always runs.
 - `XView` loads from `.task(id: viewModel.selectedDepartment)`, the first load included; `load()` loads the rest of the screen. SwiftUI cancels the old key's load, but a response can arrive before its cancellation, so a load whose key no longer matches drops its result.
-- A keyed resource beside the thing a screen shows, such as the credits under a person's details, is a section of the content, with the control that picks its key, its own progress and its own error. The state view follows the person, so a new key never blanks the screen.
+- A keyed resource beside the thing a screen shows, such as the credits under a person's details, is a section of the content, with the control that picks its key, its own progress and its own error. The phase view follows the person, so a new key never blanks the screen.
 - A keyed paged list, such as search results, guards its load on the list like a [screen's](#coming-back-to-a-paged-list), and a new key empties the list, so the new key's load gets through.
 - Typed text is input, not a key: a plain `var` the field binds. `XView` applies it to the key after a pause in typing (`.task(id: viewModel.text)` with a short sleep), and at once on submit or when the field is cleared.
 
@@ -303,7 +303,7 @@ public final class WatchlistViewModel {
 
 - Never work the matches out in a view's `body` or in the collection given to `ForEach`. `body` runs again for changes that have nothing to do with the text or the values, and filters again each time.
 - The matches follow each keystroke, with no pause and no `.task(id:)`, because nothing loads.
-- The state view shows the content with the matches, and `ContentUnavailableView.noResults` while there are values but none match ([views](views.md#xview-xstateview-and-xcontentview)).
+- The phase view shows the content with the matches, and `ContentUnavailableView.noResults` while there are values but none match ([views](views.md#xview-xphaseview-and-xcontentview)).
 
 ## Nested models and modes
 
@@ -398,7 +398,7 @@ extension GenreDetailViewModel {
 }
 ```
 
-`GenreDetailService` gains `movies(genreID:matching:page:)` for it, and the screen's state view picks the mode in its first branch ([views](views.md#modes)).
+`GenreDetailService` gains `movies(genreID:matching:page:)` for it, and the screen's phase view picks the mode in its first branch ([views](views.md#modes)).
 
 ## Testing view models
 

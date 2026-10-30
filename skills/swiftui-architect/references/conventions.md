@@ -29,7 +29,7 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 | View model actions | imperative verbs; `refresh()` beside `load()` on a screen with a paged list | `load()`, `refresh()`, `loadNextShelvesPage()`, `select(_:)` |
 | View model state | per resource: the data, `isLoading…`, `…Error`; paged: `next…Page`, `isLoadingNext…Page`, `next…PageError`; keyed: the key (`selectedDepartment`); bound input (`text`) and the values matching it (`matchingItems`), what's presented (`isFilterPresented`), the value a presentation is about (`itemToRemove`), one of several sheets (`presentedSheet`), a draft (`filterDraft`), a change in progress (`isUpdating`) ([view models](view-models.md#one-resource-data-activity-and-error)) | `shelves`, `isLoadingShelves`, `shelvesError`, `nextShelvesPage` |
 | Nested model | declared inside its view model; a plain noun for what it holds, never `…ViewModel` | `MovieDetailViewModel.WatchlistMembership`, `GenreDetailViewModel.SearchSession` |
-| Screen views | `XView` (public), `XStateView`, `XContentView`; a mode's after `X` | `DiscoverView`, `DiscoverStateView`, `GenreDetailSearchStateView` |
+| Screen views | `XView` (public), `XPhaseView`, `XContentView`; a mode's after `X` | `DiscoverView`, `DiscoverPhaseView`, `GenreDetailSearchPhaseView` |
 | Sections of one screen | `X` + what it is | `MovieDetailCastRail`, `DiscoverFeaturedView` |
 | Views several of a feature's screens show | the model they show and their form, filed in `Components/` by kind | `CastMemberCard`, `MovieSummaryGrid` |
 | Paging footer | `X` + resource + `NextPageFooter`, leaving out the resource when `X` already names it | `DiscoverShelvesNextPageFooter` |
