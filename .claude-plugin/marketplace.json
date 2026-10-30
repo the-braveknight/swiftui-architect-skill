@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/anthropics/claude-code/refs/heads/main/marketplace/marketplace.schema.json",
   "name": "swiftui-architect-skill",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "owner": {
     "name": "Zaid Rahhawi"
   },
@@ -13,7 +13,7 @@
       "name": "swiftui-architect",
       "description": "Architects modular SwiftUI apps as one Swift package per feature capability (XCore, XUI, XLive, XTests) over a shared package (Shared, SharedUI, SharedLive), DesignSystem and Networking, with an app target that composes screens, injects services and routes navigation. Use when adding a feature or screen to a SwiftUI app, drawing its module boundaries, creating or restructuring its Swift packages, designing its domain models, services or view models (loading, errors, pagination, search), wiring navigation or dependency injection between features, deciding where a type belongs or what to name it, or reviewing such a codebase, even when the user doesn't name the architecture.",
       "repository": "https://github.com/the-braveknight/swiftui-architect-skill",
-      "version": "2.0.0",
+      "version": "2.1.0",
       "author": {
         "name": "Zaid Rahhawi"
       },
