@@ -1,7 +1,7 @@
 {
   "name": "swiftui-architect",
   "version": "2.1.0",
-  "description": "Architects modular SwiftUI apps as one Swift package per feature capability (XCore, XUI, XLive, XTests) over a shared package (Shared, SharedUI, SharedLive), DesignSystem and Networking, with an app target that composes screens, injects services and routes navigation. Use when adding a feature or screen to a SwiftUI app, drawing its module boundaries, creating or restructuring its Swift packages, designing its domain models, services or view models (loading, errors, pagination, search), wiring navigation or dependency injection between features, deciding where a type belongs or what to name it, or reviewing such a codebase, even when the user doesn't name the architecture.",
+  "description": "Architects modular SwiftUI apps as one Swift package per feature, split into domain, UI and live-service targets over a small shared layer, with an app target that composes screens, injects services and owns navigation. Use when adding a feature or screen to a SwiftUI app, modularizing an iOS app into Swift packages or SPM modules, drawing module boundaries or dependency direction, designing domain models, services or MVVM view models (loading, errors, pagination, search), wiring navigation, routers, coordinators or dependency injection between features, deciding where a type belongs or what to name it, or reviewing an app's architecture, even when the user doesn't name the architecture.",
   "author": {
     "name": "Zaid Rahhawi"
   },
@@ -16,6 +16,8 @@
     "swift-packages",
     "navigation",
     "dependency-injection",
+    "mvvm",
+    "spm",
     "openapi"
   ],
   "skills": [

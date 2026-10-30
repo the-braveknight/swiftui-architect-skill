@@ -1,6 +1,6 @@
 # Domain models and services
 
-XCore holds a feature's domain: the models its screens show, the errors they can fail with, and a service protocol per screen. XLive implements those protocols over the API or a store and maps everything it receives into the domain, so XCore and XUI never know either exists.
+XCore holds a feature's domain: the models its screens show, the errors they can fail with, and a service protocol per screen. XLive implements those protocols over the API and maps everything it receives into the domain, so XCore and XUI never know the API exists.
 
 ## Contents
 - Domain models
@@ -79,8 +79,8 @@ public protocol MovieDetailService: Sendable {
 - Methods return domain values ready to show. A paged list returns `Page<Item>` from Shared; a screen that pages one thing's list has [a method for each](view-models.md#a-thing-and-its-paged-list). Never wrap a page in a feature type to carry more: a count the screen shows is a read of its own.
 - Methods use untyped `throws` and name the error in the doc comment. Cancellation must reach the view model as `CancellationError`, which `throws(MovieError)` couldn't carry.
 - Protocols refine `Sendable`, so `any MovieDetailService` crosses into the environment and a main-actor view model.
-- Nothing else sits between a view model and its sources: no repository, use case, interactor or manager. A live service calls the client, or its store, itself.
-- A concern with a source of its own, such as searches kept on the device, is a separate service the view model takes beside the screen's (`RecentSearchesService`). A capability another feature owns is a [port](#cross-feature-services-consumer-owned-ports).
+- Nothing else sits between a view model and its sources: no repository, use case, interactor or manager. A live service calls the client itself.
+- A concern with a source of its own, such as recent searches, is a separate service the view model takes beside the screen's (`RecentSearchesService`). A capability another feature owns is a [port](#cross-feature-services-consumer-owned-ports).
 
 ## Naming services and their methods
 
@@ -89,7 +89,7 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 | Kind | Rule | Examples |
 |---|---|---|
 | Service protocol | The role's plain noun; protocols that describe what something is read as nouns | `MovieDetailService`, `DiscoverService` |
-| Implementation | Its source, then the protocol's name, like `JSONDecoder` for `Decoder` | `TMDBMovieDetailService`, `SwiftDataWatchlistService` |
+| Implementation | Its source, then the protocol's name, like `JSONDecoder` for `Decoder` | `TMDBMovieDetailService`, `TMDBWatchlistService` |
 | Mock | `Mock` + the protocol's name, exposed as `.mock` | `MockMovieDetailService` |
 | Reads | Noun phrases for what they return, with no side effects, like `WeatherService.weather(for:)` | `movie(id:)`, `cast(movieID:)`, `shelves(page:)` |
 | Changes | Imperative verb phrases | `addToWatchlist(_:)`, `removeFromWatchlist(movieID:)` |
@@ -100,7 +100,7 @@ The split keeps call sites readable: the view model's `loadShelves()` changes st
 
 ## Live services
 
-XLive implements each protocol over the networking client. A live service is a struct holding the client, or an actor when it holds state or a non-`Sendable` store such as a SwiftData context.
+XLive implements each protocol over the networking client. A live service is a struct holding the client, or an actor when it holds state.
 
 ```swift
 public struct TMDBMovieDetailService: MovieDetailService {
@@ -130,7 +130,8 @@ public struct TMDBMovieDetailService: MovieDetailService {
 - Methods are `@concurrent`, so requests and mapping run off the main actor. Protocol requirements and mocks stay unannotated.
 - Mapping lives in `Model+Source.swift` extensions (`Movie+TMDB.swift`, `MovieError+TMDB.swift`). A model maps from its response in a failable initializer: a list item missing a required field is dropped, and a whole response that can't be read is `.unavailable`. A mapping to a Shared model that several features read lives once, in SharedLive ([modules](modules.md#shared-sharedui-and-sharedlive)).
 - The feature's error maps from the client's error in an initializer, such as a 404 to `.notFound`. `CancellationError` passes through untouched ([networking](networking.md#errors-and-cancellation)).
-- A step two live services share, such as reading extra artwork, is an internal extension on the client in XLive. A step several features' live services share, such as discovering movies by genre for Discover and for Search's filter, is a public extension in SharedLive's `Services/` (`TMDBClient+DiscoverMovies.swift`): it takes Shared values, returns a Shared model, and throws the client's error for each feature to map to its own.
+- A client step that two of a feature's live services share, such as reading extra artwork, is an internal extension on the client in XLive.
+- A client step that several features share, such as discovering movies by genre for Discover and for Search's filter, is a public extension in SharedLive's `Services/` (`TMDBClient+DiscoverMovies.swift`). It takes Shared values, returns a Shared model, and throws the client's error for each feature to map to its own.
 
 ## Mocks
 
@@ -194,6 +195,6 @@ struct WatchlistMembershipAdapter: WatchlistMembershipService {
 
 The consumer ships a mock of its port too, so its previews and tests don't need the provider.
 
-State several features read or change, such as the watchlist or a signed-in account, works the same way. One feature owns it, with its model, service and storage, and every other feature declares the port it needs. The owner's service carries what those ports need beside what its own screens load and change, such as `WatchlistService.add(_:)`, and the app builds each adapter over its one instance, so every feature sees the same state. It never moves into the shared package or a singleton.
+State several features read or change, such as the watchlist or a signed-in account, works the same way. One feature owns it, with its model and service, and every other feature declares the port it needs. The owner's service carries what those ports need beside what its own screens load and change, such as `WatchlistService.add(_:)`, and the app builds each adapter over its one instance, so every feature sees the same state. It never moves into the shared package or a singleton.
 
-An adapter can also implement a feature's own service, when which of that feature's live services answers depends on another feature's state: the account's watchlist once signed in, the device's otherwise. The app picks per call, so neither feature learns about the other.
+When another feature's state, such as whether an account is signed in, decides which of a feature's live services answers, the app implements that feature's service as an adapter that picks one per call. Neither feature learns about the other.

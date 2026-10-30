@@ -5,7 +5,7 @@ This repository is the `swiftui-architect` agent skill. Agents read `skills/swif
 ## What the skill is for
 
 - It decides where code lives, who owns it, and the shape of the pieces that hold a modular SwiftUI app together: modules and their dependency direction, domain models and errors, services and the networking client, view models, the views a screen is made of, app composition, navigation and naming.
-- It states shapes and rules. How to write the code inside a shape (view bodies, modifiers, layout, isolation, task groups) belongs to the SwiftUI, Swift Concurrency and Swift Testing skills listed under Related skills in `SKILL.md`.
+- It states shapes and rules. How to write the code inside a shape (view bodies, modifiers, layout, redraw performance, isolation, task groups, how a load guards against stale results) belongs to the SwiftUI, Swift Concurrency and Swift Testing skills listed under Related skills in `SKILL.md`.
 - Out of scope: visual design, accessibility, and anything that belongs to one app built with the skill.
 
 ## What a change must respect
@@ -21,9 +21,10 @@ This repository is the `swiftui-architect` agent skill. Agents read `skills/swif
   - a nested model and a port: the movie's watchlist button
   - a presentation and a draft: Search's filter
   - a filter over loaded values, and a presentation about one value: the Watchlist tab
+  - a screen shown over another, from another feature: signing in from the Watchlist tab
 
   Reuse these screens, and add one only when none of them can show a new idea. Never bring in names, endpoints, components or screens from the apps the skill is used on; write the rule they illustrate instead.
-- Code shows a shape the skill prescribes, such as a view model's state and loads, `XView`'s modifiers or a destination enum. It isn't an implementation to copy: no helper functions, error classifiers, test stubs or component internals. Elide the rest with `…`.
+- Code shows a shape the skill prescribes, such as a view model's state and the signatures of its loads, `XView`'s modifiers or a destination enum. It isn't an implementation to copy: no helper functions, error classifiers, test stubs or component internals, and a method body appears only where the body is the shape, such as the canonical `load()` in `view-models.md`, a paged screen's guarded `load()` or a key's reset. A rule about how a method works inside is a sentence, not code. Elide the rest with `…`.
 - Native SwiftUI and Apple's frameworks only: no navigation libraries, DI containers or invented infrastructure.
 - No invented states: an empty answer is never an error, and a screen shows only the states its design has.
 - Testing guidance names the tests a bug would break, never a test for what every instance of a shape repeats.
@@ -63,12 +64,12 @@ The guidance changes, so recheck these before changing the skill's structure or 
 4. Edit the reference first, then the line in `SKILL.md`, then `conventions.md`, then `README.md` when what the skill covers changes.
 5. Keep the descriptions in `SKILL.md`, `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` in step.
 6. Verify, and fix until each passes:
-   - `wc -l -c skills/swiftui-architect/SKILL.md` stays within the limits above, at about four characters a token
+   - `wc -l -c skills/swiftui-architect/SKILL.md` stays within the limits above, at about 3.5 characters a token for this markdown, so the References table stays inside the first 5,000 tokens
    - the frontmatter parses and keeps to its limits: `ruby -ryaml -e 'h = YAML.safe_load(File.read(ARGV[0])[/\A---\n(.*?)\n---\n/m, 1]); d = h["description"]; puts h.keys.inspect, d.length, d.match?(/[<>]/)' skills/swiftui-architect/SKILL.md` prints only `name` and `description`, at most 1,024, and `false`
    - `grep` finds no stale name or rule, and no name from an app the skill is used on
    - every link and anchor resolves
    - `claude plugin validate .` passes; its notes that `CLAUDE.md` doesn't ship with the plugin and that there's no icon are expected
-7. When the change alters what an agent produces, give two fresh agents the same two or three realistic tasks (add a feature, add a paged screen, link two features, place a shared type), one reading the baseline and one the edited skill. Read both answers, and fix whatever the edited skill still leaves them to guess.
+7. When the change alters what an agent produces, give two fresh agents the same two or three realistic tasks (add a feature, add a paged screen, link two features, place a shared type, move an app into packages), one reading the baseline and one the edited skill. Read both answers, and fix whatever the edited skill still leaves them to guess.
 
 A new reference file gets a lowercase topic name, a Contents list once it passes 100 lines, a row in the References table in `SKILL.md`, and a line in the layout in `README.md`.
 

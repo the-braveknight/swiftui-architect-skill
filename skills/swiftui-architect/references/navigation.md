@@ -11,6 +11,7 @@ Native SwiftUI navigation only: `NavigationStack(path:)`, `NavigationLink(value:
 - Registering destinations
 - Programmatic navigation
 - Push or present
+- Presenting a screen
 - Sheets, covers and alerts
 - Previews
 
@@ -28,8 +29,8 @@ DestinationView ─ MovieCastScreen(movieID: 550) ── reads services, builds 
 
 The same path works inside a feature (a movie's details → its cast) and across features (Movie → Person). The feature never knows which.
 
-- Feature views push values with `NavigationLink(value:)`, and never receive navigation closures, a router or a path.
-- View models never navigate. A screen that closes once an action succeeds, such as a form that saves, calls `dismiss()` from its view when the view model's state says the action is done.
+- Feature views push values with `NavigationLink(value:)`, and never receive navigation closures, a router or a path. The one thing the app passes in is the screen an `XView` presents ([presenting a screen](#presenting-a-screen)).
+- View models never push or route: they hold what the screen presents, and its views act on it. A screen that closes once an action succeeds, such as a form that saves, calls `dismiss()` from its view when the view model's state says the action is done.
 
 ## XDestination (feature)
 
@@ -63,8 +64,9 @@ public enum SharedDestination: Hashable, Codable, Sendable {
 }
 ```
 
-- A place moves here once a second feature links to it, counting the feature whose screen it is. A place only one feature links to stays in its `XDestination`, even another feature's screen (`MovieDestination.person(id:)`).
-- Cases name the screen they open (`.movieDetail(id:)`), since the enum sits outside every feature. They carry a Shared type's id where one exists (`MovieSummary.ID`), and a plain `Int` otherwise, since SharedUI imports no feature. A feature's `XDestination` names places in its own words (`.cast(movieID:)`).
+- A place moves here once two features link to it. The feature that owns the screen counts only when its own views link to it. A place only one feature links to stays in that feature's `XDestination`, even when the screen belongs to another feature: only Movie links to a person (`MovieDestination.person(id:)`).
+- Cases name the screen they open (`.movieDetail(id:)`), since the enum sits outside every feature; a feature's `XDestination` names places in its own words instead (`.cast(movieID:)`).
+- A case carries a Shared type's id where one exists (`MovieSummary.ID`), and a plain `Int` otherwise, since SharedUI imports no feature.
 - A SharedUI view that links, such as `MovieSummaryCard`, pushes `SharedDestination` itself, with no protocol or closures for its links.
 
 ## Router and TabDestination (app)
@@ -90,19 +92,20 @@ final class Router {
 }
 ```
 
-Inject it once from `<AppName>App` with `.environment(router)`. Each tab XScreen binds its stack to its own entry (`NavigationStack(path: $router[.discover])`). `TabDestination` is named like every other place the app can go, which leaves SwiftUI's `Tab` free for `ContentView`.
+Inject it once from `<AppName>App` with `.environment(router)`. Each tab XScreen binds its stack to its own entry (`NavigationStack(path: $router[.discover])`), so a new tab adds a `TabDestination` case and nothing else to `Router`. `TabDestination` is named like every other place the app can go, which leaves SwiftUI's `Tab` free for `ContentView`.
 
 ## Destination and DestinationView (app)
 
-`Destination` lists the app's pushed screens. One initializer per destination type is the only place a destination becomes an app screen, so all cross-feature wiring reads in one file:
+`Destination` lists the screens features reach, pushed or presented. One initializer per destination type is the only place a destination becomes an app screen, so all cross-feature wiring reads in one file:
 
 ```swift
-/// The app's pushed screens. Features never see this type.
+/// The screens features reach, pushed or presented. Features never see this type.
 enum Destination: Hashable {
     case movieDetail(id: MovieSummary.ID)
     case movieCast(movieID: MovieSummary.ID)
     case genreDetail(id: Genre.ID)
     case personDetail(id: Person.ID)
+    case signIn
 }
 
 extension Destination {
@@ -125,6 +128,12 @@ extension Destination {
         case .person(let id): self = .personDetail(id: id)
         }
     }
+
+    init(_ destination: WatchlistDestination) {
+        switch destination {
+        case .signIn: self = .signIn
+        }
+    }
 }
 
 /// The screen for a `Destination`.
@@ -141,6 +150,8 @@ struct DestinationView: View {
             GenreDetailScreen(genreID: id)
         case .personDetail(let id):
             PersonDetailScreen(personID: id)
+        case .signIn:
+            SignInScreen()
         }
     }
 }
@@ -175,12 +186,68 @@ Pop to root by assigning an empty `NavigationPath()`. Since every destination is
 
 ## Push or present
 
-- **Push** (`NavigationLink(value:)`) when the screen loads its own data, needs services, other features can reach it, or it belongs in the back stack.
-- **Present** (`sheet`, `fullScreenCover`, `alert`) when the content is self-contained and built from values the presenting view already has: a full biography, a poster viewer, a confirmation. A presented view takes plain values, or reads the presenting screen's view model when it changes that screen's state, such as a filter it edits; never a service.
+Whether a screen is pushed or presented is the design's choice. Who builds it isn't: a view that loads its own data or needs services is a screen, and only the app builds screens.
+
+- **Push** (`NavigationLink(value:)`) a screen that belongs in the back stack, such as a movie's details.
+- **Present a screen** (`sheet(item:)`, `fullScreenCover(item:)`) that the design shows over the current one, such as signing in. The app builds it too ([presenting a screen](#presenting-a-screen)).
+- **Present a view** the feature builds (`sheet`, `alert`, `confirmationDialog`) when it's made from what the presenting screen holds: a full biography, a poster viewer, a confirmation, a filter it edits. It takes plain values, or reads the presenting screen's view model when it changes that screen's state. It never gets a service or a view model of its own.
+- A presentation that changes data, such as the confirmation before removing a watchlist item, calls an action on the presenting view model, which makes the change through the screen's own service.
+
+## Presenting a screen
+
+A screen the design shows as a sheet or a full-screen cover, such as signing in from the Watchlist tab, is a place like any other: a case in the presenting feature's `XDestination`, mapped in `Destination.init(_:)` and built by `DestinationView`. The feature holds what's presented and picks how; the app supplies the screen:
+
+```swift
+// WatchlistUI/Navigation/WatchlistDestination.swift
+/// Where the Watchlist feature's views can take the user, besides the places several features open.
+public enum WatchlistDestination: Hashable, Codable, Sendable, Identifiable {
+    /// Signing in, so the watchlist follows the account.
+    case signIn
+
+    public var id: Self { self }
+}
+
+// WatchlistViewModel
+/// The place shown over the watchlist, while it's up.
+var presentedDestination: WatchlistDestination?
+
+// WatchlistView.swift
+public struct WatchlistView<Presented: View>: View {
+    @State private var viewModel: WatchlistViewModel
+    private let presented: (WatchlistDestination) -> Presented
+
+    /// `presented` builds the screen for each place the watchlist shows over itself.
+    public init(viewModel: WatchlistViewModel, @ContentBuilder presented: @escaping (WatchlistDestination) -> Presented) {
+        self.viewModel = viewModel
+        self.presented = presented
+    }
+
+    public var body: some View {
+        WatchlistPhaseView()
+            // …
+            .fullScreenCover(item: $viewModel.presentedDestination, content: presented)
+            .environment(viewModel)
+    }
+}
+
+// App: WatchlistScreen.swift
+WatchlistView(viewModel: WatchlistViewModel(service: watchlistService)) { destination in
+    NavigationStack {
+        DestinationView(destination: Destination(destination))
+            // A stack root of its own: it registers what it can push.
+    }
+}
+```
+
+- An action on the view model opens it (`openSignIn()`). The presented screen closes itself with `dismiss()`, from its close button or once its view model says it's done, which sets `presentedDestination` back to `nil`.
+- The feature picks `sheet(item:)` or `fullScreenCover(item:)` for its `presentedDestination`; the app picks only the screen. Several places a screen presents share that one property and its style, so only one is up at a time. The same case can be pushed from one view and presented from another.
+- Only `XView` takes the closure, and only when the feature presents a place; the views below it still push values.
+- The presented screen's XScreen is shaped like a pushed one ([XScreen](composition.md#xscreen-tab-and-pushed)). The app wraps it in a `NavigationStack` when it needs a title, a close button or pushes of its own. That stack is a stack root, so it registers every destination type it can show ([registering destinations](#registering-destinations)).
+- The feature's previews pass a placeholder or its preview destination view ([previews](#previews)).
 
 ## Sheets, covers and alerts
 
-What a screen presents is state on its view model, a plain `var` its views bind, so any view can open it, an action can close it, and tests can check it. What a presented view edits before it's applied is a draft on the view model that the action opening the sheet fills, so each presentation starts from the screen's state:
+What a screen presents is state on its view model, a plain `var` its views bind, so any view can open it, an action can close it, and tests can check it. What a presented view edits before it's applied is a draft on the view model. The action that opens the sheet fills it, so each presentation starts from the screen's state:
 
 ```swift
 // SearchViewModel
@@ -199,24 +266,8 @@ func openFilter() {
 - The toolbar's button calls `openFilter()`, `SearchFilterView` binds `$viewModel.filterDraft`, and its apply button calls `viewModel.apply(viewModel.filterDraft)`, which closes the filter.
 - `XView` presents what any state can open, such as a toolbar's filter; a sheet only the content opens is presented there.
 - A presented view that needs a title or a close button owns an unmanaged `NavigationStack`.
-
-A presentation about one value, such as the watchlist item a row asks to remove, is that value as an optional. It shows while the value is set, its actions receive the value, and dismissing it sets the value back to `nil`:
-
-```swift
-// WatchlistViewModel
-/// The item a row asked to remove, while the confirmation is up.
-var itemToRemove: WatchlistItem?
-
-// WatchlistContentView, where each row's swipe action sets `itemToRemove`
-.confirmationDialog(.watchlistRemoveTitle, item: $viewModel.itemToRemove) { item in
-    Button(.watchlistActionRemove, role: .destructive) {
-        Task { await viewModel.remove(item) }
-    }
-}
-```
-
-- Present it with `sheet(item:)`, `alert(_:item:)` or `confirmationDialog(_:item:)`, never with a `Bool` beside the value, which could disagree with it.
-- A screen with several sheets holds one optional `Identifiable` enum of them (`presentedSheet`) behind one `sheet(item:)`, never a `Bool` each, so only one is ever up.
+- A presentation about one value, such as the watchlist item a row asks to remove, is that value as an optional (`var itemToRemove: WatchlistItem?`). It shows while the value is set, its actions receive the value, and dismissing it sets the value back to `nil`. No `Bool` sits beside the value, since the two could disagree.
+- A screen with several sheets holds one optional `Identifiable` enum of them (`presentedSheet`), never a `Bool` each, so only one is ever up.
 
 ## Previews
 

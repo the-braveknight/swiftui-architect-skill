@@ -20,14 +20,14 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 | A name an imported module declares | a qualifier from the domain | `MovieCollection`, not `Collection` |
 | Feature error | `XError`; one per screen when their failures differ | `MovieError.notFound`, `GenreDetailError` |
 | Service protocol (XCore) | `XService`, one per screen; another for each concern with a source of its own; never a `…Repository`, `…UseCase` or `…Manager` | `DiscoverService`, `MovieCastService`, `RecentSearchesService` |
-| Service implementation (XLive) | its source + the protocol's name | `TMDBDiscoverService`, `SwiftDataWatchlistService` |
+| Service implementation (XLive) | its source + the protocol's name | `TMDBDiscoverService`, `TMDBWatchlistService` |
 | Mock (XCore) | `Mock` + the protocol's name, exposed as `.mock`, and `.mock(_:)` for a scenario | `MockDiscoverService`, `.mock(.failure(.offline))` |
 | Consumer-owned port, and its app adapter | named for the consumer's need; an adapter is the protocol's name with `Adapter` for `Service` | `WatchlistMembershipService`, `WatchlistMembershipAdapter` |
 | Service reads and changes | noun phrases for what reads return; imperative verbs for changes | `movie(id:)`, `shelves(page:)`; `addToWatchlist(_:)` |
 | API client and its error | the API's name + `Client` / `Error`; client methods keep the spec's operation names | `TMDBClient.movieDetails(id:)`, `TMDBError` |
 | View model | `XViewModel`, one per screen | `MovieCastViewModel` |
 | View model actions | imperative verbs; `refresh()` beside `load()` on a screen with a paged list | `load()`, `refresh()`, `loadNextShelvesPage()`, `select(_:)` |
-| View model state | per resource: the data, `isLoading…`, `…Error`; paged: `next…Page`, `isLoadingNext…Page`, `next…PageError`; keyed: the key (`selectedDepartment`); bound input (`text`) and the values matching it (`matchingItems`), what's presented (`isFilterPresented`), the value a presentation is about (`itemToRemove`), one of several sheets (`presentedSheet`), a draft (`filterDraft`), a change in progress (`isUpdating`) ([view models](view-models.md#one-resource-data-activity-and-error)) | `shelves`, `isLoadingShelves`, `shelvesError`, `nextShelvesPage` |
+| View model state | per resource: the data, `isLoading…`, `…Error`; paged: `next…Page`, `isLoadingNext…Page`, `next…PageError`; keyed: the key (`selectedDepartment`); bound input (`text`) and the values matching it (`matchingItems`), what's presented (`isFilterPresented`), a place shown over the screen (`presentedDestination`), the value a presentation is about (`itemToRemove`), one of several sheets (`presentedSheet`), a draft (`filterDraft`), a change in progress (`isUpdating`) ([view models](view-models.md#one-resource-data-activity-and-error)) | `shelves`, `isLoadingShelves`, `shelvesError`, `nextShelvesPage` |
 | Nested model | declared inside its view model; a plain noun for what it holds, never `…ViewModel` | `MovieDetailViewModel.WatchlistMembership`, `GenreDetailViewModel.SearchSession` |
 | Screen views | `XView` (public), `XPhaseView`, `XContentView`; a mode's after `X` | `DiscoverView`, `DiscoverPhaseView`, `GenreDetailSearchPhaseView` |
 | Sections of one screen | `X` + what it is | `MovieDetailCastRail`, `DiscoverFeaturedView` |
@@ -49,7 +49,7 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 |---|---|
 | XCore | `Models/`; `Services/`, with a folder per service protocol holding it and its mock (`Services/MovieDetailService/`) |
 | XUI | a folder per screen: its view model and nested models, views, toolbar, paging footers and display mappings, with a subfolder per mode or set of sections (`GenreDetail/Search/`, `MovieDetail/Sections/`); `Components/`: the views and display mappings several screens use, filed by kind (`Cards/`, `Rails/`); `Navigation/`; `Resources/` |
-| XLive | `Mapping/`, `Services/`, and `Persistence/` when it stores data |
+| XLive | `Mapping/`, `Services/` |
 | XTests | `ViewModels/`, `Live/`, `Fixtures.swift` |
 | Shared | `Domain/`; SharedUI: `Components/`, `Navigation/`, `Resources/`; SharedLive: `Mapping/`, and `Services/` for client steps several features share |
 | Networking | `openapi.yaml`, `openapi-generator-config.yaml`, the client, its error, `Middleware/` |

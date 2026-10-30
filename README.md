@@ -12,7 +12,7 @@ Large SwiftUI codebases are commonly split into many local Swift packages, one p
 - **Ownership.** A feature package has a clear owner, a clear public API, and a place for everything it needs. Several teams can work in parallel with few merge conflicts.
 - **Faster builds and previews.** Changing one feature rebuilds that package and what depends on it, not the whole app. Previews compile only the feature being previewed.
 - **Testability in isolation.** A feature builds and tests against a mock of its own service contract, without the app, the network or other features.
-- **Replaceable layers.** Networking, persistence or the design system can change behind a stable contract. A feature can be rewritten, removed or put behind a flag without touching others.
+- **Replaceable layers.** Networking or the design system can change behind a stable contract. A feature can be rewritten, removed or put behind a flag without touching others.
 - **Readable architecture.** The folder tree and the dependency graph show how the app is built. New engineers and agents find where code belongs without reading all of it.
 
 ## Why use it for production apps
@@ -34,14 +34,15 @@ The trade-offs are real: more `Package.swift` files to maintain, some deliberate
 
 - The module map and dependency direction: feature packages (`XCore`, `XUI`, `XLive`, `XTests`), one per capability whichever tabs show it, over a shared package (`Shared`, `SharedUI`, `SharedLive`), `DesignSystem` and `Networking`, and what goes in each.
 - Domain-driven models that describe what the app shows, not what the API sends, with live services mapping API responses and errors into them.
-- Networking with Apple's swift-openapi-generator: a generated client wrapped in the app's own, with failures and cancellation classified once.
+- Networking: one package with the API's types and the app's client over them, generated with Apple's swift-openapi-generator when the API has an OpenAPI document, with failures and cancellation classified once.
 - Service design and naming, following the Swift API Design Guidelines: a protocol per screen with no repository or use case layers, reads as noun phrases, mocks for previews and tests, consumer-owned ports between features, and one owner for state several features share, such as a signed-in account.
 - View models: per-resource loading state, several resources, pagination, resources keyed by what the user picks or types, a search through what's already loaded, nested models for parts of a screen such as a search within it, feature error types, cancellation, and which tests are worth writing.
-- The views a screen is made of: `XView`, `XPhaseView`, `XContentView`, sections and paging footers, and phase views that read the data first, so a refresh doesn't redraw them.
+- The views a screen is made of: `XView`, `XPhaseView`, `XContentView`, sections and paging footers, and phase views that check for data first, so a refresh keeps the content on screen.
 - App composition: the `<AppName>App` initializer as the dependency-injection root, environment keys, tab and pushed `XScreen` views.
-- Routing: feature `XDestination` values, SharedUI's `SharedDestination` for the places several features open, an app-owned `Router`, one mapping file, registration at stack roots, and presentations held as view model state, down to the value an alert or sheet is about.
+- Routing: feature `XDestination` values, SharedUI's `SharedDestination` for the places several features open, an app-owned `Router`, one mapping file, registration at stack roots, screens shown as sheets or covers through the same mapping, and presentations held as view model state, down to the value an alert or sheet is about.
 - Localization, assets and fonts per module: String Catalogs with generated symbols, asset catalogs with generated symbols, fonts that DesignSystem registers.
 - Naming and folder conventions, including what a feature's screens share and what spans the whole feature.
+- Existing apps: following an app's own structure until asked to change it, moving an app into packages one buildable step at a time, and reviewing an app's boundaries with checks an agent can run.
 
 Out of scope, and covered by other skills the agent loads alongside this one:
 - SwiftUI view code technique: Apple's `swiftui-specialist`, built into Xcode's coding assistant; [SwiftUI Expert](https://github.com/AvdLee/SwiftUI-Agent-Skill); [SwiftUI Pro](https://github.com/twostraws/swiftui-agent-skill)
@@ -56,9 +57,9 @@ swiftui-architect-skill/
 ├── skills/swiftui-architect/
 │   ├── SKILL.md                 entry point: shape, rules, gotchas, workflows, which reference to read
 │   └── references/
-│       ├── modules.md           targets, naming inside a feature, folders, Package.swift, the shared package, DesignSystem, strings, tests
+│       ├── modules.md           targets, naming inside a feature, folders, Package.swift, the shared package, DesignSystem, strings, tests, boundary checks, moving an app into packages
 │       ├── domain.md            domain models, errors, service protocols and naming, live services, mocks, ports
-│       ├── networking.md        swift-openapi-generator, the API client, errors and cancellation
+│       ├── networking.md        the Networking package, the API client, errors and cancellation
 │       ├── view-models.md       loading state, several resources, pagination, keyed resources, filtering, nested models, tests
 │       ├── views.md             XView, XPhaseView, XContentView, paging footer, passing data
 │       ├── composition.md       <AppName>App.swift, dependency injection, environment keys, XScreen

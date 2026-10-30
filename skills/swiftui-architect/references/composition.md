@@ -39,7 +39,7 @@ struct MoviesApp: App {
     init() {
         do {
             let client = try TMDBClient(session: .shared)
-            let watchlistService = try SwiftDataWatchlistService.persistent()
+            let watchlistService = TMDBWatchlistService(client: client)
 
             discoverService = TMDBDiscoverService(client: client)
             movieDetailService = TMDBMovieDetailService(client: client)
@@ -66,7 +66,6 @@ struct MoviesApp: App {
 - Live or mock is the app's decision, through configuration or launch arguments for UI tests. Features never decide.
 - One service instance per protocol for the app's lifetime; views never create services.
 - App-wide policies (URL sessions, caches, tint) are applied here, not in features or DesignSystem.
-- Images load through `AsyncImage`, on the shared session by default. A session of the app's own, such as one with a larger `URLCache`, goes on `ContentView` inside the `WindowGroup` with `.asyncImageURLSession(_:)`, which modifies views, not scenes.
 
 ## Environment keys
 
@@ -138,6 +137,8 @@ struct DiscoverScreen: View {
     }
 }
 ```
+
+An `XView` that presents a screen takes it from its XScreen, as a closure that returns `DestinationView` ([presenting a screen](navigation.md#presenting-a-screen)).
 
 A **pushed XScreen** takes only identifiers, never models, so the stack stays small, `Codable` and restorable. It owns no stack.
 

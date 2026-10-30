@@ -15,7 +15,7 @@ A screen is a small family of views in its feature's XUI target: `XView`, the pu
 
 | File | Role |
 |---|---|
-| `XView` | Public entry point. Owns the view model and puts it in the environment; starts the screen's loads; applies what every state shares (title, search field, toolbars and the sheets they open); renders `XPhaseView` |
+| `XView` | Public entry point. Owns the view model and puts it in the environment; starts the screen's loads; applies what every state shares (title, search field, toolbars and the sheets they open); presents the screens the app passes in ([presenting a screen](navigation.md#presenting-a-screen)); renders `XPhaseView` |
 | `XPhaseView` | Picks what to show from where the loads stand, as `AsyncImage` does from its phase: the mode when it's active, then the content, the error, progress or the empty state. It reads the view model's properties; there's no phase type |
 | `XContentView` | Lays out the loaded values it's given in its scroll container, one view per resource or section |
 | `XSearchPhaseView`, `XSearchContentView`, … | A [mode](#modes)'s own family, shaped like the screen's |
@@ -103,12 +103,12 @@ struct DiscoverContentView: View {
 ```
 
 - `XView` never decides between states. It starts the screen's loads with `.task`, and `.task(id:)` for a [keyed resource](view-models.md#keyed-resources). Never start them on the progress view: it goes away when the first data arrives, and cancelling its task cancels the loads still running.
-- What every state shares goes on `XView`, such as a control over the results. Inside `XPhaseView` or a content view it would be rebuilt whenever the state changes.
-- `XPhaseView` checks in a fixed order: the content whenever there is data, the error only when there's nothing to show, progress while the load runs, then the empty state where the design has one. While there's data it reads only the data, so a refresh doesn't redraw it. It follows the resource the content can't do without and passes the others along.
+- What every state shares goes on `XView`, such as a control over the results, so it stays up while the screen loads, fails or shows content.
+- `XPhaseView` checks in a fixed order: the content whenever there is data, the error only when there's nothing to show, progress while the load runs, then the empty state where the design has one. It follows the resource the content can't do without and passes the others along.
 - A screen that loads nothing, such as a form, has no `XPhaseView`: `XView` renders `XContentView`.
 - A screen with a [filter](view-models.md#filtering-loaded-values) shows the content while something matches, then `ContentUnavailableView.noResults` while there's data but nothing matches, ahead of the error and progress.
 - `XContentView` takes values, owns the scroll container and lays out one view per resource or section. What acts inside it, such as the paging footer or a row's swipe action, reads the view model from the environment.
-- A title from loaded data goes with that data: in `XContentView` when the content is the thing it names (`.navigationTitle(movie.title)`), in `XView` when the thing loads beside the content, so it stays up in every state (`.navigationTitle(viewModel.genre?.name ?? "")`).
+- A title from loaded data goes with that data. When the content is the thing the title names, the title goes in `XContentView` (`.navigationTitle(movie.title)`). When the thing loads beside the content, the title goes on `XView`, so it stays up in every state (`.navigationTitle(viewModel.genre?.name ?? "")`).
 
 ## What a screen shows without content
 
@@ -166,7 +166,7 @@ struct GenreDetailPhaseView: View {
 ```
 
 - The search field lives on `XView`, so it stays up while the screen loads, fails or searches.
-- The phase view reads only `isActive`, which changes when words are applied ([typed text](view-models.md#keyed-resources)), not on each keystroke, so typing redraws nothing below `XView`.
+- The phase view switches on `isActive`, which changes when words are applied ([typed text](view-models.md#keyed-resources)), not on each keystroke.
 - The mode's family mirrors the screen's: a phase view checking its results in the same order (ending in `ContentUnavailableView.noResults`), a content view with its own `.refreshable`, and its own paging footer.
 - The mode sits beside the content, never inside `XContentView`, which exists only once the screen's own data has loaded.
 
@@ -174,7 +174,7 @@ struct GenreDetailPhaseView: View {
 
 | Who | Holds | How |
 |---|---|---|
-| App `XScreen` | Creates the view model with every service it and its nested models use | Inline in `body`, passed to `XView` |
+| App `XScreen` | Creates the view model with every service it and its nested models use, and the screens `XView` presents | Inline in `body`, passed to `XView` |
 | `XView` | Owns the view model for the screen's lifetime, binds its input, presents what its toolbar opens | `@State private var viewModel`, `.environment(viewModel)` outermost, `.sheet(isPresented: $viewModel.isFilterPresented)` |
 | Views that decide from state or act: phase views, footers, toolbars | The view model, from the environment | `@Environment(GenreDetailViewModel.self) private var viewModel`; a nested model through it |
 | Content and display views: sections, rows, cards | The values they show, never the view model | `DiscoverContentView(featured:shelves:)`, `movie: MovieSummary` |
@@ -182,7 +182,7 @@ struct GenreDetailPhaseView: View {
 
 - Screen state lives in the view model, directly or in a nested model: what's presented, what a sheet edits, selections. `XView` holds no `@State` beside its view model, so a test can drive the whole screen through one type.
 - Display views take values even though the view model is in reach, so the feature's other screens can show them too, and SharedUI can take one when a second feature needs it.
-- Never pass closures down for the view model's actions. A view that takes a closure is re-evaluated whenever its parent is; one that reads the view model re-renders only for the properties it reads. A leaf whose one button fires one action, such as a preset's retry, may take a closure: pass a named private method (`.offline(retry: retry)`).
+- Never pass closures down for the view model's actions: a view that acts reads the view model from the environment. A leaf whose one button fires one action, such as a preset's retry, may take a closure: pass a named private method (`.offline(retry: retry)`).
 - A pushed screen never sees the previous screen's view model: each `XView` injects its own.
 
 ## View structure rules
