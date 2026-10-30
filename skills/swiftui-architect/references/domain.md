@@ -63,7 +63,7 @@ public enum MovieError: Error, Equatable {
 
 ## Service protocols
 
-XCore declares one service protocol per screen, holding only what that screen loads and changes, with one ready-made method per resource. The service maps, aggregates and de-duplicates what one call returns, so a view model only assigns it; a list paged across calls is the view model's to keep free of repeats ([pagination](view-models.md#pagination)).
+XCore declares one service protocol per screen, holding only what that screen loads and changes, with one ready-made method per resource. The service maps and aggregates what one call returns, so a view model only assigns it.
 
 ```swift
 /// What a movie's details show: the movie and its cast.
@@ -130,8 +130,7 @@ public struct TMDBMovieDetailService: MovieDetailService {
 - Methods are `@concurrent`, so requests and mapping run off the main actor. Protocol requirements and mocks stay unannotated.
 - Mapping lives in `Model+Source.swift` extensions (`Movie+TMDB.swift`, `MovieError+TMDB.swift`). A model maps from its response in a failable initializer: a list item missing a required field is dropped, and a whole response that can't be read is `.unavailable`. A mapping to a Shared model that several features read lives once, in SharedLive ([modules](modules.md#shared-sharedui-and-sharedlive)).
 - The feature's error maps from the client's error in an initializer, such as a 404 to `.notFound`. `CancellationError` passes through untouched ([networking](networking.md#errors-and-cancellation)).
-- Data a feature keeps on the device is stored as records in XLive's `Persistence/`, each named for the model it holds plus `Record` (`WatchlistItemRecord`, a SwiftData `@Model`), and mapped to and from that model in `WatchlistItem+SwiftData.swift`. Each feature's container keeps a store file of its own name, since default containers share one. Records never leave XLive, so no view reads a store or uses `@Query`.
-- A step two live services share, such as reading extra artwork, is an internal extension on the client in XLive.
+- A step two live services share, such as reading extra artwork, is an internal extension on the client in XLive. A step several features' live services share, such as discovering movies by genre for Discover and for Search's filter, is a public extension in SharedLive's `Services/` (`TMDBClient+DiscoverMovies.swift`): it takes Shared values, returns a Shared model, and throws the client's error for each feature to map to its own.
 
 ## Mocks
 

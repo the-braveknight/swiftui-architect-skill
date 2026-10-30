@@ -165,7 +165,7 @@ The shared package mirrors a feature's layers:
 |---|---|---|
 | `Shared` | `Domain/`: the vocabulary several features share (`MovieSummary`, `Page<Item>`) | Foundation only |
 | `SharedUI` | `Components/`: views several features show (`MovieSummaryCard`) and the shared screen states (`ContentUnavailableView.offline(retry:)`) with their copy. `Navigation/`: `SharedDestination` ([navigation](navigation.md#shareddestination-sharedui)) | `Shared`, `DesignSystem` |
-| `SharedLive` | `Mapping/`: an API type's mapping to a Shared model that several features read (`MovieSummary+TMDB.swift`), tested in `SharedLiveTests` | `Shared`, `Networking` |
+| `SharedLive` | `Mapping/`: an API type's mapping to a Shared model that several features read (`MovieSummary+TMDB.swift`), tested in `SharedLiveTests`. `Services/`: a step on the client that several features' live services share ([live services](domain.md#live-services)) | `Shared`, `Networking` |
 
 ```swift
 /// One page of a paginated list, as a service returns it.
@@ -183,10 +183,10 @@ public struct Page<Item: Sendable>: Sendable {
 
 `nextPage` has the type the API pages by: an `Int` for TMDB's numbered pages, a `String` for an API that pages by cursor.
 
-**The promotion rule.** A type moves into Shared or SharedUI, and a mapping into SharedLive, only when a second feature needs the same concept and both copies must change together. It holds both ways: whatever is shared but used by one feature, from however many of its screens, belongs in that feature. Two types that merely look alike are duplicated; they will diverge.
+**The promotion rule.** A type moves into Shared or SharedUI, and a mapping or client step into SharedLive, only when a second feature needs the same concept and both copies must change together. It holds both ways: whatever is shared but used by one feature, from however many of its screens, belongs in that feature. Two types that merely look alike are duplicated; they will diverge.
 
 Never in the shared package:
-- Errors, service protocols, ports, services or persistence; each feature maps the client's errors to its own
+- Errors, service protocols, ports, live services or persistence; each feature maps the client's errors to its own
 - Navigation types other than `SharedDestination`
 - Environment keys, app state or preferences
 - Generated API types outside SharedLive
@@ -205,7 +205,7 @@ It never knows a feature model, service, destination or screen, has no strings o
 
 ## Networking and other infrastructure
 
-`Networking` generates the API's types and client and wraps them in the app's client ([networking](networking.md)). It and any persistence or analytics package are imported by the Live targets, XTests and the app, never by XCore or XUI, and their types never appear in a feature's public API. A feature's own storage, such as SwiftData, likewise stays in its XLive ([stored records](domain.md#live-services)).
+`Networking` generates the API's types and client and wraps them in the app's client ([networking](networking.md)). It and any persistence or analytics package are imported by the Live targets, XTests and the app, never by XCore or XUI, and their types never appear in a feature's public API.
 
 They import no feature. What they need from one, such as the signed-in account's current token for an auth header, the app passes in as a closure when it builds their clients.
 
@@ -227,7 +227,7 @@ Each feature package builds, previews and tests without the app. Test what a bug
 | Behavior | Tested in |
 |---|---|
 | A screen's own rules: what it loads, its failure rule, paging, stale results ([which tests](view-models.md#testing-view-models)) | `XTests/ViewModels`, with private actor stubs |
-| The API's quirks in mapping: dropped incomplete items, duplicates, paging metadata | `XTests/Live` and `SharedLiveTests`, with hand-built generated types |
+| Mapping: dropped incomplete items, paging metadata | `XTests/Live` and `SharedLiveTests`, with hand-built generated types |
 | Requests, decoding, error classification and cancellation | `NetworkingTests`, with a stub transport |
 | `Destination` mappings that aren't one-to-one, and adapters | app tests |
 | Visual states: loading, empty, error | previews |

@@ -28,7 +28,7 @@ This repository is the `swiftui-architect` agent skill. Agents read `skills/swif
 - No invented states: an empty answer is never an error, and a screen shows only the states its design has.
 - Testing guidance names the tests a bug would break, never a test for what every instance of a shape repeats.
 - Describe the current design only, with no dates, old names, renames, migrations or history.
-- One term per concept, as `references/conventions.md` names it: feature, screen, a tab's root screen, tab XScreen, pushed XScreen, resource, keyed resource, mode, nested model, port, stored record, place, the shared package, the Live targets, `XDestination`, `SharedDestination`, `Destination`. Names follow the Swift API Design Guidelines and that file's naming table.
+- One term per concept, as `references/conventions.md` names it: feature, screen, a tab's root screen, tab XScreen, pushed XScreen, resource, keyed resource, mode, nested model, port, place, the shared package, the Live targets, `XDestination`, `SharedDestination`, `Destination`. Names follow the Swift API Design Guidelines and that file's naming table.
 - A new rule mustn't contradict an existing one. When it replaces one, change every place the old rule appears.
 - Voice: plain declarative sentences in the present tense, lists over paragraphs, no "you", no all-caps emphasis, no hedging.
 

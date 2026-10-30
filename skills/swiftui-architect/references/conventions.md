@@ -21,7 +21,6 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 | Feature error | `XError`; one per screen when their failures differ | `MovieError.notFound`, `GenreDetailError` |
 | Service protocol (XCore) | `XService`, one per screen; another for each concern with a source of its own; never a `…Repository`, `…UseCase` or `…Manager` | `DiscoverService`, `MovieCastService`, `RecentSearchesService` |
 | Service implementation (XLive) | its source + the protocol's name | `TMDBDiscoverService`, `SwiftDataWatchlistService` |
-| Stored record (XLive) | the model it holds + `Record` | `WatchlistItemRecord` |
 | Mock (XCore) | `Mock` + the protocol's name, exposed as `.mock`, and `.mock(_:)` for a scenario | `MockDiscoverService`, `.mock(.failure(.offline))` |
 | Consumer-owned port, and its app adapter | named for the consumer's need; an adapter is the protocol's name with `Adapter` for `Service` | `WatchlistMembershipService`, `WatchlistMembershipAdapter` |
 | Service reads and changes | noun phrases for what reads return; imperative verbs for changes | `movie(id:)`, `shelves(page:)`; `addToWatchlist(_:)` |
@@ -40,7 +39,7 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 | App screen | `XScreen` | `MovieDetailScreen` |
 | App entry point | `<AppName>App` | `MoviesApp` |
 | Environment key | `xService` in `EnvironmentValues+XService.swift` | `\.discoverService` |
-| Mapping file | `Model+Source.swift` | `Movie+TMDB.swift`, `MovieError+TMDB.swift`, `WatchlistItem+SwiftData.swift` |
+| Mapping file | `Model+Source.swift` | `Movie+TMDB.swift`, `MovieError+TMDB.swift` |
 | Display mapping | a property returning `LocalizedStringResource`, in `Model+Title.swift` | `Department.title` |
 | Test fixture | `make…` | `makeMovie(id:title:)` |
 
@@ -52,7 +51,7 @@ Names follow the [Swift API Design Guidelines](https://www.swift.org/documentati
 | XUI | a folder per screen: its view model and nested models, views, toolbar, paging footers and display mappings, with a subfolder per mode or set of sections (`GenreDetail/Search/`, `MovieDetail/Sections/`); `Components/`: the views and display mappings several screens use, filed by kind (`Cards/`, `Rails/`); `Navigation/`; `Resources/` |
 | XLive | `Mapping/`, `Services/`, and `Persistence/` when it stores data |
 | XTests | `ViewModels/`, `Live/`, `Fixtures.swift` |
-| Shared | `Domain/`; SharedUI: `Components/`, `Navigation/`, `Resources/`; SharedLive: `Mapping/` |
+| Shared | `Domain/`; SharedUI: `Components/`, `Navigation/`, `Resources/`; SharedLive: `Mapping/`, and `Services/` for client steps several features share |
 | Networking | `openapi.yaml`, `openapi-generator-config.yaml`, the client, its error, `Middleware/` |
 | App | `App/`, `Adapters/`, `Extensions/Environment/`, `Navigation/`, `Screens/` |
 
